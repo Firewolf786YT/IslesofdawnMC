@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Access Denied — IslesOfDawnMC</title>
+    <meta name="description" content="Access denied for restricted IslesOfDawnMC staff pages." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="login-main denied-main">
+      <section class="denied-card card">
+        <p class="eyebrow">Restricted Area</p>
+        <h1 class="login-heading">Access denied</h1>
+        <p class="login-sub">
+          The Staff Portal is only available to accounts with a staff or admin role.
+        </p>
+        <p id="accessDeniedMessage" class="denied-message">
+          Sign in with the correct account or ask an admin to assign the right role.
+        </p>
+        <div class="denied-actions">
+          <a class="btn btn-primary" href="index.html">Back Home</a>
+          <a class="btn btn-secondary" href="login.html">Sign In</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script>
+      (async () => {
+        const messageEl = document.getElementById('accessDeniedMessage');
+        const user = await syncSessionFromSupabase();
+
+        if (!user) {
+          messageEl.textContent = 'You are not signed in. Sign in with an approved staff account to continue.';
+          return;
+        }
+
+        await syncCurrentUserRoleFromSupabase();
+        const role = getUserRole(user.uid);
+        if (role === 'staff' || role === 'admin') {
+          location.replace('staff.html');
+          return;
+        }
+
+        messageEl.textContent = `${user.name || user.email} is signed in as ${role}. Ask an admin to promote this account if it should access staff pages.`;
+      })();
+    </script>
+  </body>
+</html>

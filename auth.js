@@ -29,6 +29,7 @@ const SESSION_KEY = 'islesOfDawnSession';
 const ROLES_KEY = 'islesOfDawnRoles';
 const LOGIN_NEXT_SK = 'islesOfDawnLoginNext';
 const USER_ROLES_TABLE = 'user_roles';
+const ACCESS_DENIED_PAGE = 'access-denied.html';
 
 // ── Session ──────────────────────────────────────────────────────────────────
 const getSession = () => {
@@ -272,6 +273,65 @@ const loginWithDiscord = async () => {
   }
 };
 
+const signInWithEmailPassword = async (email, password) => {
+  const client = await getSupabaseClient();
+  if (!client) {
+    return { ok: false, message: 'Supabase is not configured yet. Add URL and anon key in auth.js.' };
+  }
+
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  const user = data?.user ? toAppSession(data.user) : await syncSessionFromSupabase();
+  if (user) {
+    setSession(user);
+    await syncCurrentUserRoleFromSupabase();
+    return { ok: true, requiresEmailConfirmation: false };
+  }
+
+  return { ok: false, message: 'Could not complete sign-in. Please try again.' };
+};
+
+const createAccountWithEmailPassword = async (email, password, displayName = '') => {
+  const client = await getSupabaseClient();
+  if (!client) {
+    return { ok: false, message: 'Supabase is not configured yet. Add URL and anon key in auth.js.' };
+  }
+
+  const { data, error } = await client.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: SUPABASE_CONFIG.redirectTo,
+      data: displayName ? { name: displayName, full_name: displayName } : {},
+    },
+  });
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  if (data?.session?.user) {
+    const user = toAppSession(data.session.user);
+    if (user) {
+      setSession(user);
+      await syncCurrentUserRoleFromSupabase();
+      return { ok: true, requiresEmailConfirmation: false };
+    }
+  }
+
+  return {
+    ok: true,
+    requiresEmailConfirmation: true,
+    message: 'Account created. Check your email for the confirmation link before signing in.',
+  };
+};
+
+window.signInWithEmailPassword = signInWithEmailPassword;
+window.createAccountWithEmailPassword = createAccountWithEmailPassword;
+
 // ── Logout ───────────────────────────────────────────────────────────────────
 const logout = async () => {
   const client = await getSupabaseClient();
@@ -352,7 +412,7 @@ const requireStaff = () => {
 
   const role = getUserRole(user.uid);
   if (role !== 'staff' && role !== 'admin') {
-    location.replace('index.html');
+    location.replace(ACCESS_DENIED_PAGE);
     return false;
   }
 
@@ -370,7 +430,7 @@ const requireStaffAccess = async () => {
   await syncCurrentUserRoleFromSupabase();
   const role = getUserRole(current.uid);
   if (role !== 'staff' && role !== 'admin') {
-    location.replace('index.html');
+    location.replace(ACCESS_DENIED_PAGE);
     return false;
   }
 

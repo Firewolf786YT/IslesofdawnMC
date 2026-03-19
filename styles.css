@@ -13,6 +13,10 @@
   box-sizing: border-box;
 }
 
+img {
+  max-width: 100%;
+}
+
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -775,6 +779,202 @@ body {
   }
 }
 
+@media (max-width: 760px) {
+  .site-header {
+    position: static;
+  }
+
+  .container {
+    width: min(1100px, calc(100% - 1.25rem));
+  }
+
+  .nav-wrap {
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .nav-right {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .nav-links {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .nav-links a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    text-align: center;
+  }
+
+  .nav-links a:last-child {
+    grid-column: 1 / -1;
+  }
+
+  #navAuth {
+    width: 100%;
+  }
+
+  .btn-nav-login {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .nav-auth-user {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .nav-auth-name {
+    max-width: 100%;
+  }
+
+  .hero {
+    padding: 2.5rem 0 2rem;
+  }
+
+  .section {
+    padding: 2.5rem 0;
+  }
+
+  .hero-copy,
+  .hero-aside,
+  .discord-panel,
+  .card,
+  .announcement-form,
+  .announcement-feed,
+  .app-form,
+  .login-card,
+  .denied-card,
+  .staff-module-header {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .about-intro {
+    margin-bottom: 1.8rem;
+  }
+
+  .about-intro h2,
+  .login-heading {
+    font-size: 1.65rem;
+  }
+
+  .staff-diagnostics-header,
+  .announcement-editor-header,
+  .app-toggle-row,
+  .staff-diag-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .staff-diag-row strong {
+    text-align: left;
+  }
+
+  .staff-module-actions,
+  .staff-announce-actions,
+  .announcement-actions,
+  .denied-actions,
+  .app-review-actions {
+    flex-direction: column;
+  }
+
+  .staff-module-actions .btn,
+  .staff-announce-actions .btn,
+  .announcement-actions .btn,
+  .denied-actions .btn,
+  .app-review-actions button,
+  .app-toggle-row button,
+  .staff-diagnostics-header .btn {
+    width: 100%;
+  }
+
+  .staff-app-review-filter {
+    align-items: stretch;
+  }
+
+  .staff-app-review-filter select,
+  .staff-app-review-filter input,
+  .review-filter-reset {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .staff-app-info-grid,
+  .app-form-grid,
+  .app-grid,
+  .staff-hub-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .announcement-list-page .announcement-item {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-logo {
+    height: 32px;
+  }
+
+  .nav-links {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-links a:last-child {
+    grid-column: auto;
+  }
+
+  .hero h1 {
+    font-size: 1.75rem;
+  }
+
+  .hero-text,
+  .login-sub,
+  .section-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .hero-copy,
+  .hero-aside,
+  .discord-panel,
+  .announcement-form,
+  .announcement-feed,
+  .app-form-section,
+  .staff-app-submission,
+  .staff-module-card,
+  .login-card,
+  .denied-card {
+    padding: 0.9rem;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .server-ip {
+    width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .app-badge,
+  .app-review-status,
+  .review-stat-pill {
+    font-size: 0.72rem;
+  }
+}
+
 @media (max-width: 920px) {
   .hero-clean {
     grid-template-columns: 1fr;
@@ -818,6 +1018,12 @@ body {
   font-weight: 600;
 }
 
+.login-error.is-success {
+  background: rgba(90, 196, 140, 0.12);
+  border-color: rgba(90, 196, 140, 0.38);
+  color: #5ac48c;
+}
+
 .login-loader {
   display: flex;
   align-items: center;
@@ -838,6 +1044,64 @@ body {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.login-form {
+  display: grid;
+  gap: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+.login-field {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.login-field span {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.login-field input {
+  width: 100%;
+  background: var(--bg-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.82rem 0.9rem;
+  font: inherit;
+}
+
+.login-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(122, 162, 255, 0.12);
+}
+
+.login-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0 1rem;
+  color: var(--muted);
+  font-size: 0.84rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
 .btn-oauth {
@@ -882,6 +1146,36 @@ body {
   color: var(--muted);
   font-size: 0.85rem;
   margin: 1rem 0 0;
+}
+
+.denied-main {
+  padding-top: 4.5rem;
+  padding-bottom: 4.5rem;
+}
+
+.denied-card {
+  width: min(560px, 100%);
+  margin: 0 auto;
+  text-align: center;
+  padding: 2.6rem 2rem;
+}
+
+.denied-message {
+  margin: 0 0 1.4rem;
+  color: var(--muted);
+}
+
+.denied-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 560px) {
+  .login-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Staff page ─────────────────────────────────────────── */
@@ -1403,7 +1697,7 @@ body {
   border-radius: 10px;
   padding: 0.45rem 0.65rem;
   font: inherit;
-  min-width: 230px;
+  min-width: 0;
 }
 
 .review-filter-reset {

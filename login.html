@@ -26,7 +26,6 @@
             <a href="applications.html">Applications</a>
             <a href="appeals.html">Appeals</a>
             <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
-            <a href="staff.html">Staff Portal</a>
           </nav>
           <div id="navAuth"></div>
         </div>
@@ -52,6 +51,32 @@
 
         <!-- Login buttons (hidden until determined no callback is happening) -->
         <div id="loginOptions" class="is-hidden">
+          <form id="emailAuthForm" class="login-form">
+            <label class="login-field">
+              <span>Display name</span>
+              <input id="loginDisplayName" type="text" name="displayName" autocomplete="nickname" placeholder="Firewolf" />
+            </label>
+
+            <label class="login-field">
+              <span>Email</span>
+              <input id="loginEmail" type="email" name="email" autocomplete="email" placeholder="you@example.com" required />
+            </label>
+
+            <label class="login-field">
+              <span>Password</span>
+              <input id="loginPassword" type="password" name="password" autocomplete="current-password" placeholder="Enter a password" minlength="6" required />
+            </label>
+
+            <div class="login-actions">
+              <button id="emailSignInBtn" class="btn" type="submit">Sign in with Email</button>
+              <button id="emailCreateBtn" class="btn btn-secondary" type="button">Create Account</button>
+            </div>
+          </form>
+
+          <div class="login-divider" aria-hidden="true">
+            <span>or continue with</span>
+          </div>
+
           <button id="loginWithGoogle" class="btn btn-oauth btn-google" type="button">
             <svg class="oauth-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -70,7 +95,7 @@
           </button>
 
           <p class="login-note">
-            New here? An account is created automatically on first sign-in.
+            Use email/password above, or keep Google and Discord as alternate sign-in options.
           </p>
         </div>
       </div>
@@ -86,6 +111,47 @@
     <script src="script.js"></script>
     <script>
       (async () => {
+        const loginError = document.getElementById('loginError');
+        const loginLoader = document.getElementById('loginLoader');
+        const loginOptions = document.getElementById('loginOptions');
+        const emailAuthForm = document.getElementById('emailAuthForm');
+        const emailCreateBtn = document.getElementById('emailCreateBtn');
+        const emailSignInBtn = document.getElementById('emailSignInBtn');
+        const loginDisplayName = document.getElementById('loginDisplayName');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+
+        const setStatus = (message, isError = true) => {
+          loginError.textContent = message;
+          loginError.classList.remove('is-hidden', 'is-success');
+          if (!isError) {
+            loginError.classList.add('is-success');
+          }
+        };
+
+        const clearStatus = () => {
+          loginError.textContent = '';
+          loginError.classList.add('is-hidden');
+          loginError.classList.remove('is-success');
+        };
+
+        const setFormBusy = (busy, message = 'Working…') => {
+          loginLoader.querySelector('span').textContent = message;
+          loginLoader.classList.toggle('is-hidden', !busy);
+          loginOptions.classList.toggle('is-hidden', busy);
+          emailAuthForm.querySelectorAll('input, button').forEach((element) => {
+            element.disabled = busy;
+          });
+          document.getElementById('loginWithGoogle').disabled = busy;
+          document.getElementById('loginWithDiscord').disabled = busy;
+        };
+
+        const readCredentials = () => ({
+          displayName: loginDisplayName.value.trim(),
+          email: loginEmail.value.trim(),
+          password: loginPassword.value,
+        });
+
         await syncSessionFromSupabase();
 
         // Already logged in — send straight home
@@ -99,12 +165,65 @@
           location.search.includes('error=') ||
           location.hash.includes('error=');
         if (hasCallback) {
-          document.getElementById('loginLoader').classList.remove('is-hidden');
+          setFormBusy(true, 'Completing sign-in…');
           await handleOAuthCallback();
         } else {
           showLoginOptions();
           document.getElementById('loginWithGoogle').addEventListener('click', loginWithGoogle);
           document.getElementById('loginWithDiscord').addEventListener('click', loginWithDiscord);
+
+          emailAuthForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            clearStatus();
+
+            const { email, password } = readCredentials();
+            if (!email || !password) {
+              setStatus('Enter your email and password to sign in.');
+              return;
+            }
+
+            setFormBusy(true, 'Signing you in…');
+            const result = await signInWithEmailPassword(email, password);
+            if (!result.ok) {
+              setFormBusy(false);
+              setStatus(result.message || 'Sign-in failed. Please try again.');
+              return;
+            }
+
+            finishLogin();
+          });
+
+          emailCreateBtn.addEventListener('click', async () => {
+            clearStatus();
+
+            const { displayName, email, password } = readCredentials();
+            if (!email || !password) {
+              setStatus('Enter an email and password to create an account.');
+              return;
+            }
+
+            if (password.length < 6) {
+              setStatus('Use a password with at least 6 characters.');
+              return;
+            }
+
+            setFormBusy(true, 'Creating your account…');
+            const result = await createAccountWithEmailPassword(email, password, displayName);
+            if (!result.ok) {
+              setFormBusy(false);
+              setStatus(result.message || 'Account creation failed. Please try again.');
+              return;
+            }
+
+            if (result.requiresEmailConfirmation) {
+              setFormBusy(false);
+              setStatus(result.message || 'Account created. Check your email to confirm the account.', false);
+              loginPassword.value = '';
+              return;
+            }
+
+            finishLogin();
+          });
         }
       })();
     </script>
