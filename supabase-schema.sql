@@ -59,6 +59,16 @@ create table if not exists public.user_roles (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.user_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  username text not null check (username ~ '^[A-Za-z0-9][A-Za-z0-9_.-]{2,23}$'),
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists idx_user_profiles_username_lower
+  on public.user_profiles (lower(username));
+
 create table if not exists public.announcements (
   id text primary key,
   title text not null,
@@ -74,6 +84,7 @@ alter table public.application_statuses enable row level security;
 alter table public.application_submissions enable row level security;
 alter table public.appeal_submissions enable row level security;
 alter table public.user_roles enable row level security;
+alter table public.user_profiles enable row level security;
 alter table public.announcements enable row level security;
 
 create or replace function public.is_staff_or_admin()
@@ -112,6 +123,10 @@ drop policy if exists appeal_submissions_write on public.appeal_submissions;
 drop policy if exists user_roles_select_self on public.user_roles;
 drop policy if exists user_roles_select_staff on public.user_roles;
 drop policy if exists user_roles_admin_write on public.user_roles;
+drop policy if exists user_profiles_select_self on public.user_profiles;
+drop policy if exists user_profiles_select_staff on public.user_profiles;
+drop policy if exists user_profiles_insert_self on public.user_profiles;
+drop policy if exists user_profiles_update_self on public.user_profiles;
 drop policy if exists announcements_read_public on public.announcements;
 drop policy if exists announcements_write_staff on public.announcements;
 
@@ -174,6 +189,27 @@ create policy user_roles_admin_write
   using (public.is_admin())
   with check (public.is_admin());
 
+create policy user_profiles_select_self
+  on public.user_profiles
+  for select
+  using (auth.uid() = user_id);
+
+create policy user_profiles_select_staff
+  on public.user_profiles
+  for select
+  using (public.is_staff_or_admin());
+
+create policy user_profiles_insert_self
+  on public.user_profiles
+  for insert
+  with check (auth.uid() = user_id);
+
+create policy user_profiles_update_self
+  on public.user_profiles
+  for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
 create policy announcements_read_public
   on public.announcements
   for select
@@ -189,3 +225,7 @@ create policy announcements_write_staff
 -- insert into public.user_roles (user_id, role)
 -- values ('00000000-0000-0000-0000-000000000000', 'admin')
 -- on conflict (user_id) do update set role = excluded.role, updated_at = now();
+
+-- After applying this schema, existing users can create or update their username
+-- from profile.html. Admin role assignment can resolve usernames via public.user_profiles,
+-- while roles remain stored against immutable auth UUIDs in public.user_roles.

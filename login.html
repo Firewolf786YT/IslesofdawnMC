@@ -53,8 +53,8 @@
         <div id="loginOptions" class="is-hidden">
           <form id="emailAuthForm" class="login-form">
             <label class="login-field">
-              <span>Display name</span>
-              <input id="loginDisplayName" type="text" name="displayName" autocomplete="nickname" placeholder="Firewolf" />
+              <span>Username</span>
+              <input id="loginDisplayName" type="text" name="displayName" autocomplete="username" placeholder="Firewolf" />
             </label>
 
             <label class="login-field">
@@ -95,7 +95,7 @@
           </button>
 
           <p class="login-note">
-            Use email/password above, or keep Google and Discord as alternate sign-in options.
+            New accounts need a username. Google and Discord can still be used as alternate sign-in options.
           </p>
         </div>
       </div>
@@ -197,6 +197,11 @@
             clearStatus();
 
             const { displayName, email, password } = readCredentials();
+            if (!displayName) {
+              setStatus('Enter a username to create an account.');
+              return;
+            }
+
             if (!email || !password) {
               setStatus('Enter an email and password to create an account.');
               return;

@@ -113,6 +113,48 @@
             </div>
             <p class="copy-message" id="diagStatusMessage" aria-live="polite"></p>
           </div>
+
+          <div id="roleManagerCard" class="card staff-role-manager-card is-hidden">
+            <div class="staff-diagnostics-header">
+              <h3>Admin Role Manager</h3>
+              <button id="refreshRoleListBtn" type="button" class="btn btn-secondary">Refresh List</button>
+            </div>
+            <p class="staff-diagnostics-subtitle">
+              Promote or demote users by username, Supabase auth UUID, or a full session UID like
+              <code>google:uuid...</code>. Roles still stay stored on the account UUID behind the scenes.
+            </p>
+
+            <form id="roleManagerForm" class="staff-role-form" novalidate>
+              <div class="app-form-grid">
+                <label>
+                  Username, Auth UUID, or Session UID
+                  <input id="roleManagerUserId" type="text" placeholder="firewolf or 00000000-0000-0000-0000-000000000000" required />
+                </label>
+                <label>
+                  Role
+                  <select id="roleManagerRole" required>
+                    <option value="user">User</option>
+                    <option value="staff">Staff</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </label>
+              </div>
+              <div class="staff-module-actions">
+                <button id="saveRoleBtn" class="btn btn-primary" type="submit">Save Role</button>
+                <button id="fillCurrentUuidBtn" class="btn btn-secondary" type="button">Use My UUID</button>
+              </div>
+            </form>
+
+            <p class="copy-message" id="roleManagerStatus" aria-live="polite"></p>
+
+            <div class="staff-role-list-shell">
+              <div class="staff-role-list-header">
+                <h4>Existing Role Entries</h4>
+                <span id="roleListCount" class="app-badge app-badge-open">0 roles</span>
+              </div>
+              <div id="roleList" class="staff-role-list"></div>
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -143,6 +185,59 @@
         const roleEl = document.getElementById('diagRole');
         const messageEl = document.getElementById('diagStatusMessage');
         const refreshBtn = document.getElementById('refreshDiagnosticsBtn');
+        const roleManagerCard = document.getElementById('roleManagerCard');
+        const roleManagerForm = document.getElementById('roleManagerForm');
+        const roleManagerUserId = document.getElementById('roleManagerUserId');
+        const roleManagerRole = document.getElementById('roleManagerRole');
+        const roleManagerStatus = document.getElementById('roleManagerStatus');
+        const roleList = document.getElementById('roleList');
+        const roleListCount = document.getElementById('roleListCount');
+        const refreshRoleListBtn = document.getElementById('refreshRoleListBtn');
+        const fillCurrentUuidBtn = document.getElementById('fillCurrentUuidBtn');
+
+        const renderRoleList = (rows = []) => {
+          if (!roleList || !roleListCount) return;
+
+          roleListCount.textContent = `${rows.length} role${rows.length === 1 ? '' : 's'}`;
+
+          if (!rows.length) {
+            roleList.innerHTML = '<p class="announcement-empty">No role entries found yet.</p>';
+            return;
+          }
+
+          roleList.innerHTML = rows.map((row) => {
+            const updatedAt = row.updated_at ? new Date(row.updated_at).toLocaleString() : 'Unknown';
+            return `
+              <div class="staff-role-row">
+                <div class="staff-role-row-main">
+                  <strong>${row.username || row.user_id}</strong>
+                  <span>${row.username ? row.user_id : 'No username set yet'}</span>
+                  <span>Updated ${updatedAt}</span>
+                </div>
+                <span class="app-badge ${row.role === 'admin' ? 'staff-role-admin' : row.role === 'staff' ? 'app-badge-open' : 'staff-role-user'}">${row.role}</span>
+              </div>`;
+          }).join('');
+        };
+
+        const setRoleStatus = (message, isError = false) => {
+          if (!roleManagerStatus) return;
+          roleManagerStatus.textContent = message;
+          roleManagerStatus.style.color = isError ? '#e75f5f' : '';
+        };
+
+        const refreshRoleList = async () => {
+          if (!roleManagerCard || roleManagerCard.classList.contains('is-hidden')) return;
+          setRoleStatus('Loading role list...');
+          const result = await window.listUserRoles?.();
+          if (!result?.ok) {
+            renderRoleList([]);
+            setRoleStatus(result?.message || 'Could not load role list.', true);
+            return;
+          }
+
+          renderRoleList(result.rows);
+          setRoleStatus('Role list updated.');
+        };
 
         const setDiagnosticMessage = (message) => {
           if (messageEl) {
@@ -188,16 +283,57 @@
             roleEl.textContent = effectiveRole || 'user';
           }
 
+          roleManagerCard?.classList.toggle('is-hidden', effectiveRole !== 'admin');
+
           if (!authUuid) {
             setDiagnosticMessage('No auth UUID detected. Sign in again via login page if needed.');
             return;
           }
 
           setDiagnosticMessage('Diagnostics updated successfully.');
+
+          if (effectiveRole === 'admin') {
+            await refreshRoleList();
+          }
         };
 
         refreshBtn?.addEventListener('click', () => {
           runDiagnostics();
+        });
+
+        refreshRoleListBtn?.addEventListener('click', () => {
+          refreshRoleList();
+        });
+
+        fillCurrentUuidBtn?.addEventListener('click', () => {
+          const authUuid = window.getCurrentAuthUid?.() || '';
+          if (!authUuid) {
+            setRoleStatus('Could not read your auth UUID from the current session.', true);
+            return;
+          }
+
+          roleManagerUserId.value = authUuid;
+          setRoleStatus('Filled with your current auth UUID.');
+        });
+
+        roleManagerForm?.addEventListener('submit', async (event) => {
+          event.preventDefault();
+
+          const targetUserId = roleManagerUserId?.value.trim() || '';
+          const targetRole = roleManagerRole?.value || 'user';
+          setRoleStatus('Saving role...');
+
+          const result = await window.upsertUserRoleByAuthUid?.(targetUserId, targetRole);
+          if (!result?.ok) {
+            setRoleStatus(result?.message || 'Could not update role.', true);
+            return;
+          }
+
+          const savedUserId = result.row?.user_id || window.normalizeAuthUid?.(targetUserId) || targetUserId;
+          roleManagerUserId.value = savedUserId;
+          setRoleStatus(result.message || 'Role updated successfully.');
+          await refreshRoleList();
+          await runDiagnostics();
         });
 
         runDiagnostics();

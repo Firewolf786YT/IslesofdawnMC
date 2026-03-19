@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile — IslesOfDawnMC</title>
+    <meta name="description" content="Manage your IslesOfDawnMC account profile." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="profileContent" class="profile-main" hidden>
+      <section class="section">
+        <div class="container">
+          <div class="card profile-card">
+            <p class="eyebrow">Account</p>
+            <h1 class="profile-title">Profile</h1>
+            <p class="profile-subtitle">Choose the username shown across the site. Roles still stay attached to your account UUID for security.</p>
+
+            <div class="profile-grid">
+              <div class="profile-panel card">
+                <h2>Profile Details</h2>
+                <div class="profile-meta-list">
+                  <div class="profile-meta-row">
+                    <span>Current Username</span>
+                    <strong id="profileCurrentUsername">Loading…</strong>
+                  </div>
+                  <div class="profile-meta-row">
+                    <span>Email</span>
+                    <strong id="profileEmail">Loading…</strong>
+                  </div>
+                  <div class="profile-meta-row">
+                    <span>Role</span>
+                    <strong id="profileRole">Loading…</strong>
+                  </div>
+                  <div class="profile-meta-row">
+                    <span>Auth UUID</span>
+                    <strong id="profileAuthUid">Loading…</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="profile-panel card">
+                <h2>Change Username</h2>
+                <p class="profile-panel-copy">Use 3-24 characters. Letters, numbers, dots, hyphens, and underscores are allowed.</p>
+
+                <form id="profileForm" class="profile-form" novalidate>
+                  <label>
+                    Username
+                    <input id="profileUsername" type="text" name="username" autocomplete="username" placeholder="Firewolf" required />
+                  </label>
+                  <div class="profile-actions">
+                    <button class="btn btn-primary" type="submit">Save Username</button>
+                  </div>
+                </form>
+
+                <p class="copy-message" id="profileStatus" aria-live="polite"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script>
+      (async () => {
+        await syncSessionFromSupabase();
+        const user = getSession();
+        if (!user) {
+          sessionStorage.setItem('islesOfDawnLoginNext', location.href);
+          location.replace('login.html');
+          return;
+        }
+
+        await syncCurrentUserRoleFromSupabase();
+        document.getElementById('profileContent').hidden = false;
+
+        const profileCurrentUsername = document.getElementById('profileCurrentUsername');
+        const profileEmail = document.getElementById('profileEmail');
+        const profileRole = document.getElementById('profileRole');
+        const profileAuthUid = document.getElementById('profileAuthUid');
+        const profileUsername = document.getElementById('profileUsername');
+        const profileStatus = document.getElementById('profileStatus');
+        const profileForm = document.getElementById('profileForm');
+
+        const setStatus = (message, isError = false) => {
+          profileStatus.textContent = message;
+          profileStatus.style.color = isError ? '#e75f5f' : '';
+        };
+
+        const renderProfile = async () => {
+          const currentUser = getSession();
+          const currentRole = currentUser ? getUserRole(currentUser.uid) : 'user';
+          const profileResult = await window.getCurrentUserProfile?.();
+          const currentUsername = profileResult?.ok && profileResult.profile?.username
+            ? profileResult.profile.username
+            : currentUser?.name || currentUser?.email || 'Unknown';
+
+          profileCurrentUsername.textContent = currentUsername;
+          profileEmail.textContent = currentUser?.email || 'Not available';
+          profileRole.textContent = currentRole || 'user';
+          profileAuthUid.textContent = window.getCurrentAuthUid?.() || 'Unavailable';
+          profileUsername.value = currentUsername;
+
+          if (!profileResult?.ok && profileResult?.message) {
+            setStatus(profileResult.message, true);
+          }
+        };
+
+        profileForm?.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          setStatus('Saving username...');
+
+          const result = await window.saveCurrentUserProfile?.(profileUsername.value);
+          if (!result?.ok) {
+            setStatus(result?.message || 'Could not save your username.', true);
+            return;
+          }
+
+          await renderProfile();
+          setStatus(result.message || 'Username updated.');
+        });
+
+        renderProfile();
+      })();
+    </script>
+  </body>
+</html>

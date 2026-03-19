@@ -29,8 +29,10 @@ const SESSION_KEY = 'islesOfDawnSession';
 const ROLES_KEY = 'islesOfDawnRoles';
 const LOGIN_NEXT_SK = 'islesOfDawnLoginNext';
 const USER_ROLES_TABLE = 'user_roles';
+const USER_PROFILES_TABLE = 'user_profiles';
 const ACCESS_DENIED_PAGE = 'access-denied.html';
 const VERIFIED_ROLE_KEY = 'islesOfDawnVerifiedRole';
+const PROFILE_PAGE = 'profile.html';
 
 // ── Session ──────────────────────────────────────────────────────────────────
 const getSession = () => {
@@ -69,6 +71,60 @@ const getRolesMap = () => {
 
 const getUserRole = (uid) => getRolesMap()[uid] || 'user';
 
+const normalizeRoleValue = (role) => {
+  const normalizedRole = String(role || '').trim().toLowerCase();
+  return ['user', 'staff', 'admin'].includes(normalizedRole) ? normalizedRole : '';
+};
+
+const normalizeAuthUid = (value) => {
+  const input = String(value || '').trim();
+  if (!input) return '';
+  if (input.includes(':')) {
+    return extractAuthUidFromSessionUid(input);
+  }
+
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidPattern.test(input) ? input : '';
+};
+
+const validateUsernameValue = (value) => {
+  const username = String(value || '').trim();
+  if (!username) {
+    return { ok: false, message: 'Enter a username.' };
+  }
+
+  if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{2,23}$/.test(username)) {
+    return {
+      ok: false,
+      message: 'Use 3-24 characters. Letters, numbers, dots, hyphens, and underscores are allowed.',
+    };
+  }
+
+  return { ok: true, username };
+};
+
+const slugifyUsernameCandidate = (value) => String(value || '')
+  .trim()
+  .replace(/[^A-Za-z0-9_.-]+/g, '-')
+  .replace(/^[^A-Za-z0-9]+/, '')
+  .replace(/[^A-Za-z0-9]+$/, '')
+  .slice(0, 24);
+
+const buildUsernameCandidates = (value, fallbackSuffix = '') => {
+  const base = slugifyUsernameCandidate(value) || 'player';
+  const safeBase = /^[A-Za-z0-9]/.test(base) ? base : `player-${base}`;
+  const candidates = [safeBase.slice(0, 24)];
+  const normalizedSuffix = String(fallbackSuffix || '').replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+  if (normalizedSuffix) {
+    candidates.push(`${safeBase.slice(0, 19)}-${normalizedSuffix.slice(0, 4)}`);
+    candidates.push(`${safeBase.slice(0, 15)}-${normalizedSuffix.slice(0, 8)}`);
+  }
+
+  return [...new Set(candidates)]
+    .map((candidate) => candidate.slice(0, 24))
+    .filter((candidate) => validateUsernameValue(candidate).ok);
+};
+
 const cacheUserRole = (uid, role) => {
   const roles = getRolesMap();
   roles[uid] = role;
@@ -83,8 +139,8 @@ const extractAuthUidFromSessionUid = (uid) => {
 };
 
 window.assignRole = async (uid, role) => {
-  const normalizedRole = String(role || '').trim().toLowerCase();
-  if (!['user', 'staff', 'admin'].includes(normalizedRole)) {
+  const normalizedRole = normalizeRoleValue(role);
+  if (!normalizedRole) {
     console.error('❌ Invalid role. Use: user | staff | admin');
     return;
   }
@@ -114,6 +170,90 @@ window.assignRole = async (uid, role) => {
 
   console.log(`✅ Role "${normalizedRole}" assigned to "${uid}" and synced to Supabase.`);
 };
+
+const listUserRoles = async () => {
+  const client = await getSupabaseClient();
+  if (!client) {
+    return { ok: false, message: 'Supabase is not configured yet. Add URL and anon key in auth.js.', rows: [] };
+  }
+
+  const { data, error } = await client
+    .from(USER_ROLES_TABLE)
+    .select('user_id, role, updated_at')
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    return { ok: false, message: error.message, rows: [] };
+  }
+
+  const profileLookup = await listVisibleUserProfiles();
+  const usernamesById = new Map((profileLookup.rows || []).map((row) => [row.user_id, row.username]));
+  const rows = Array.isArray(data)
+    ? data.map((row) => ({
+        ...row,
+        username: usernamesById.get(row.user_id) || '',
+      }))
+    : [];
+
+  return { ok: true, rows };
+};
+
+const upsertUserRoleByAuthUid = async (userIdOrSessionUidOrUsername, role) => {
+  const normalizedRole = normalizeRoleValue(role);
+  if (!normalizedRole) {
+    return { ok: false, message: 'Invalid role. Use user, staff, or admin.' };
+  }
+
+  const resolvedIdentity = await resolveUserIdentifierToAuthUid(userIdOrSessionUidOrUsername);
+  if (!resolvedIdentity.ok) {
+    return { ok: false, message: resolvedIdentity.message || 'Enter a valid auth UUID, session UID, or username.' };
+  }
+
+  const authUid = resolvedIdentity.authUid;
+
+  const client = await getSupabaseClient();
+  if (!client) {
+    return { ok: false, message: 'Supabase is not configured yet. Add URL and anon key in auth.js.' };
+  }
+
+  const payload = {
+    user_id: authUid,
+    role: normalizedRole,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await client
+    .from(USER_ROLES_TABLE)
+    .upsert([payload], { onConflict: 'user_id' })
+    .select('user_id, role, updated_at')
+    .single();
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  const currentUser = getSession();
+  const currentAuthUid = currentUser ? extractAuthUidFromSessionUid(currentUser.uid) : '';
+  if (currentUser && currentAuthUid === authUid) {
+    cacheUserRole(currentUser.uid, normalizedRole);
+    setVerifiedCurrentRole(normalizedRole);
+    renderNavAuth();
+  }
+
+  return {
+    ok: true,
+    row: {
+      ...(data || payload),
+      username: resolvedIdentity.username || '',
+    },
+    message: `Role updated to ${normalizedRole}.`,
+  };
+};
+
+window.listUserRoles = listUserRoles;
+window.upsertUserRoleByAuthUid = upsertUserRoleByAuthUid;
+window.normalizeAuthUid = normalizeAuthUid;
+window.validateUsernameValue = validateUsernameValue;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const escHtml = (str) => {
@@ -175,6 +315,218 @@ const getSupabaseClient = async () => {
 window.isSupabaseConfigured = isSupabaseConfigured;
 window.getSupabaseClient = getSupabaseClient;
 
+const profileErrorMessage = (error, fallbackMessage) => {
+  if (!error) return fallbackMessage;
+  if (error.code === '23505') {
+    return 'That username is already taken. Choose another one.';
+  }
+
+  return error.message || fallbackMessage;
+};
+
+const fetchUserProfileByAuthUid = async (authUid) => {
+  const client = await getSupabaseClient();
+  if (!client || !authUid) {
+    return { ok: false, message: 'Profile lookup unavailable.', profile: null };
+  }
+
+  const { data, error } = await client
+    .from(USER_PROFILES_TABLE)
+    .select('user_id, username, updated_at, created_at')
+    .eq('user_id', authUid)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') {
+    return { ok: false, message: error.message, profile: null };
+  }
+
+  return { ok: true, profile: data || null };
+};
+
+const listVisibleUserProfiles = async () => {
+  const client = await getSupabaseClient();
+  if (!client) {
+    return { ok: false, message: 'Profile lookup unavailable.', rows: [] };
+  }
+
+  const { data, error } = await client
+    .from(USER_PROFILES_TABLE)
+    .select('user_id, username, updated_at')
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    return { ok: false, message: error.message, rows: [] };
+  }
+
+  return { ok: true, rows: Array.isArray(data) ? data : [] };
+};
+
+const resolveUserIdentifierToAuthUid = async (value) => {
+  const authUid = normalizeAuthUid(value);
+  if (authUid) {
+    const profileLookup = await fetchUserProfileByAuthUid(authUid);
+    return {
+      ok: true,
+      authUid,
+      username: profileLookup.ok ? profileLookup.profile?.username || '' : '',
+    };
+  }
+
+  const usernameCheck = validateUsernameValue(value);
+  if (!usernameCheck.ok) {
+    return { ok: false, message: 'Enter a valid auth UUID, session UID, or username.' };
+  }
+
+  const client = await getSupabaseClient();
+  if (!client) {
+    return { ok: false, message: 'Supabase is not configured yet. Add URL and anon key in auth.js.' };
+  }
+
+  const { data, error } = await client
+    .from(USER_PROFILES_TABLE)
+    .select('user_id, username')
+    .ilike('username', usernameCheck.username)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') {
+    return { ok: false, message: error.message };
+  }
+
+  if (!data?.user_id) {
+    return { ok: false, message: 'No profile was found for that username.' };
+  }
+
+  return { ok: true, authUid: data.user_id, username: data.username || usernameCheck.username };
+};
+
+const updateStoredSessionProfile = (username) => {
+  const sessionUser = getSession();
+  if (!sessionUser) return null;
+
+  const nextSession = {
+    ...sessionUser,
+    name: username || sessionUser.name,
+    username: username || null,
+  };
+  setSession(nextSession);
+  return nextSession;
+};
+
+const ensureUserProfileForSupabaseUser = async (supabaseUser) => {
+  if (!supabaseUser?.id) {
+    return { ok: false, profile: null, message: 'No authenticated user found.' };
+  }
+
+  const existingProfile = await fetchUserProfileByAuthUid(supabaseUser.id);
+  if (existingProfile.ok && existingProfile.profile) {
+    return existingProfile;
+  }
+
+  const client = await getSupabaseClient();
+  if (!client) {
+    return { ok: false, profile: null, message: 'Supabase is not configured yet. Add URL and anon key in auth.js.' };
+  }
+
+  const preferredSource =
+    supabaseUser.user_metadata?.preferred_username
+    || supabaseUser.user_metadata?.username
+    || supabaseUser.user_metadata?.name
+    || supabaseUser.user_metadata?.full_name
+    || (supabaseUser.email ? supabaseUser.email.split('@')[0] : 'player');
+  const usernameCandidates = buildUsernameCandidates(preferredSource, supabaseUser.id);
+
+  for (const candidate of usernameCandidates) {
+    const { data, error } = await client
+      .from(USER_PROFILES_TABLE)
+      .upsert([
+        {
+          user_id: supabaseUser.id,
+          username: candidate,
+          updated_at: new Date().toISOString(),
+        },
+      ], { onConflict: 'user_id' })
+      .select('user_id, username, updated_at, created_at')
+      .single();
+
+    if (!error) {
+      return { ok: true, profile: data || null };
+    }
+
+    if (error.code !== '23505') {
+      return { ok: false, profile: null, message: error.message };
+    }
+  }
+
+  return { ok: false, profile: null, message: 'Could not create a unique username for this account.' };
+};
+
+const getCurrentUserProfile = async () => {
+  const authUid = window.getCurrentAuthUid?.() || '';
+  if (!authUid) {
+    return { ok: false, message: 'You need to sign in first.', profile: null };
+  }
+
+  return fetchUserProfileByAuthUid(authUid);
+};
+
+const saveCurrentUserProfile = async (username) => {
+  const usernameCheck = validateUsernameValue(username);
+  if (!usernameCheck.ok) {
+    return { ok: false, message: usernameCheck.message };
+  }
+
+  const client = await getSupabaseClient();
+  if (!client) {
+    return { ok: false, message: 'Supabase is not configured yet. Add URL and anon key in auth.js.' };
+  }
+
+  const authUid = window.getCurrentAuthUid?.() || '';
+  if (!authUid) {
+    return { ok: false, message: 'You need to sign in first.' };
+  }
+
+  const { data, error } = await client
+    .from(USER_PROFILES_TABLE)
+    .upsert([
+      {
+        user_id: authUid,
+        username: usernameCheck.username,
+        updated_at: new Date().toISOString(),
+      },
+    ], { onConflict: 'user_id' })
+    .select('user_id, username, updated_at, created_at')
+    .single();
+
+  if (error) {
+    return { ok: false, message: profileErrorMessage(error, 'Could not save your username.') };
+  }
+
+  const { error: authUpdateError } = await client.auth.updateUser({
+    data: {
+      preferred_username: usernameCheck.username,
+      username: usernameCheck.username,
+      name: usernameCheck.username,
+      full_name: usernameCheck.username,
+    },
+  });
+
+  if (authUpdateError) {
+    console.warn('Could not update auth metadata for username:', authUpdateError.message);
+  }
+
+  updateStoredSessionProfile(data?.username || usernameCheck.username);
+  renderNavAuth();
+
+  return {
+    ok: true,
+    message: 'Profile updated successfully.',
+    profile: data || { user_id: authUid, username: usernameCheck.username },
+  };
+};
+
+window.getCurrentUserProfile = getCurrentUserProfile;
+window.saveCurrentUserProfile = saveCurrentUserProfile;
+
 const toAppSession = (supabaseUser) => {
   if (!supabaseUser) return null;
 
@@ -195,6 +547,7 @@ const toAppSession = (supabaseUser) => {
   return {
     uid: `${provider}:${supabaseUser.id}`,
     name: preferredName,
+    username: supabaseUser.user_metadata?.preferred_username || supabaseUser.user_metadata?.username || null,
     email: supabaseUser.email || null,
     avatar:
       supabaseUser.user_metadata?.avatar_url
@@ -216,11 +569,18 @@ const syncSessionFromSupabase = async () => {
 
   const user = data?.session?.user ? toAppSession(data.session.user) : null;
   if (user) {
-    setSession(user);
+    const profileResult = await ensureUserProfileForSupabaseUser(data.session.user);
+    const nextUser = {
+      ...user,
+      name: profileResult.ok && profileResult.profile?.username ? profileResult.profile.username : user.name,
+      username: profileResult.ok ? profileResult.profile?.username || user.username || null : user.username || null,
+    };
+    setSession(nextUser);
+    return nextUser;
   } else {
     clearSession();
   }
-  return user;
+  return null;
 };
 
 const syncCurrentUserRoleFromSupabase = async () => {
@@ -316,6 +676,11 @@ const signInWithEmailPassword = async (email, password) => {
 };
 
 const createAccountWithEmailPassword = async (email, password, displayName = '') => {
+  const usernameCheck = validateUsernameValue(displayName);
+  if (!usernameCheck.ok) {
+    return { ok: false, message: usernameCheck.message };
+  }
+
   const client = await getSupabaseClient();
   if (!client) {
     return { ok: false, message: 'Supabase is not configured yet. Add URL and anon key in auth.js.' };
@@ -326,18 +691,27 @@ const createAccountWithEmailPassword = async (email, password, displayName = '')
     password,
     options: {
       emailRedirectTo: SUPABASE_CONFIG.redirectTo,
-      data: displayName ? { name: displayName, full_name: displayName } : {},
+      data: {
+        preferred_username: usernameCheck.username,
+        username: usernameCheck.username,
+        name: usernameCheck.username,
+        full_name: usernameCheck.username,
+      },
     },
   });
 
   if (error) {
-    return { ok: false, message: error.message };
+    return { ok: false, message: profileErrorMessage(error, error.message) };
   }
 
   if (data?.session?.user) {
     const user = toAppSession(data.session.user);
     if (user) {
       setSession(user);
+      const profileResult = await saveCurrentUserProfile(usernameCheck.username);
+      if (!profileResult.ok) {
+        return profileResult;
+      }
       await syncCurrentUserRoleFromSupabase();
       return { ok: true, requiresEmailConfirmation: false };
     }
@@ -473,13 +847,14 @@ const renderNavAuth = () => {
 
   const initial = escHtml((user.name || user.email || '?')[0].toUpperCase());
   const role = getVerifiedCurrentRole();
+  const profileLink = `<a class="nav-auth-profile" href="${PROFILE_PAGE}">Profile</a>`;
   const staffLink = (role === 'staff' || role === 'admin')
     ? '<a class="nav-auth-staff" href="staff.html">Staff Portal</a>'
     : '';
 
   slot.innerHTML = `
     <div class="nav-auth-user">
-      ${staffLink}
+      <div class="nav-auth-links">${profileLink}${staffLink}</div>
       <span class="nav-auth-avatar">${initial}</span>
       <span class="nav-auth-name">${escHtml(user.name || user.email)}</span>
       <button class="btn btn-nav-logout" id="navLogoutBtn" type="button">Log out</button>
