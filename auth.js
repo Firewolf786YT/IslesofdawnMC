@@ -30,6 +30,7 @@ const ROLES_KEY = 'islesOfDawnRoles';
 const LOGIN_NEXT_SK = 'islesOfDawnLoginNext';
 const USER_ROLES_TABLE = 'user_roles';
 const ACCESS_DENIED_PAGE = 'access-denied.html';
+const VERIFIED_ROLE_KEY = 'islesOfDawnVerifiedRole';
 
 // ── Session ──────────────────────────────────────────────────────────────────
 const getSession = () => {
@@ -41,7 +42,21 @@ const getSession = () => {
 };
 
 const setSession = (user) => sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
-const clearSession = () => sessionStorage.removeItem(SESSION_KEY);
+const clearSession = () => {
+  sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(VERIFIED_ROLE_KEY);
+};
+
+const setVerifiedCurrentRole = (role) => {
+  const normalizedRole = ['staff', 'admin'].includes(role) ? role : 'user';
+  sessionStorage.setItem(VERIFIED_ROLE_KEY, normalizedRole);
+  return normalizedRole;
+};
+
+const getVerifiedCurrentRole = () => {
+  const role = sessionStorage.getItem(VERIFIED_ROLE_KEY);
+  return ['staff', 'admin'].includes(role) ? role : 'user';
+};
 
 // ── Roles ────────────────────────────────────────────────────────────────────
 const getRolesMap = () => {
@@ -211,10 +226,15 @@ const syncSessionFromSupabase = async () => {
 const syncCurrentUserRoleFromSupabase = async () => {
   const client = await getSupabaseClient();
   const sessionUser = getSession();
-  if (!client || !sessionUser) return null;
+  if (!client || !sessionUser) {
+    return setVerifiedCurrentRole('user');
+  }
 
   const authUid = extractAuthUidFromSessionUid(sessionUser.uid);
-  if (!authUid) return null;
+  if (!authUid) {
+    cacheUserRole(sessionUser.uid, 'user');
+    return setVerifiedCurrentRole('user');
+  }
 
   const { data, error } = await client
     .from(USER_ROLES_TABLE)
@@ -224,12 +244,13 @@ const syncCurrentUserRoleFromSupabase = async () => {
 
   if (error && error.code !== 'PGRST116') {
     console.warn('Could not sync role from Supabase:', error.message);
-    return null;
+    cacheUserRole(sessionUser.uid, 'user');
+    return setVerifiedCurrentRole('user');
   }
 
   const role = data?.role && ['user', 'staff', 'admin'].includes(data.role) ? data.role : 'user';
   cacheUserRole(sessionUser.uid, role);
-  return role;
+  return setVerifiedCurrentRole(role);
 };
 
 window.syncCurrentUserRoleFromSupabase = syncCurrentUserRoleFromSupabase;
@@ -451,7 +472,7 @@ const renderNavAuth = () => {
   }
 
   const initial = escHtml((user.name || user.email || '?')[0].toUpperCase());
-  const role = getUserRole(user.uid);
+  const role = getVerifiedCurrentRole();
   const staffLink = (role === 'staff' || role === 'admin')
     ? '<a class="nav-auth-staff" href="staff.html">Staff Portal</a>'
     : '';

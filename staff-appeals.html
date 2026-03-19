@@ -32,7 +32,7 @@
       </div>
     </header>
 
-    <main id="staffAppealsContent" class="staff-module-page">
+    <main id="staffAppealsContent" class="staff-module-page" hidden>
       <section class="section">
         <div class="container">
           <div class="card staff-module-header">
@@ -80,7 +80,7 @@
         const allowed = await requireStaffAccess();
         if (!allowed) return;
 
-        document.getElementById('staffAppealsContent').style.display = '';
+        document.getElementById('staffAppealsContent').hidden = false;
         const user = getSession();
         if (user) {
           const role = getUserRole(user.uid);
