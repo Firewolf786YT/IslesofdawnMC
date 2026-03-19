@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Appeals Manager — IslesOfDawnMC Staff</title>
+    <meta name="description" content="Review and manage punishment appeals for IslesOfDawnMC." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+            <a href="staff.html">Staff Portal</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="staffAppealsContent" class="staff-module-page">
+      <section class="section">
+        <div class="container">
+          <div class="card staff-module-header">
+            <p class="eyebrow">Staff Module</p>
+            <h2>Punishment Appeals Manager</h2>
+            <p id="staffAppealsWelcome" class="hero-text staff-module-subtitle"></p>
+          </div>
+
+          <div class="staff-module-actions">
+            <a class="btn btn-secondary" href="staff.html">Back to Staff Hub</a>
+            <a class="btn btn-primary" href="appeals.html">View Public Appeals Page</a>
+          </div>
+
+          <div class="card staff-app-review-card">
+            <h3>Appeal Reviews</h3>
+            <p>Review submitted appeals and mark each one as approved or denied.</p>
+            <div id="appealReviewStats" class="staff-app-review-stats" aria-live="polite"></div>
+            <div class="staff-app-review-filter">
+              <label for="appealReviewFilter">Filter by status</label>
+              <select id="appealReviewFilter">
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="denied">Denied</option>
+              </select>
+              <button id="appealReviewFilterReset" type="button" class="btn btn-secondary review-filter-reset">Reset to All</button>
+            </div>
+            <div id="staffAppealReviewList" class="staff-app-review-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script>
+      document.getElementById('staffAppealsContent').style.display = '';
+      const user = getSession();
+      if (user) {
+        const role = getUserRole(user.uid);
+        const el = document.getElementById('staffAppealsWelcome');
+        el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
+      }
+
+      const APPEALS_SUBMISSIONS_KEY = 'islesOfDawnAppeals';
+      const appealReviewFilter = document.getElementById('appealReviewFilter');
+      const appealReviewFilterReset = document.getElementById('appealReviewFilterReset');
+
+      const readAppealSubmissions = () => {
+        try {
+          const stored = localStorage.getItem(APPEALS_SUBMISSIONS_KEY);
+          const parsed = stored ? JSON.parse(stored) : [];
+          if (!Array.isArray(parsed)) return [];
+
+          return parsed
+            .filter((item) => item && typeof item === 'object')
+            .map((item) => ({
+              ...item,
+              status: item.status === 'approved' || item.status === 'denied' ? item.status : 'pending',
+            }));
+        } catch {
+          return [];
+        }
+      };
+
+      const saveAppealSubmissions = (submissions) => {
+        localStorage.setItem(APPEALS_SUBMISSIONS_KEY, JSON.stringify(submissions));
+      };
+
+      const getSubmissionCounts = (submissions) => {
+        const pendingCount = submissions.filter((item) => (item.status || 'pending') === 'pending').length;
+        const approvedCount = submissions.filter((item) => (item.status || 'pending') === 'approved').length;
+        const deniedCount = submissions.filter((item) => (item.status || 'pending') === 'denied').length;
+
+        return {
+          all: submissions.length,
+          pending: pendingCount,
+          approved: approvedCount,
+          denied: deniedCount,
+        };
+      };
+
+      const renderReviewStats = (submissions) => {
+        const stats = document.getElementById('appealReviewStats');
+        if (!stats) return;
+
+        const counts = getSubmissionCounts(submissions);
+        const selectedFilter = appealReviewFilter?.value || 'all';
+
+        const pillClass = (value, extraClass = '') => {
+          const isActive = selectedFilter === value ? ' is-active' : '';
+          return `review-stat-pill${extraClass}${isActive}`;
+        };
+
+        stats.innerHTML = `
+          <button type="button" class="${pillClass('all')}" data-filter="all">All: ${counts.all}</button>
+          <button type="button" class="${pillClass('pending', ' review-stat-pill-pending')}" data-filter="pending">Pending: ${counts.pending}</button>
+          <button type="button" class="${pillClass('approved', ' review-stat-pill-approved')}" data-filter="approved">Approved: ${counts.approved}</button>
+          <button type="button" class="${pillClass('denied', ' review-stat-pill-denied')}" data-filter="denied">Denied: ${counts.denied}</button>
+        `;
+      };
+
+      const updateReviewFilterCounts = (submissions) => {
+        if (!appealReviewFilter) return;
+        const counts = getSubmissionCounts(submissions);
+
+        const labelsByValue = {
+          all: `All (${counts.all})`,
+          pending: `Pending (${counts.pending})`,
+          approved: `Approved (${counts.approved})`,
+          denied: `Denied (${counts.denied})`,
+        };
+
+        Array.from(appealReviewFilter.options).forEach((option) => {
+          option.textContent = labelsByValue[option.value] || option.textContent;
+        });
+      };
+
+      const createReviewInfoItem = (label, value) => {
+        const item = document.createElement('div');
+        item.className = 'staff-app-info-item';
+
+        const infoLabel = document.createElement('p');
+        infoLabel.className = 'staff-app-info-label';
+        infoLabel.textContent = label;
+
+        const infoValue = document.createElement('p');
+        infoValue.className = 'staff-app-info-value';
+        infoValue.textContent = value;
+
+        item.append(infoLabel, infoValue);
+        return item;
+      };
+
+      const createReviewAnswer = (question, answer) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'staff-app-answer';
+
+        const heading = document.createElement('h5');
+        heading.textContent = question;
+
+        const body = document.createElement('p');
+        body.textContent = answer || 'No response provided.';
+
+        wrapper.append(heading, body);
+        return wrapper;
+      };
+
+      const formatPunishmentType = (value) => {
+        const map = {
+          mute: 'Mute',
+          kick: 'Kick',
+          'temp-ban': 'Temporary Ban',
+          ban: 'Ban',
+          other: 'Other',
+        };
+
+        return map[value] || value || 'Not provided';
+      };
+
+      const updateSubmissionStatus = (submissionId, fallbackIndex, nextStatus) => {
+        const submissions = readAppealSubmissions();
+        let targetIndex = submissions.findIndex((submission) => submission.id === submissionId);
+
+        if (targetIndex === -1) {
+          targetIndex = fallbackIndex;
+        }
+
+        if (targetIndex < 0 || targetIndex >= submissions.length) {
+          return;
+        }
+
+        submissions[targetIndex].status = nextStatus;
+        submissions[targetIndex].reviewedAt = new Date().toISOString();
+        submissions[targetIndex].reviewedBy = user?.name || user?.email || 'Staff';
+        saveAppealSubmissions(submissions);
+        renderAppealReviews();
+      };
+
+      const renderAppealReviews = () => {
+        const list = document.getElementById('staffAppealReviewList');
+        if (!list) return;
+
+        const submissions = readAppealSubmissions();
+        renderReviewStats(submissions);
+        updateReviewFilterCounts(submissions);
+        const selectedFilter = appealReviewFilter?.value || 'all';
+        if (appealReviewFilterReset) {
+          appealReviewFilterReset.disabled = selectedFilter === 'all';
+        }
+
+        const visibleSubmissions = submissions
+          .map((submission, fullIndex) => ({ submission, fullIndex }))
+          .filter(({ submission }) => {
+            if (selectedFilter === 'all') return true;
+            const status = submission.status || 'pending';
+            return status === selectedFilter;
+          });
+
+        list.innerHTML = '';
+
+        if (!submissions.length) {
+          const empty = document.createElement('p');
+          empty.className = 'announcement-empty';
+          empty.textContent = 'No appeals submitted yet.';
+          list.appendChild(empty);
+          return;
+        }
+
+        if (!visibleSubmissions.length) {
+          const empty = document.createElement('p');
+          empty.className = 'announcement-empty';
+          empty.textContent = `No ${selectedFilter} appeals right now.`;
+          list.appendChild(empty);
+          return;
+        }
+
+        visibleSubmissions.forEach(({ submission, fullIndex }) => {
+          const status = submission.status || 'pending';
+          const article = document.createElement('article');
+          article.className = 'announcement-item staff-app-submission';
+
+          const header = document.createElement('div');
+          header.className = 'app-review-header';
+
+          const title = document.createElement('h4');
+          title.textContent = `${submission.minecraftName || 'Unknown Player'} Appeal`;
+
+          const statusBadge = document.createElement('span');
+          statusBadge.className = `app-review-status app-review-status-${status}`;
+          statusBadge.textContent = status[0].toUpperCase() + status.slice(1);
+
+          header.append(title, statusBadge);
+
+          const meta = document.createElement('p');
+          meta.className = 'announcement-meta';
+          const submittedDate = submission.createdAt ? new Date(submission.createdAt) : null;
+          const reviewedDate = submission.reviewedAt ? new Date(submission.reviewedAt) : null;
+
+          const submittedText = submittedDate && !Number.isNaN(submittedDate.getTime())
+            ? `Submitted ${submittedDate.toLocaleString()}`
+            : 'Submitted recently';
+          const reviewedText = reviewedDate && !Number.isNaN(reviewedDate.getTime())
+            ? ` • Reviewed ${reviewedDate.toLocaleString()} by ${submission.reviewedBy || 'Staff'}`
+            : '';
+
+          meta.textContent = `${submittedText}${reviewedText}`;
+
+          const info = document.createElement('div');
+          info.className = 'staff-app-info-grid';
+          const locationLabels = { minecraft: 'Minecraft', discord: 'Discord' };
+          info.append(
+            createReviewInfoItem('Minecraft Username', String(submission.minecraftName || 'Not provided')),
+            createReviewInfoItem('Discord', String(submission.discord || 'Not provided')),
+            createReviewInfoItem('Email', String(submission.email || 'Not provided')),
+            createReviewInfoItem('Punishment Type', formatPunishmentType(String(submission.punishmentType || ''))),
+            createReviewInfoItem('Punishment Date', String(submission.punishmentDate || 'Not provided')),
+            createReviewInfoItem('Punished On', locationLabels[submission.punishmentLocation] || String(submission.punishmentLocation || 'Not provided'))
+          );
+
+          const answers = document.createElement('div');
+          answers.className = 'staff-app-answer-list';
+          answers.append(
+            createReviewAnswer('What happened that led to this punishment?', String(submission.eventSummary || '')),
+            createReviewAnswer('Why should this punishment be reconsidered?', String(submission.reconsiderReason || '')),
+            createReviewAnswer('What will you do to avoid this issue in the future?', String(submission.preventionPlan || '')),
+            createReviewAnswer('Any additional context or evidence staff should review?', String(submission.additionalContext || ''))
+          );
+
+          const acknowledgements = document.createElement('ul');
+          acknowledgements.className = 'staff-app-ack-list';
+
+          const ackTruthful = document.createElement('li');
+          ackTruthful.textContent = `Truthful and accurate: ${submission.acknowledgements?.truthful === 'yes' ? 'Yes' : 'No'}`;
+          const ackRespectful = document.createElement('li');
+          ackRespectful.textContent = `Respectful during review: ${submission.acknowledgements?.respectful === 'yes' ? 'Yes' : 'No'}`;
+          const ackFinalDecision = document.createElement('li');
+          ackFinalDecision.textContent = `Final decision acknowledged: ${submission.acknowledgements?.finalDecision === 'yes' ? 'Yes' : 'No'}`;
+
+          acknowledgements.append(ackTruthful, ackRespectful, ackFinalDecision);
+
+          const actions = document.createElement('div');
+          actions.className = 'app-review-actions';
+
+          const approveButton = document.createElement('button');
+          approveButton.type = 'button';
+          approveButton.className = 'btn-toggle-open';
+          approveButton.textContent = 'Approve';
+          approveButton.disabled = status === 'approved';
+          approveButton.addEventListener('click', () => {
+            updateSubmissionStatus(submission.id, fullIndex, 'approved');
+          });
+
+          const denyButton = document.createElement('button');
+          denyButton.type = 'button';
+          denyButton.className = 'btn-toggle-close';
+          denyButton.textContent = 'Deny';
+          denyButton.disabled = status === 'denied';
+          denyButton.addEventListener('click', () => {
+            updateSubmissionStatus(submission.id, fullIndex, 'denied');
+          });
+
+          actions.append(approveButton, denyButton);
+
+          article.append(header, meta, info, answers, acknowledgements, actions);
+          list.appendChild(article);
+        });
+      };
+
+      renderAppealReviews();
+
+      const appealReviewStats = document.getElementById('appealReviewStats');
+      if (appealReviewStats && appealReviewFilter) {
+        appealReviewStats.addEventListener('click', (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
+
+          const button = target.closest('button[data-filter]');
+          if (!(button instanceof HTMLButtonElement)) return;
+
+          const filterValue = button.dataset.filter;
+          if (!filterValue) return;
+
+          appealReviewFilter.value = filterValue;
+          renderAppealReviews();
+        });
+      }
+
+      if (appealReviewFilter) {
+        appealReviewFilter.addEventListener('change', () => {
+          renderAppealReviews();
+        });
+      }
+
+      if (appealReviewFilterReset && appealReviewFilter) {
+        appealReviewFilterReset.addEventListener('click', () => {
+          appealReviewFilter.value = 'all';
+          renderAppealReviews();
+        });
+      }
+
+      window.addEventListener('storage', (event) => {
+        if (event.key === APPEALS_SUBMISSIONS_KEY) {
+          renderAppealReviews();
+        }
+      });
+    </script>
+  </body>
+</html>

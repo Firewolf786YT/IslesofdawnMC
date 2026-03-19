@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Staff Portal — IslesOfDawnMC</title>
+    <meta name="description" content="IslesOfDawnMC staff module hub." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+            <a href="staff.html">Staff Portal</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="staffContent" class="staff-module-page">
+      <section class="section">
+        <div class="container">
+          <div class="card staff-module-header">
+            <p class="eyebrow">Restricted Area</p>
+            <h2>Staff Portal</h2>
+            <p id="staffWelcome" class="hero-text staff-module-subtitle"></p>
+          </div>
+
+          <div class="staff-hub-grid">
+            <article class="card staff-module-card">
+              <p class="staff-module-kicker">Module</p>
+              <h3>📢 Announcements Manager</h3>
+              <p>Create, publish, and remove announcements in a dedicated management page.</p>
+              <div class="staff-module-actions">
+                <a class="btn btn-primary" href="staff-announcements.html">Open Module</a>
+                <a class="btn btn-secondary" href="announcements.html">View Public Page</a>
+              </div>
+            </article>
+
+            <article class="card staff-module-card">
+              <p class="staff-module-kicker">Module</p>
+              <h3>📋 Applications Manager</h3>
+              <p>Manage open/closed roles and review, approve, or deny submitted applications.</p>
+              <div class="staff-module-actions">
+                <a class="btn btn-primary" href="staff-applications.html">Open Module</a>
+                <a class="btn btn-secondary" href="applications.html">View Public Page</a>
+              </div>
+            </article>
+
+            <article class="card staff-module-card">
+              <p class="staff-module-kicker">Module</p>
+              <h3>⚖️ Punishment Appeals Manager</h3>
+              <p>Review player punishment appeals and approve or deny each submission.</p>
+              <div class="staff-module-actions">
+                <a class="btn btn-primary" href="staff-appeals.html">Open Module</a>
+                <a class="btn btn-secondary" href="appeals.html">View Public Page</a>
+              </div>
+            </article>
+          </div>
+
+          <div class="card staff-permissions-card">
+            <h3>How Permissions Work</h3>
+            <p>
+              Roles are assigned by an admin from the browser DevTools console
+              while on any page of this site:
+            </p>
+            <code class="staff-code">assignRole('discord:YOUR_USER_ID', 'staff')</code>
+            <p style="margin-top: 0.6rem;">
+              Replace <code>YOUR_USER_ID</code> with the user's numeric ID shown after
+              they sign in (visible in the console as part of their UID).
+              Valid roles: <code>user</code> · <code>staff</code> · <code>admin</code>
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script>
+      document.getElementById('staffContent').style.display = '';
+      const user = getSession();
+      if (user) {
+        const role = getUserRole(user.uid);
+        const el = document.getElementById('staffWelcome');
+        el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
+      }
+    </script>
+  </body>
+</html>

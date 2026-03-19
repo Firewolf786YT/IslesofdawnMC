@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Submission Received — IslesOfDawnMC</title>
+    <meta name="description" content="Confirmation page for submitted applications and appeals." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+            <a href="staff.html">Staff Portal</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="section">
+        <div class="container" style="max-width: 760px;">
+          <div class="card" style="padding: 1.35rem;">
+            <p class="eyebrow">Submission Received</p>
+            <h1 id="submissionThanksHeading" style="margin-top: 0;">Thank you for submitting your application.</h1>
+            <p id="submissionThanksMessage" class="hero-text" style="margin-top: 0.55rem;">
+              A member of Management will read it and give you a response soon.
+            </p>
+            <div class="hero-actions" style="margin-top: 1.25rem;">
+              <a id="submissionBackLink" class="btn btn-primary" href="applications.html">Back to Applications</a>
+              <a class="btn btn-secondary" href="index.html">Go Home</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const type = (params.get('type') || '').toLowerCase();
+
+      const heading = document.getElementById('submissionThanksHeading');
+      const message = document.getElementById('submissionThanksMessage');
+      const backLink = document.getElementById('submissionBackLink');
+
+      if (type === 'appeal') {
+        heading.textContent = 'Thank you for submitting your appeal.';
+        message.textContent = 'A member of Management will read it and give you a response soon.';
+        backLink.textContent = 'Back to Appeals';
+        backLink.href = 'appeals.html';
+      } else {
+        heading.textContent = 'Thank you for submitting your application.';
+        message.textContent = 'A member of Management will read it and give you a response soon.';
+        backLink.textContent = 'Back to Applications';
+        backLink.href = 'applications.html';
+      }
+    </script>
+  </body>
+</html>

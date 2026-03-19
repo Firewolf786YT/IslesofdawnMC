@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IslesOfDawnMC</title>
+    <meta
+      name="description"
+      content="Official IslesOfDawnMC Minecraft server website."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+            <a href="staff.html">Staff Portal</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="home">
+        <div class="home-shell">
+          <div class="container">
+            <div class="hero hero-clean" id="join">
+              <div class="hero-copy">
+                <p class="eyebrow">Minecraft Survival Community</p>
+                <h1>Welcome to IslesOfDawnMC</h1>
+                <p class="hero-text">
+                  Explore a polished Vanilla+ survival world with custom content, active community events,
+                  and progression-focused gameplay built for both new and experienced players.
+                </p>
+                <div class="hero-actions">
+                  <button id="copyIpButton" class="btn btn-primary btn-vine" type="button">
+                    Copy Server IP
+                  </button>
+                  <span class="server-ip" id="serverIp">islesofdawnmc.com</span>
+                </div>
+                <p class="copy-message" id="copyMessage" aria-live="polite"></p>
+              </div>
+
+              <aside class="hero-aside card">
+                <h3>Why players choose us</h3>
+                <ul class="hero-points">
+                  <li>Vanilla+ experience with RPG progression</li>
+                  <li>Custom creatures, bosses, and unique gear</li>
+                  <li>Friendly, active community and staff support</li>
+                </ul>
+                <div class="hero-aside-actions">
+                  <a class="btn btn-primary btn-vine hero-aside-btn" href="applications.html">Apply for Staff</a>
+                  <a class="btn btn-primary btn-vine hero-aside-btn" href="appeals.html">Submit an Appeal</a>
+                </div>
+              </aside>
+            </div>
+          </div>
+
+          <div class="section" id="about">
+            <div class="container">
+              <div class="about-intro">
+                <p class="eyebrow">What We Offer</p>
+                <h2>About the Server</h2>
+                <p>
+                  IslesOfDawnMC focuses on delivering a clean Survival+ environment that keeps the core
+                  Minecraft feel while adding meaningful progression, custom content, and long-term goals.
+                </p>
+              </div>
+              <div class="feature-grid">
+                <div class="feature-card">
+                  <span class="feature-icon">⚔️</span>
+                  <strong>Custom Creatures</strong>
+                  <p>Take on special mobs and bosses that make exploration and combat more rewarding.</p>
+                </div>
+                <div class="feature-card">
+                  <span class="feature-icon">🛡️</span>
+                  <strong>Unique Gear System</strong>
+                  <p>Discover custom weapons, armor, and tools designed for progression and playstyle variety.</p>
+                </div>
+                <div class="feature-card">
+                  <span class="feature-icon">📈</span>
+                  <strong>RPG Progression</strong>
+                  <p>Level up, complete challenges, and build your character through long-term server goals.</p>
+                </div>
+                <div class="feature-card">
+                  <span class="feature-icon">🗺️</span>
+                  <strong>Dynmap</strong>
+                  <p>Explore a live, real-time map of the world directly from your browser.</p>
+                </div>
+                <div class="feature-card">
+                  <span class="feature-icon">🌿</span>
+                  <strong>Custom Seasons</strong>
+                  <p>Experience a changing world with dynamic seasons that affect the environment and gameplay.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+            </div>
+          </div>
+
+          <div class="section" id="community">
+            <div class="container home-duo-grid">
+              <div class="discord-panel" id="discord">
+                <p class="eyebrow">Community Chat</p>
+                <h2>Join Our Discord</h2>
+                <p>
+                  Stay connected with updates, events, and players looking for teammates.
+                </p>
+                <div class="hero-actions">
+                  <a
+                    class="btn btn-primary btn-vine discord-btn"
+                    href="https://discord.gg/8Qz3DtNKea"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  ><span aria-hidden="true">💬</span> Join Discord Server</a>
+                </div>
+              </div>
+
+              <div class="discord-panel" id="store">
+                <p class="eyebrow">Support The Server</p>
+                <h2>Visit Our Store</h2>
+                <p>
+                  Pick up ranks, cosmetics, and perks to support IslesOfDawnMC and future updates.
+                </p>
+                <div class="hero-actions">
+                  <a
+                    class="btn btn-primary btn-vine"
+                    href="https://islesofdawnmc.tebex.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >Open Tebex Store</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

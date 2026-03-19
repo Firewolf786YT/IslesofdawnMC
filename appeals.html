@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Punishment Appeals — IslesOfDawnMC</title>
+    <meta
+      name="description"
+      content="Submit a punishment appeal to the IslesOfDawnMC staff team."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+            <a href="staff.html">Staff Portal</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="hero">
+        <div class="container hero-content">
+          <p class="eyebrow">Review Request</p>
+          <h1>Punishment Appeals</h1>
+          <p class="hero-text">
+            If you believe a punishment was incorrect or excessive, submit an appeal below.
+            Appeals are reviewed by staff and begin in a pending state.
+          </p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="container app-apply-shell">
+          <form id="punishmentAppealForm" class="card app-form" novalidate>
+            <p class="app-form-status" id="appealStatus" aria-live="polite"></p>
+
+            <fieldset class="app-form-section">
+              <legend>1) Information</legend>
+              <div class="app-form-grid">
+                <div>
+                  <label for="appealMinecraftName">Minecraft Username</label>
+                  <input id="appealMinecraftName" name="minecraftName" type="text" placeholder="e.g. DawnPlayer" required />
+                </div>
+                <div>
+                  <label for="appealDiscord">Discord Username</label>
+                  <input id="appealDiscord" name="discord" type="text" placeholder="e.g. user1234" required />
+                </div>
+                <div>
+                  <label for="appealEmail">Email</label>
+                  <input id="appealEmail" name="email" type="email" placeholder="you@example.com" required />
+                </div>
+                <div>
+                  <label for="appealType">Punishment Type</label>
+                  <select id="appealType" name="punishmentType" required>
+                    <option value="">Select a type</option>
+                    <option value="mute">Mute</option>
+                    <option value="kick">Kick</option>
+                    <option value="temp-ban">Temporary Ban</option>
+                    <option value="ban">Ban</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="appealDate">Punishment Date</label>
+                  <input id="appealDate" name="punishmentDate" type="date" required />
+                </div>
+                <div>
+                  <label for="appealLocation">Where were you punished?</label>
+                  <select id="appealLocation" name="punishmentLocation" required>
+                    <option value="">Select a platform</option>
+                    <option value="minecraft">Minecraft</option>
+                    <option value="discord">Discord</option>
+                  </select>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="app-form-section">
+              <legend>2) Appeal Questions</legend>
+              <div class="app-form-long-list">
+                <div>
+                  <label for="appealQ1">What happened that led to this punishment?</label>
+                  <textarea id="appealQ1" name="eventSummary" rows="4" required></textarea>
+                </div>
+                <div>
+                  <label for="appealQ2">Why should this punishment be reconsidered?</label>
+                  <textarea id="appealQ2" name="reconsiderReason" rows="4" required></textarea>
+                </div>
+                <div>
+                  <label for="appealQ3">What will you do to avoid this issue in the future?</label>
+                  <textarea id="appealQ3" name="preventionPlan" rows="4" required></textarea>
+                </div>
+                <div>
+                  <label for="appealQ4">Any additional context or evidence staff should review?</label>
+                  <textarea id="appealQ4" name="additionalContext" rows="4" required></textarea>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="app-form-section">
+              <legend>3) Acknowledgements</legend>
+              <div class="app-ack-list">
+                <div>
+                  <label for="ackTruthful">I confirm this appeal is truthful and accurate.</label>
+                  <select id="ackTruthful" name="ackTruthful" required>
+                    <option value="">Select yes or no</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="ackRespectful">I understand disrespectful behavior during review may affect this appeal.</label>
+                  <select id="ackRespectful" name="ackRespectful" required>
+                    <option value="">Select yes or no</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="ackFinalDecision">I understand final staff decisions may not be reversed.</label>
+                  <select id="ackFinalDecision" name="ackFinalDecision" required>
+                    <option value="">Select yes or no</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+              </div>
+            </fieldset>
+
+            <div class="app-form-actions">
+              <button type="submit" class="btn btn-primary">Submit Appeal</button>
+              <a class="btn btn-secondary" href="index.html">Back Home</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script>
+      const APPEALS_SUBMISSIONS_KEY = 'islesOfDawnAppeals';
+      const punishmentAppealForm = document.getElementById('punishmentAppealForm');
+      const appealStatus = document.getElementById('appealStatus');
+      const appealQuestionIds = ['appealQ1', 'appealQ2', 'appealQ3', 'appealQ4'];
+
+      const setAppealStatus = (message) => {
+        if (!appealStatus) return;
+        appealStatus.textContent = message;
+        window.clearTimeout(setAppealStatus._timer);
+        setAppealStatus._timer = window.setTimeout(() => {
+          appealStatus.textContent = '';
+        }, 4500);
+      };
+
+      const redirectToSubmissionReceived = () => {
+        const target = 'submission-received.html?type=appeal';
+        try {
+          window.location.assign(target);
+        } catch {
+          try {
+            window.location.replace(target);
+          } catch {
+            try {
+              window.location.href = target;
+            } catch {
+              setAppealStatus('Appeal submitted. Please open submission-received.html?type=appeal manually.');
+            }
+          }
+        }
+      };
+
+      const countSentences = (text) => {
+        return text
+          .split(/[.!?]+|\n+/)
+          .map((sentence) => sentence.trim())
+          .filter((sentence) => sentence.length >= 3).length;
+      };
+
+      const readAppeals = () => {
+        try {
+          const stored = localStorage.getItem(APPEALS_SUBMISSIONS_KEY);
+          const parsed = stored ? JSON.parse(stored) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      };
+
+      if (punishmentAppealForm) {
+        punishmentAppealForm.addEventListener('submit', (event) => {
+          event.preventDefault();
+
+          const formData = new FormData(punishmentAppealForm);
+          const minecraftName = String(formData.get('minecraftName') || '').trim();
+          const discord = String(formData.get('discord') || '').trim();
+          const email = String(formData.get('email') || '').trim();
+          const punishmentType = String(formData.get('punishmentType') || '').trim();
+          const punishmentDate = String(formData.get('punishmentDate') || '').trim();
+          const punishmentLocation = String(formData.get('punishmentLocation') || '').trim();
+
+          if (!minecraftName || !discord || !email || !punishmentType || !punishmentDate || !punishmentLocation) {
+            setAppealStatus('Please complete all required fields in Section 1.');
+            return;
+          }
+
+          const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+          if (!emailIsValid) {
+            setAppealStatus('Please enter a valid email address.');
+            return;
+          }
+
+          const longAnswers = appealQuestionIds.map((id) => {
+            const input = document.getElementById(id);
+            return input ? input.value.trim() : '';
+          });
+
+          const invalidAnswerIndex = longAnswers.findIndex((answer) => countSentences(answer) < 3);
+          if (invalidAnswerIndex !== -1) {
+            setAppealStatus(`Question ${invalidAnswerIndex + 1} in Section 2 must be at least 3 sentences (or 3 clear lines).`);
+            return;
+          }
+
+          const ackTruthful = String(formData.get('ackTruthful') || '');
+          const ackRespectful = String(formData.get('ackRespectful') || '');
+          const ackFinalDecision = String(formData.get('ackFinalDecision') || '');
+
+          if (!ackTruthful || !ackRespectful || !ackFinalDecision) {
+            setAppealStatus('Please answer all acknowledgement questions in Section 3.');
+            return;
+          }
+
+          const appeals = readAppeals();
+          appeals.unshift({
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            status: 'pending',
+            minecraftName,
+            discord,
+            email,
+            punishmentType,
+            punishmentDate,
+            punishmentLocation,
+            eventSummary: longAnswers[0],
+            reconsiderReason: longAnswers[1],
+            preventionPlan: longAnswers[2],
+            additionalContext: longAnswers[3],
+            acknowledgements: {
+              truthful: ackTruthful,
+              respectful: ackRespectful,
+              finalDecision: ackFinalDecision,
+            },
+            createdAt: new Date().toISOString(),
+          });
+
+          try {
+            localStorage.setItem(APPEALS_SUBMISSIONS_KEY, JSON.stringify(appeals));
+          } catch {
+            setAppealStatus('Could not save your appeal in browser storage. Please clear site data and try again.');
+            return;
+          }
+
+          redirectToSubmissionReceived();
+        });
+      }
+    </script>
+  </body>
+</html>

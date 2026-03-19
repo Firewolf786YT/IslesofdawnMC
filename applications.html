@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Applications — IslesOfDawnMC</title>
+    <meta
+      name="description"
+      content="Apply to join the IslesOfDawnMC team. Browse open staff positions."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+            <a href="staff.html">Staff Portal</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+
+      <!-- Hero -->
+      <div class="hero">
+        <div class="container hero-content">
+          <p class="eyebrow">Join The Team</p>
+          <h1>Applications</h1>
+          <p class="hero-text">
+            Interested in contributing to IslesOfDawnMC? Browse available positions below.
+            When a role is open, click <strong>Apply Now</strong> to begin the process.
+          </p>
+        </div>
+      </div>
+
+      <!-- Section 1: Main Applications -->
+      <div class="section" id="main-applications">
+        <div class="container">
+          <h2>Main Applications</h2>
+          <p class="section-subtitle">Core staff roles that keep the server running smoothly for all players.</p>
+          <div class="app-grid" id="mainAppGrid"></div>
+        </div>
+      </div>
+
+      <!-- Section 2: Additional Applications -->
+      <div class="section alt" id="additional-applications">
+        <div class="container">
+          <h2>Additional Applications</h2>
+          <p class="section-subtitle">Specialty and community roles will appear here as they become available.</p>
+          <div class="app-grid" id="additionalAppGrid"></div>
+        </div>
+      </div>
+
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script>
+      const APP_STATUS_KEY = 'islesOfDawnAppStatuses';
+
+      const APP_DEFINITIONS = [
+        {
+          id: 'support-team',
+          title: 'Support Team',
+          emoji: '🛡️',
+          description:
+            'Help players with questions, moderate chat, and maintain a positive community environment.',
+          section: 'main',
+        },
+        {
+          id: 'dev-team',
+          title: 'Development Team',
+          emoji: '⚙️',
+          description:
+            'Build plugins, design features, and drive the technical side of the IslesOfDawnMC experience.',
+          section: 'main',
+        },
+        {
+          id: 'qa-team',
+          title: 'Quality Assurance Team',
+          emoji: '🔍',
+          description:
+            'Test new content and updates to ensure a polished, bug-free experience for every player.',
+          section: 'main',
+        },
+        {
+          id: 'build-team',
+          title: 'Build Team',
+          emoji: '🏗️',
+          description:
+            'Design and create immersive server builds, hubs, and themed environments.',
+          section: 'additional',
+        },
+        {
+          id: 'media-team',
+          title: 'Media Team',
+          emoji: '🎬',
+          description:
+            'Create graphics, trailers, and social media assets to showcase IslesOfDawnMC.',
+          section: 'additional',
+        },
+        {
+          id: 'event-team',
+          title: 'Event Team',
+          emoji: '🎉',
+          description:
+            'Plan and host community events that keep gameplay fresh and exciting.',
+          section: 'additional',
+        },
+        {
+          id: 'content-creator',
+          title: 'Content Creator',
+          emoji: '📹',
+          description:
+            'Produce streams or videos featuring the server and help grow the community.',
+          section: 'additional',
+        },
+      ];
+
+      const readAppStatuses = () => {
+        try {
+          const stored = localStorage.getItem(APP_STATUS_KEY);
+          return stored ? JSON.parse(stored) : {};
+        } catch {
+          return {};
+        }
+      };
+
+      const isAppOpen = (id) => {
+        const statuses = readAppStatuses();
+        return statuses[id] === true;
+      };
+
+      const renderAppCard = (app) => {
+        const open = isAppOpen(app.id);
+        const card = document.createElement('article');
+        card.className = 'card app-card';
+        card.dataset.appId = app.id;
+
+        const header = document.createElement('div');
+        header.className = 'app-card-header';
+        header.innerHTML = `
+          <span class="app-emoji" aria-hidden="true">${app.emoji}</span>
+          <span class="app-badge ${open ? 'app-badge-open' : 'app-badge-closed'}">
+            ${open ? 'Open' : 'Closed'}
+          </span>
+        `;
+
+        const title = document.createElement('h3');
+        title.textContent = app.title;
+
+        const desc = document.createElement('p');
+        desc.textContent = app.description;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.appId = app.id;
+
+        if (open) {
+          btn.className = 'btn btn-primary app-apply-btn';
+          btn.textContent = 'Apply Now';
+          btn.addEventListener('click', () => {
+            window.location.href = `apply.html?role=${encodeURIComponent(app.id)}`;
+          });
+        } else {
+          btn.className = 'btn btn-secondary app-apply-btn app-apply-disabled';
+          btn.disabled = true;
+          btn.setAttribute('aria-disabled', 'true');
+          btn.textContent = 'Applications Closed';
+        }
+
+        card.append(header, title, desc, btn);
+        return card;
+      };
+
+      const renderMainApplications = () => {
+        const grid = document.getElementById('mainAppGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        APP_DEFINITIONS.filter((a) => a.section === 'main').forEach((app) => {
+          grid.appendChild(renderAppCard(app));
+        });
+      };
+
+      const renderAdditionalApplications = () => {
+        const grid = document.getElementById('additionalAppGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        APP_DEFINITIONS.filter((a) => a.section === 'additional').forEach((app) => {
+          grid.appendChild(renderAppCard(app));
+        });
+      };
+
+      renderMainApplications();
+      renderAdditionalApplications();
+
+      // Re-render if another tab (e.g. staff portal) changes statuses
+      window.addEventListener('storage', (e) => {
+        if (e.key === APP_STATUS_KEY) {
+          renderMainApplications();
+          renderAdditionalApplications();
+        }
+      });
+    </script>
+  </body>
+</html>

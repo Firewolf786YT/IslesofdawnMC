@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Announcements Manager — IslesOfDawnMC Staff</title>
+    <meta name="description" content="Manage IslesOfDawnMC announcements from the Staff Portal." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+            <a href="staff.html">Staff Portal</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="staffAnnouncementsContent" class="staff-module-page">
+      <section class="section">
+        <div class="container">
+          <div class="card staff-module-header">
+            <p class="eyebrow">Staff Module</p>
+            <h2>Announcements Manager</h2>
+            <p id="staffAnnouncementsWelcome" class="hero-text staff-module-subtitle"></p>
+          </div>
+
+          <div class="staff-module-actions">
+            <a class="btn btn-secondary" href="staff.html">Back to Staff Hub</a>
+            <a class="btn btn-primary" href="announcements.html">View Public Announcements</a>
+          </div>
+
+          <div class="card staff-announce-card">
+            <h3>📢 Create and Manage Announcements</h3>
+            <p class="staff-announce-desc">Post updates for players and remove old announcements when needed.</p>
+            <div class="staff-announce-shell">
+              <form id="announcementForm" class="staff-announce-form">
+                <label for="announcementTitle">Title</label>
+                <input
+                  id="announcementTitle"
+                  name="title"
+                  type="text"
+                  maxlength="80"
+                  placeholder="e.g. Weekend Event + Double Drops"
+                  required
+                />
+                <label for="announcementBody">Message</label>
+                <textarea
+                  id="announcementBody"
+                  name="message"
+                  rows="4"
+                  maxlength="600"
+                  placeholder="Write your server update here..."
+                  required
+                ></textarea>
+                <label for="announcementImage">Attachment (optional)</label>
+                <input
+                  id="announcementImage"
+                  name="image"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                />
+                <p class="staff-announce-file-note">PNG, JPG, WEBP, or GIF. Max 4 MB.</p>
+                <div class="staff-announce-actions">
+                  <button type="submit" class="btn btn-primary">Post Announcement</button>
+                  <button type="button" class="btn btn-secondary" id="clearAnnouncementsButton">Clear All</button>
+                </div>
+                <p class="copy-message" id="announcementStatus" aria-live="polite"></p>
+              </form>
+              <div class="staff-announce-feed">
+                <h4>Posted Announcements</h4>
+                <div id="announcementList" class="announcement-list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script>
+      document.getElementById('staffAnnouncementsContent').style.display = '';
+      const user = getSession();
+      if (user) {
+        const role = getUserRole(user.uid);
+        const el = document.getElementById('staffAnnouncementsWelcome');
+        el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
+      }
+    </script>
+  </body>
+</html>

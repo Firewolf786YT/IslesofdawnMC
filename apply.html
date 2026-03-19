@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Apply — IslesOfDawnMC</title>
+    <meta
+      name="description"
+      content="Submit a staff application for an open IslesOfDawnMC role."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+            <a href="staff.html">Staff Portal</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="hero">
+        <div class="container hero-content">
+          <p class="eyebrow">Application</p>
+          <h1 id="applyPageTitle">Staff Application</h1>
+          <p class="hero-text">
+            Complete all sections below. Each Section 2 response must be at least 3 sentences.
+          </p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="container app-apply-shell">
+          <div id="appAccessNotice" class="card app-access-notice is-hidden"></div>
+
+          <form id="staffApplicationForm" class="card app-form is-hidden" novalidate>
+            <p class="app-form-status" id="applicationStatus" aria-live="polite"></p>
+
+            <div class="app-role-chip" id="selectedRoleChip"></div>
+
+            <fieldset class="app-form-section">
+              <legend>1) Information</legend>
+              <div class="app-form-grid">
+                <input id="applicationRole" name="role" type="hidden" />
+                <div id="supportMinecraftUsernameField" class="is-hidden">
+                  <label for="appMinecraftUsername">Minecraft Username</label>
+                  <input id="appMinecraftUsername" name="minecraftUsername" type="text" placeholder="e.g. IslesPlayer" />
+                </div>
+                <div>
+                  <label for="appAge">Age</label>
+                  <input id="appAge" name="age" type="number" min="13" max="99" placeholder="e.g. 18" required />
+                </div>
+                <div>
+                  <label for="appDiscord">Discord Username</label>
+                  <input id="appDiscord" name="discord" type="text" placeholder="e.g. user1234" required />
+                </div>
+                <div>
+                  <label for="appEmail">Email</label>
+                  <input id="appEmail" name="email" type="email" placeholder="you@example.com" required />
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="app-form-section">
+              <legend>2) Staff Questions</legend>
+              <div class="app-form-long-list">
+                <div>
+                  <label for="appQ1">Why do you want to become a staff member at IslesOfDawnMC?</label>
+                  <textarea id="appQ1" name="whyJoin" rows="4" required></textarea>
+                </div>
+                <div>
+                  <label for="appQ2">What relevant experience do you have for this role?</label>
+                  <textarea id="appQ2" name="experience" rows="4" required></textarea>
+                </div>
+                <div>
+                  <label for="appQ3">How would you handle conflict between players or rule-breaking situations?</label>
+                  <textarea id="appQ3" name="conflictHandling" rows="4" required></textarea>
+                </div>
+                <div>
+                  <label for="appQ4">What would you do to improve the IslesOfDawnMC community as staff?</label>
+                  <textarea id="appQ4" name="communityImprovement" rows="4" required></textarea>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="app-form-section">
+              <legend>3) Acknowledgements</legend>
+              <div class="app-ack-list">
+                <div>
+                  <label for="ackVolunteer">Do you understand this is a voluntary role?</label>
+                  <select id="ackVolunteer" name="ackVolunteer" required>
+                    <option value="">Select yes or no</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="ackContacting">Do you understand contacting staff repeatedly about your application may result in denial?</label>
+                  <select id="ackContacting" name="ackContacting" required>
+                    <option value="">Select yes or no</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="ackHonest">Do you confirm that all information in this application is honest and accurate?</label>
+                  <select id="ackHonest" name="ackHonest" required>
+                    <option value="">Select yes or no</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+              </div>
+            </fieldset>
+
+            <div class="app-form-actions">
+              <button type="submit" class="btn btn-primary">Submit Application</button>
+              <a class="btn btn-secondary" href="applications.html">Back to Applications</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+    <script>
+      const APP_STATUS_KEY = 'islesOfDawnAppStatuses';
+      const APP_SUBMISSIONS_KEY = 'islesOfDawnApplications';
+
+      const APP_DEFINITIONS = [
+        {
+          id: 'support-team',
+          title: 'Support Team',
+          emoji: '🛡️',
+        },
+        {
+          id: 'dev-team',
+          title: 'Development Team',
+          emoji: '⚙️',
+        },
+        {
+          id: 'qa-team',
+          title: 'Quality Assurance Team',
+          emoji: '🔍',
+        },
+        {
+          id: 'build-team',
+          title: 'Build Team',
+          emoji: '🏗️',
+        },
+        {
+          id: 'media-team',
+          title: 'Media Team',
+          emoji: '🎬',
+        },
+        {
+          id: 'event-team',
+          title: 'Event Team',
+          emoji: '🎉',
+        },
+        {
+          id: 'content-creator',
+          title: 'Content Creator',
+          emoji: '📹',
+        },
+      ];
+
+      const applicationForm = document.getElementById('staffApplicationForm');
+      const applicationStatus = document.getElementById('applicationStatus');
+      const applicationRole = document.getElementById('applicationRole');
+      const appAccessNotice = document.getElementById('appAccessNotice');
+      const selectedRoleChip = document.getElementById('selectedRoleChip');
+      const applyPageTitle = document.getElementById('applyPageTitle');
+      const supportMinecraftUsernameField = document.getElementById('supportMinecraftUsernameField');
+      const appMinecraftUsername = document.getElementById('appMinecraftUsername');
+      const questionFieldIds = ['appQ1', 'appQ2', 'appQ3', 'appQ4'];
+      let accessRedirectTimer = null;
+      let accessRedirectInterval = null;
+
+      const readAppStatuses = () => {
+        try {
+          const stored = localStorage.getItem(APP_STATUS_KEY);
+          return stored ? JSON.parse(stored) : {};
+        } catch {
+          return {};
+        }
+      };
+
+      const isAppOpen = (id) => {
+        const statuses = readAppStatuses();
+        return statuses[id] === true;
+      };
+
+      const setApplicationStatus = (message) => {
+        if (!applicationStatus) return;
+        applicationStatus.textContent = message;
+        window.clearTimeout(setApplicationStatus._timer);
+        setApplicationStatus._timer = window.setTimeout(() => {
+          applicationStatus.textContent = '';
+        }, 4200);
+      };
+
+      const redirectToSubmissionReceived = () => {
+        const target = 'submission-received.html?type=application';
+        try {
+          window.location.assign(target);
+        } catch {
+          try {
+            window.location.replace(target);
+          } catch {
+            try {
+              window.location.href = target;
+            } catch {
+              setApplicationStatus('Application submitted. Please open submission-received.html?type=application manually.');
+            }
+          }
+        }
+      };
+
+      const countSentences = (text) => {
+        return text
+          .split(/[.!?]+|\n+/)
+          .map((sentence) => sentence.trim())
+          .filter((sentence) => sentence.length >= 3).length;
+      };
+
+      const getCurrentRole = () => {
+        const params = new URLSearchParams(window.location.search);
+        const roleId = params.get('role') || '';
+        return APP_DEFINITIONS.find((app) => app.id === roleId) || null;
+      };
+
+      const showAccessNotice = (message, options = {}) => {
+        if (!appAccessNotice) return;
+        const shouldRedirect = options.redirectAfterSeconds > 0;
+        const redirectSeconds = options.redirectAfterSeconds || 0;
+
+        window.clearTimeout(accessRedirectTimer);
+        window.clearInterval(accessRedirectInterval);
+
+        appAccessNotice.classList.remove('is-hidden');
+        appAccessNotice.innerHTML = `
+          <h3>Application Unavailable</h3>
+          <p>${message}</p>
+          ${shouldRedirect ? `<p id="appAccessRedirectNote" style="margin-top: 0.6rem;"></p>` : ''}
+          <a class="btn btn-secondary" href="applications.html" style="display: inline-block; margin-top: 0.8rem; text-decoration: none;">Back to Applications</a>
+        `;
+
+        if (shouldRedirect) {
+          let secondsLeft = redirectSeconds;
+          const note = document.getElementById('appAccessRedirectNote');
+          if (note) {
+            note.textContent = `Redirecting automatically in ${secondsLeft} seconds...`;
+          }
+
+          accessRedirectInterval = window.setInterval(() => {
+            secondsLeft -= 1;
+            if (secondsLeft <= 0) {
+              window.clearInterval(accessRedirectInterval);
+              return;
+            }
+
+            if (note) {
+              note.textContent = `Redirecting automatically in ${secondsLeft} seconds...`;
+            }
+          }, 1000);
+
+          accessRedirectTimer = window.setTimeout(() => {
+            window.location.replace('applications.html');
+          }, redirectSeconds * 1000);
+        }
+      };
+
+      const setFormAvailability = () => {
+        const role = getCurrentRole();
+
+        if (!role) {
+          applicationForm?.classList.add('is-hidden');
+          showAccessNotice('This role is invalid or missing. Please choose a role from the Applications page.');
+          return null;
+        }
+
+        if (applyPageTitle) {
+          applyPageTitle.textContent = `${role.title} Application`;
+        }
+
+        if (!isAppOpen(role.id)) {
+          applicationForm?.classList.add('is-hidden');
+          showAccessNotice(
+            `${role.title} is currently closed. You cannot access this application until it reopens.`,
+            { redirectAfterSeconds: 5 }
+          );
+          return null;
+        }
+
+        window.clearTimeout(accessRedirectTimer);
+        window.clearInterval(accessRedirectInterval);
+        appAccessNotice?.classList.add('is-hidden');
+        applicationForm?.classList.remove('is-hidden');
+
+        if (applicationRole) {
+          applicationRole.value = role.id;
+        }
+
+        if (selectedRoleChip) {
+          selectedRoleChip.textContent = `${role.emoji} Applying for: ${role.title}`;
+        }
+
+        const isSupportTeamRole = role.id === 'support-team';
+        if (supportMinecraftUsernameField && appMinecraftUsername) {
+          supportMinecraftUsernameField.classList.toggle('is-hidden', !isSupportTeamRole);
+          appMinecraftUsername.required = isSupportTeamRole;
+
+          if (!isSupportTeamRole) {
+            appMinecraftUsername.value = '';
+          }
+        }
+
+        return role;
+      };
+
+      const submitApplication = (role) => {
+        if (!applicationForm || !role) return;
+
+        applicationForm.addEventListener('submit', (event) => {
+          event.preventDefault();
+
+          const ageValue = String(document.getElementById('appAge')?.value || '').trim();
+          const discordValue = String(document.getElementById('appDiscord')?.value || '').trim();
+          const emailValue = String(document.getElementById('appEmail')?.value || '').trim();
+          const minecraftUsernameValue = String(appMinecraftUsername?.value || '').trim();
+
+          if (!ageValue || !discordValue || !emailValue) {
+            setApplicationStatus('Please complete all required fields in Section 1.');
+            return;
+          }
+
+          const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
+          if (!emailIsValid) {
+            setApplicationStatus('Please enter a valid email address.');
+            return;
+          }
+
+          if (!isAppOpen(role.id)) {
+            setApplicationStatus('This role just closed. You can no longer submit this application.');
+            setFormAvailability();
+            return;
+          }
+
+          if (role.id === 'support-team' && !minecraftUsernameValue) {
+            setApplicationStatus('Please provide your Minecraft Username for the Support Team application.');
+            return;
+          }
+
+          const formData = new FormData(applicationForm);
+
+          const longAnswers = questionFieldIds.map((id) => {
+            const input = document.getElementById(id);
+            return input ? input.value.trim() : '';
+          });
+
+          const invalidAnswerIndex = longAnswers.findIndex((answer) => countSentences(answer) < 3);
+          if (invalidAnswerIndex !== -1) {
+            setApplicationStatus(`Question ${invalidAnswerIndex + 1} in Section 2 must be at least 3 sentences (or 3 clear lines).`);
+            return;
+          }
+
+          const ackVolunteerValue = String(formData.get('ackVolunteer') || '');
+          const ackContactingValue = String(formData.get('ackContacting') || '');
+          const ackHonestValue = String(formData.get('ackHonest') || '');
+
+          if (!ackVolunteerValue || !ackContactingValue || !ackHonestValue) {
+            setApplicationStatus('Please answer all acknowledgement questions in Section 3.');
+            return;
+          }
+
+          const submissions = (() => {
+            try {
+              const stored = localStorage.getItem(APP_SUBMISSIONS_KEY);
+              const parsed = stored ? JSON.parse(stored) : [];
+              return Array.isArray(parsed) ? parsed : [];
+            } catch {
+              return [];
+            }
+          })();
+
+          submissions.unshift({
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            status: 'pending',
+            roleId: role.id,
+            roleTitle: role.title,
+            minecraftUsername: role.id === 'support-team' ? minecraftUsernameValue : '',
+            age: String(formData.get('age') || '').trim(),
+            discord: String(formData.get('discord') || '').trim(),
+            email: String(formData.get('email') || '').trim(),
+            whyJoin: longAnswers[0],
+            experience: longAnswers[1],
+            conflictHandling: longAnswers[2],
+            communityImprovement: longAnswers[3],
+            acknowledgements: {
+              volunteer: ackVolunteerValue,
+              contacting: ackContactingValue,
+              honest: ackHonestValue,
+            },
+            createdAt: new Date().toISOString(),
+          });
+
+          try {
+            localStorage.setItem(APP_SUBMISSIONS_KEY, JSON.stringify(submissions));
+          } catch {
+            setApplicationStatus('Could not save your application in browser storage. Please clear site data and try again.');
+            return;
+          }
+
+          redirectToSubmissionReceived();
+        });
+      };
+
+      const activeRole = setFormAvailability();
+      submitApplication(activeRole);
+
+      window.addEventListener('storage', (e) => {
+        if (e.key === APP_STATUS_KEY) {
+          setFormAvailability();
+        }
+      });
+    </script>
+  </body>
+</html>

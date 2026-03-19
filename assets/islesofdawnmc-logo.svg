@@ -1,0 +1,35 @@
+<svg width="460" height="96" viewBox="0 0 460 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">IslesOfDawnMC</title>
+  <desc id="logoDesc">Stylized text logo for IslesOfDawnMC.</desc>
+  <defs>
+    <linearGradient id="logoGradient" x1="24" y1="18" x2="432" y2="78" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7AA2FF" />
+      <stop offset="0.52" stop-color="#A78BFA" />
+      <stop offset="1" stop-color="#8B5CF6" />
+    </linearGradient>
+    <filter id="logoGlow" x="0" y="0" width="460" height="96" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.4" result="softGlow" />
+      <feColorMatrix in="softGlow" type="matrix" values="0 0 0 0 0.48 0 0 0 0 0.64 0 0 0 0 1 0 0 0 0.36 0" />
+      <feMerge>
+        <feMergeNode />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <text
+    x="20"
+    y="64"
+    font-family="Inter, Segoe UI, Arial, sans-serif"
+    font-size="52"
+    font-weight="800"
+    letter-spacing="0.8"
+    fill="url(#logoGradient)"
+    stroke="#DDE5FF"
+    stroke-opacity="0.24"
+    stroke-width="1"
+    paint-order="stroke"
+    filter="url(#logoGlow)"
+  >
+    IslesOfDawnMC
+  </text>
+</svg>
