@@ -135,10 +135,91 @@ body {
 }
 
 .nav-auth-user {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.55rem;
   font-size: 0.88rem;
+}
+
+.nav-auth-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.34rem 0.55rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.nav-auth-trigger:hover {
+  border-color: rgba(122, 162, 255, 0.62);
+  background: rgba(122, 162, 255, 0.08);
+}
+
+.nav-auth-trigger[aria-expanded='true'] {
+  border-color: var(--accent);
+}
+
+.nav-auth-caret {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.nav-auth-menu {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  min-width: 190px;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  z-index: 30;
+}
+
+.nav-auth-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 0.45rem 0.6rem;
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.86rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.nav-auth-menu-item:hover {
+  border-color: rgba(122, 162, 255, 0.45);
+  background: rgba(122, 162, 255, 0.08);
+}
+
+.nav-auth-menu-item-staff {
+  color: var(--accent);
+}
+
+.nav-auth-menu-logout {
+  color: #e75f5f;
+}
+
+.nav-auth-menu-logout:hover {
+  border-color: rgba(231, 95, 95, 0.45);
+  background: rgba(231, 95, 95, 0.08);
 }
 
 .nav-auth-links {
@@ -851,6 +932,17 @@ body {
     flex-wrap: wrap;
   }
 
+  .nav-auth-trigger {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .nav-auth-menu {
+    left: 0;
+    right: 0;
+    min-width: 0;
+  }
+
   .nav-auth-links {
     width: 100%;
   }
@@ -1559,7 +1651,7 @@ body {
   }
 
   .nav-auth-name {
-    display: none;
+    display: inline;
   }
 
   .staff-role-list-header,

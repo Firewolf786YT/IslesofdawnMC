@@ -152,23 +152,7 @@
           password: loginPassword.value,
         });
 
-        await syncSessionFromSupabase();
-
-        // Already logged in — send straight home
-        if (getSession()) {
-          location.replace('index.html');
-          return;
-        }
-        const hasCallback =
-          location.hash.includes('access_token=') ||
-          location.search.includes('code=') ||
-          location.search.includes('error=') ||
-          location.hash.includes('error=');
-        if (hasCallback) {
-          setFormBusy(true, 'Completing sign-in…');
-          await handleOAuthCallback();
-        } else {
-          showLoginOptions();
+        const wireLoginEvents = () => {
           document.getElementById('loginWithGoogle').addEventListener('click', loginWithGoogle);
           document.getElementById('loginWithDiscord').addEventListener('click', loginWithDiscord);
 
@@ -184,9 +168,9 @@
 
             setFormBusy(true, 'Signing you in…');
             const result = await signInWithEmailPassword(email, password);
-            if (!result.ok) {
+            if (!result?.ok) {
               setFormBusy(false);
-              setStatus(result.message || 'Sign-in failed. Please try again.');
+              setStatus(result?.message || 'Sign-in failed. Please try again.');
               return;
             }
 
@@ -214,9 +198,9 @@
 
             setFormBusy(true, 'Creating your account…');
             const result = await createAccountWithEmailPassword(email, password, displayName);
-            if (!result.ok) {
+            if (!result?.ok) {
               setFormBusy(false);
-              setStatus(result.message || 'Account creation failed. Please try again.');
+              setStatus(result?.message || 'Account creation failed. Please try again.');
               return;
             }
 
@@ -229,7 +213,35 @@
 
             finishLogin();
           });
+        };
+
+        try {
+          await syncSessionFromSupabase();
+
+          // Already logged in — send straight home
+          if (getSession()) {
+            location.replace('index.html');
+            return;
+          }
+
+          const hasCallback =
+            location.hash.includes('access_token=') ||
+            location.search.includes('code=') ||
+            location.search.includes('error=') ||
+            location.hash.includes('error=');
+
+          if (hasCallback) {
+            setFormBusy(true, 'Completing sign-in…');
+            await handleOAuthCallback();
+            return;
+          }
+        } catch (error) {
+          console.error('Login page initialization failed:', error);
+          setStatus('Sign-in setup failed to load completely. You can still use email/password below.');
         }
+
+        showLoginOptions();
+        wireLoginEvents();
       })();
     </script>
   </body>

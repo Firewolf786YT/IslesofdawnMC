@@ -309,7 +309,13 @@ const getSupabaseClient = async () => {
     })();
   }
 
-  return supabaseClientPromise;
+  try {
+    return await supabaseClientPromise;
+  } catch (error) {
+    console.error('Supabase client initialization failed:', error instanceof Error ? error.message : error);
+    supabaseClientPromise = null;
+    return null;
+  }
 };
 
 window.isSupabaseConfigured = isSupabaseConfigured;
@@ -839,6 +845,16 @@ const renderNavAuth = () => {
   const slot = document.getElementById('navAuth');
   if (!slot) return;
 
+  if (window.__navAuthMenuClickHandler) {
+    document.removeEventListener('click', window.__navAuthMenuClickHandler);
+    window.__navAuthMenuClickHandler = null;
+  }
+
+  if (window.__navAuthMenuEscapeHandler) {
+    document.removeEventListener('keydown', window.__navAuthMenuEscapeHandler);
+    window.__navAuthMenuEscapeHandler = null;
+  }
+
   const user = getSession();
   if (!user) {
     slot.innerHTML = '<a class="btn btn-nav-login" href="login.html">Login</a>';
@@ -847,20 +863,72 @@ const renderNavAuth = () => {
 
   const initial = escHtml((user.name || user.email || '?')[0].toUpperCase());
   const role = getVerifiedCurrentRole();
-  const profileLink = `<a class="nav-auth-profile" href="${PROFILE_PAGE}">Profile</a>`;
   const staffLink = (role === 'staff' || role === 'admin')
-    ? '<a class="nav-auth-staff" href="staff.html">Staff Portal</a>'
+    ? '<a class="nav-auth-menu-item nav-auth-menu-item-staff" href="staff.html">Staff Portal</a>'
     : '';
 
   slot.innerHTML = `
     <div class="nav-auth-user">
-      <div class="nav-auth-links">${profileLink}${staffLink}</div>
-      <span class="nav-auth-avatar">${initial}</span>
-      <span class="nav-auth-name">${escHtml(user.name || user.email)}</span>
-      <button class="btn btn-nav-logout" id="navLogoutBtn" type="button">Log out</button>
+      <button class="nav-auth-trigger" id="navAuthTrigger" type="button" aria-haspopup="menu" aria-expanded="false">
+        <span class="nav-auth-avatar">${initial}</span>
+        <span class="nav-auth-name">${escHtml(user.name || user.email)}</span>
+        <span class="nav-auth-caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="nav-auth-menu is-hidden" id="navAuthMenu" role="menu">
+        <a class="nav-auth-menu-item" href="${PROFILE_PAGE}" role="menuitem">Profile</a>
+        ${staffLink}
+        <button class="nav-auth-menu-item nav-auth-menu-logout" id="navLogoutBtn" type="button" role="menuitem">Log out</button>
+      </div>
     </div>`;
 
+  const trigger = document.getElementById('navAuthTrigger');
+  const menu = document.getElementById('navAuthMenu');
+  const closeMenu = () => {
+    if (!menu || !trigger) return;
+    menu.classList.add('is-hidden');
+    trigger.setAttribute('aria-expanded', 'false');
+  };
+
+  const toggleMenu = () => {
+    if (!menu || !trigger) return;
+    const isOpen = !menu.classList.contains('is-hidden');
+    if (isOpen) {
+      closeMenu();
+      return;
+    }
+
+    menu.classList.remove('is-hidden');
+    trigger.setAttribute('aria-expanded', 'true');
+  };
+
+  trigger?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    toggleMenu();
+  });
+
+  menu?.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+
+  window.__navAuthMenuClickHandler = (event) => {
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+    if (!slot.contains(target)) {
+      closeMenu();
+    }
+  };
+
+  window.__navAuthMenuEscapeHandler = (event) => {
+    if (event.key === 'Escape') {
+      closeMenu();
+    }
+  };
+
+  document.addEventListener('click', window.__navAuthMenuClickHandler);
+  document.addEventListener('keydown', window.__navAuthMenuEscapeHandler);
+
   document.getElementById('navLogoutBtn')?.addEventListener('click', () => {
+    closeMenu();
     logout();
   });
 };
