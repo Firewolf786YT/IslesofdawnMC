@@ -969,6 +969,53 @@ body {
   word-break: break-all;
 }
 
+.staff-diagnostics-card {
+  margin-top: 1rem;
+}
+
+.staff-diagnostics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.staff-diagnostics-header h3 {
+  margin: 0;
+}
+
+.staff-diagnostics-subtitle {
+  margin: 0.55rem 0 0;
+  color: var(--muted);
+}
+
+.staff-diag-grid {
+  margin-top: 0.8rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.staff-diag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.staff-diag-row span {
+  color: var(--muted);
+}
+
+.staff-diag-row strong {
+  color: var(--text);
+  text-align: right;
+  word-break: break-all;
+}
+
 @media (max-width: 640px) {
   .nav-right {
     flex-wrap: wrap;

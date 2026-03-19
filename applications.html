@@ -77,9 +77,10 @@
     </footer>
 
     <script src="auth.js"></script>
+    <script src="supabase-data.js"></script>
     <script src="script.js"></script>
     <script>
-      const APP_STATUS_KEY = 'islesOfDawnAppStatuses';
+      let appStatuses = {};
 
       const APP_DEFINITIONS = [
         {
@@ -140,18 +141,8 @@
         },
       ];
 
-      const readAppStatuses = () => {
-        try {
-          const stored = localStorage.getItem(APP_STATUS_KEY);
-          return stored ? JSON.parse(stored) : {};
-        } catch {
-          return {};
-        }
-      };
-
       const isAppOpen = (id) => {
-        const statuses = readAppStatuses();
-        return statuses[id] === true;
+        return appStatuses[id] === true;
       };
 
       const renderAppCard = (app) => {
@@ -214,16 +205,17 @@
         });
       };
 
-      renderMainApplications();
-      renderAdditionalApplications();
-
-      // Re-render if another tab (e.g. staff portal) changes statuses
-      window.addEventListener('storage', (e) => {
-        if (e.key === APP_STATUS_KEY) {
-          renderMainApplications();
-          renderAdditionalApplications();
+      (async () => {
+        const statuses = await window.syncApplicationStatusesFromSupabase?.();
+        if (!statuses) {
+          console.warn('Application statuses unavailable because Supabase is not configured or unreachable.');
+          appStatuses = {};
+        } else {
+          appStatuses = statuses;
         }
-      });
+        renderMainApplications();
+        renderAdditionalApplications();
+      })();
     </script>
   </body>
 </html>

@@ -91,18 +91,24 @@
     </footer>
 
     <script src="auth.js"></script>
+    <script src="supabase-data.js"></script>
     <script src="script.js"></script>
     <script>
-      document.getElementById('staffApplicationsContent').style.display = '';
-      const user = getSession();
-      if (user) {
-        const role = getUserRole(user.uid);
-        const el = document.getElementById('staffApplicationsWelcome');
-        el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
-      }
+      (async () => {
+        const allowed = await requireStaffAccess();
+        if (!allowed) return;
 
-      const APP_STATUS_KEY = 'islesOfDawnAppStatuses';
-      const APP_SUBMISSIONS_KEY = 'islesOfDawnApplications';
+        document.getElementById('staffApplicationsContent').style.display = '';
+        const user = getSession();
+        if (user) {
+          const role = getUserRole(user.uid);
+          const el = document.getElementById('staffApplicationsWelcome');
+          el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
+        }
+      })();
+
+      let appStatuses = {};
+      let applicationSubmissions = [];
       const applicationReviewFilter = document.getElementById('applicationReviewFilter');
       const applicationReviewUsername = document.getElementById('applicationReviewUsername');
       const applicationReviewRole = document.getElementById('applicationReviewRole');
@@ -119,37 +125,25 @@
       ];
 
       const readAppStatuses = () => {
-        try {
-          const stored = localStorage.getItem(APP_STATUS_KEY);
-          return stored ? JSON.parse(stored) : {};
-        } catch {
-          return {};
-        }
+        return appStatuses;
       };
 
       const saveAppStatuses = (statuses) => {
-        localStorage.setItem(APP_STATUS_KEY, JSON.stringify(statuses));
+        appStatuses = { ...statuses };
+        window.pushApplicationStatusesToSupabase?.(appStatuses);
       };
 
       const readApplicationSubmissions = () => {
-        try {
-          const stored = localStorage.getItem(APP_SUBMISSIONS_KEY);
-          const parsed = stored ? JSON.parse(stored) : [];
-          if (!Array.isArray(parsed)) return [];
-
-          return parsed
-            .filter((item) => item && typeof item === 'object')
-            .map((item) => ({
-              ...item,
-              status: item.status === 'approved' || item.status === 'denied' ? item.status : 'pending',
-            }));
-        } catch {
-          return [];
-        }
+        return applicationSubmissions
+          .filter((item) => item && typeof item === 'object')
+          .map((item) => ({
+            ...item,
+            status: item.status === 'approved' || item.status === 'denied' ? item.status : 'pending',
+          }));
       };
 
       const saveApplicationSubmissions = (submissions) => {
-        localStorage.setItem(APP_SUBMISSIONS_KEY, JSON.stringify(submissions));
+        applicationSubmissions = Array.isArray(submissions) ? submissions : [];
       };
 
       const getSubmissionCounts = (submissions) => {
@@ -241,7 +235,7 @@
         return wrapper;
       };
 
-      const updateSubmissionStatus = (submissionId, fallbackIndex, nextStatus) => {
+      const updateSubmissionStatus = async (submissionId, fallbackIndex, nextStatus) => {
         const submissions = readApplicationSubmissions();
         let targetIndex = submissions.findIndex((submission) => submission.id === submissionId);
 
@@ -255,8 +249,16 @@
 
         submissions[targetIndex].status = nextStatus;
         submissions[targetIndex].reviewedAt = new Date().toISOString();
-        submissions[targetIndex].reviewedBy = user?.name || user?.email || 'Staff';
+        const reviewer = getSession();
+        submissions[targetIndex].reviewedBy = reviewer?.name || reviewer?.email || 'Staff';
         saveApplicationSubmissions(submissions);
+
+        await window.updateApplicationReviewInSupabase?.(
+          submissions[targetIndex].id,
+          nextStatus,
+          submissions[targetIndex].reviewedBy
+        );
+
         renderApplicationReviews();
       };
 
@@ -434,9 +436,27 @@
         });
       };
 
-      renderAppToggles();
-      renderRoleFilterOptions();
-      renderApplicationReviews();
+      (async () => {
+        const allowed = await requireStaffAccess();
+        if (!allowed) return;
+
+        const statuses = await window.syncApplicationStatusesFromSupabase?.();
+        const submissions = await window.syncApplicationSubmissionsFromSupabase?.();
+
+        if (!statuses || !submissions) {
+          const list = document.getElementById('staffApplicationReviewList');
+          if (list) {
+            list.innerHTML = '<p class="announcement-empty">Staff data unavailable. Verify Supabase setup and RLS policies.</p>';
+          }
+          return;
+        }
+
+        appStatuses = statuses;
+        applicationSubmissions = submissions;
+        renderAppToggles();
+        renderRoleFilterOptions();
+        renderApplicationReviews();
+      })();
 
       const applicationReviewStats = document.getElementById('applicationReviewStats');
       if (applicationReviewStats && applicationReviewFilter) {
@@ -486,15 +506,6 @@
         });
       }
 
-      window.addEventListener('storage', (event) => {
-        if (event.key === APP_STATUS_KEY) {
-          renderAppToggles();
-        }
-
-        if (event.key === APP_SUBMISSIONS_KEY) {
-          renderApplicationReviews();
-        }
-      });
     </script>
   </body>
 </html>

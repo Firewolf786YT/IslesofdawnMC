@@ -86,6 +86,8 @@
     <script src="script.js"></script>
     <script>
       (async () => {
+        await syncSessionFromSupabase();
+
         // Already logged in — send straight home
         if (getSession()) {
           location.replace('index.html');

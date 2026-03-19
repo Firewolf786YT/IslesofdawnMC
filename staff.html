@@ -77,15 +77,42 @@
           <div class="card staff-permissions-card">
             <h3>How Permissions Work</h3>
             <p>
-              Roles are assigned by an admin from the browser DevTools console
-              while on any page of this site:
+              Roles are stored in Supabase table <code>public.user_roles</code>.
+              Admins can still assign roles from DevTools using:
             </p>
-            <code class="staff-code">assignRole('discord:YOUR_USER_ID', 'staff')</code>
+            <code class="staff-code">assignRole(getSession().uid, 'staff')</code>
             <p style="margin-top: 0.6rem;">
-              Replace <code>YOUR_USER_ID</code> with the user's numeric ID shown after
-              they sign in (visible in the console as part of their UID).
+              To assign someone else, use their full session UID (example:
+              <code>google:uuid...</code> or <code>discord:uuid...</code>).
               Valid roles: <code>user</code> · <code>staff</code> · <code>admin</code>
             </p>
+            <p style="margin-top: 0.6rem;">
+              First-time setup requires one admin row inserted in Supabase SQL
+              (see <code>supabase-schema.sql</code> bootstrap comment).
+            </p>
+          </div>
+
+          <div class="card staff-diagnostics-card">
+            <div class="staff-diagnostics-header">
+              <h3>Admin Diagnostics</h3>
+              <button id="refreshDiagnosticsBtn" type="button" class="btn btn-secondary">Refresh</button>
+            </div>
+            <p class="staff-diagnostics-subtitle">Quick checks for backend setup and role sync.</p>
+            <div class="staff-diag-grid" id="staffDiagnosticsGrid">
+              <div class="staff-diag-row">
+                <span>Supabase</span>
+                <strong id="diagSupabase">Checking…</strong>
+              </div>
+              <div class="staff-diag-row">
+                <span>Auth UUID</span>
+                <strong id="diagAuthUuid">Checking…</strong>
+              </div>
+              <div class="staff-diag-row">
+                <span>DB Role</span>
+                <strong id="diagRole">Checking…</strong>
+              </div>
+            </div>
+            <p class="copy-message" id="diagStatusMessage" aria-live="polite"></p>
           </div>
         </div>
       </section>
@@ -100,13 +127,82 @@
     <script src="auth.js"></script>
     <script src="script.js"></script>
     <script>
-      document.getElementById('staffContent').style.display = '';
-      const user = getSession();
-      if (user) {
-        const role = getUserRole(user.uid);
-        const el = document.getElementById('staffWelcome');
-        el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
-      }
+      (async () => {
+        const allowed = await requireStaffAccess();
+        if (!allowed) return;
+
+        document.getElementById('staffContent').style.display = '';
+        const user = getSession();
+        if (user) {
+          const role = getUserRole(user.uid);
+          const el = document.getElementById('staffWelcome');
+          el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
+        }
+
+        const supabaseEl = document.getElementById('diagSupabase');
+        const uuidEl = document.getElementById('diagAuthUuid');
+        const roleEl = document.getElementById('diagRole');
+        const messageEl = document.getElementById('diagStatusMessage');
+        const refreshBtn = document.getElementById('refreshDiagnosticsBtn');
+
+        const setDiagnosticMessage = (message) => {
+          if (messageEl) {
+            messageEl.textContent = message;
+          }
+        };
+
+        const runDiagnostics = async () => {
+          if (supabaseEl) supabaseEl.textContent = 'Checking…';
+          if (uuidEl) uuidEl.textContent = 'Checking…';
+          if (roleEl) roleEl.textContent = 'Checking…';
+          setDiagnosticMessage('');
+
+          const isConfigured = window.isSupabaseConfigured?.() === true;
+          if (!isConfigured) {
+            if (supabaseEl) supabaseEl.textContent = 'Not configured';
+            if (uuidEl) uuidEl.textContent = 'N/A';
+            if (roleEl) roleEl.textContent = 'N/A';
+            setDiagnosticMessage('Set SUPABASE_URL and SUPABASE_ANON_KEY in auth.js first.');
+            return;
+          }
+
+          const client = await window.getSupabaseClient?.();
+          if (!client) {
+            if (supabaseEl) supabaseEl.textContent = 'Unavailable';
+            if (uuidEl) uuidEl.textContent = 'N/A';
+            if (roleEl) roleEl.textContent = 'N/A';
+            setDiagnosticMessage('Could not initialize Supabase client.');
+            return;
+          }
+
+          if (supabaseEl) supabaseEl.textContent = 'Connected';
+
+          const authUuid = window.getCurrentAuthUid?.() || '';
+          if (uuidEl) {
+            uuidEl.textContent = authUuid || 'Missing';
+          }
+
+          const syncedRole = await window.syncCurrentUserRoleFromSupabase?.();
+          const currentUser = getSession();
+          const effectiveRole = syncedRole || (currentUser ? getUserRole(currentUser.uid) : 'user');
+          if (roleEl) {
+            roleEl.textContent = effectiveRole || 'user';
+          }
+
+          if (!authUuid) {
+            setDiagnosticMessage('No auth UUID detected. Sign in again via login page if needed.');
+            return;
+          }
+
+          setDiagnosticMessage('Diagnostics updated successfully.');
+        };
+
+        refreshBtn?.addEventListener('click', () => {
+          runDiagnostics();
+        });
+
+        runDiagnostics();
+      })();
     </script>
   </body>
 </html>

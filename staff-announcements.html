@@ -103,13 +103,18 @@
     <script src="auth.js"></script>
     <script src="script.js"></script>
     <script>
-      document.getElementById('staffAnnouncementsContent').style.display = '';
-      const user = getSession();
-      if (user) {
-        const role = getUserRole(user.uid);
-        const el = document.getElementById('staffAnnouncementsWelcome');
-        el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
-      }
+      (async () => {
+        const allowed = await requireStaffAccess();
+        if (!allowed) return;
+
+        document.getElementById('staffAnnouncementsContent').style.display = '';
+        const user = getSession();
+        if (user) {
+          const role = getUserRole(user.uid);
+          const el = document.getElementById('staffAnnouncementsWelcome');
+          el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
+        }
+      })();
     </script>
   </body>
 </html>

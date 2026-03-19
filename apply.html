@@ -147,10 +147,10 @@
     </footer>
 
     <script src="auth.js"></script>
+    <script src="supabase-data.js"></script>
     <script src="script.js"></script>
     <script>
-      const APP_STATUS_KEY = 'islesOfDawnAppStatuses';
-      const APP_SUBMISSIONS_KEY = 'islesOfDawnApplications';
+      let appStatuses = {};
 
       const APP_DEFINITIONS = [
         {
@@ -202,18 +202,8 @@
       let accessRedirectTimer = null;
       let accessRedirectInterval = null;
 
-      const readAppStatuses = () => {
-        try {
-          const stored = localStorage.getItem(APP_STATUS_KEY);
-          return stored ? JSON.parse(stored) : {};
-        } catch {
-          return {};
-        }
-      };
-
       const isAppOpen = (id) => {
-        const statuses = readAppStatuses();
-        return statuses[id] === true;
+        return appStatuses[id] === true;
       };
 
       const setApplicationStatus = (message) => {
@@ -347,7 +337,7 @@
       const submitApplication = (role) => {
         if (!applicationForm || !role) return;
 
-        applicationForm.addEventListener('submit', (event) => {
+        applicationForm.addEventListener('submit', async (event) => {
           event.preventDefault();
 
           const ageValue = String(document.getElementById('appAge')?.value || '').trim();
@@ -399,17 +389,7 @@
             return;
           }
 
-          const submissions = (() => {
-            try {
-              const stored = localStorage.getItem(APP_SUBMISSIONS_KEY);
-              const parsed = stored ? JSON.parse(stored) : [];
-              return Array.isArray(parsed) ? parsed : [];
-            } catch {
-              return [];
-            }
-          })();
-
-          submissions.unshift({
+          const newSubmission = {
             id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
             status: 'pending',
             roleId: role.id,
@@ -428,12 +408,11 @@
               honest: ackHonestValue,
             },
             createdAt: new Date().toISOString(),
-          });
+          };
 
-          try {
-            localStorage.setItem(APP_SUBMISSIONS_KEY, JSON.stringify(submissions));
-          } catch {
-            setApplicationStatus('Could not save your application in browser storage. Please clear site data and try again.');
+          const inserted = await window.insertApplicationToSupabase?.(newSubmission);
+          if (!inserted) {
+            setApplicationStatus('Could not submit your application. Please verify Supabase setup and try again.');
             return;
           }
 
@@ -441,14 +420,19 @@
         });
       };
 
-      const activeRole = setFormAvailability();
-      submitApplication(activeRole);
-
-      window.addEventListener('storage', (e) => {
-        if (e.key === APP_STATUS_KEY) {
-          setFormAvailability();
+      (async () => {
+        const statuses = await window.syncApplicationStatusesFromSupabase?.();
+        if (!statuses) {
+          setApplicationStatus('Applications are currently unavailable while backend connection is being configured.');
+          applicationForm?.classList.add('is-hidden');
+          showAccessNotice('Applications are temporarily unavailable. Please try again after backend setup is completed.');
+          return;
         }
-      });
+
+        appStatuses = statuses;
+        const activeRole = setFormAvailability();
+        submitApplication(activeRole);
+      })();
     </script>
   </body>
 </html>

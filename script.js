@@ -22,7 +22,7 @@ const announcementImage = document.getElementById('announcementImage');
 const announcementList = document.getElementById('announcementList');
 const announcementStatus = document.getElementById('announcementStatus');
 const clearAnnouncementsButton = document.getElementById('clearAnnouncementsButton');
-const ANNOUNCEMENTS_STORAGE_KEY = 'islesOfDawnAnnouncements';
+const ANNOUNCEMENTS_TABLE = 'announcements';
 const MAX_ANNOUNCEMENT_IMAGE_BYTES = 4 * 1024 * 1024;
 
 if (yearSpan) {
@@ -45,31 +45,102 @@ if (copyButton && serverIp && copyMessage) {
   });
 }
 
-const readAnnouncements = () => {
+let announcements = [];
+
+const getSupabaseAnnouncementsClient = async () => {
+  if (typeof window.getSupabaseClient !== 'function') {
+    return null;
+  }
+
   try {
-    const storedAnnouncements = localStorage.getItem(ANNOUNCEMENTS_STORAGE_KEY);
-    const parsedAnnouncements = storedAnnouncements ? JSON.parse(storedAnnouncements) : [];
-
-    if (!Array.isArray(parsedAnnouncements)) {
-      return [];
-    }
-
-    return parsedAnnouncements.filter(
-      (item) =>
-        item &&
-        typeof item.title === 'string' &&
-        typeof item.message === 'string' &&
-        (typeof item.imageDataUrl === 'string' || typeof item.imageDataUrl === 'undefined')
-    );
+    return await window.getSupabaseClient();
   } catch {
-    return [];
+    return null;
   }
 };
 
-let announcements = readAnnouncements();
+const mapAnnouncementFromDb = (row) => ({
+  id: row.id,
+  title: row.title,
+  message: row.message,
+  imageDataUrl: row.image_data_url || null,
+  createdAt: row.created_at || new Date().toISOString(),
+});
 
-const saveAnnouncements = () => {
-  localStorage.setItem(ANNOUNCEMENTS_STORAGE_KEY, JSON.stringify(announcements));
+const mapAnnouncementToDb = (item) => ({
+  id: item.id,
+  title: item.title,
+  message: item.message,
+  image_data_url: item.imageDataUrl || null,
+  created_at: item.createdAt || new Date().toISOString(),
+});
+
+const syncAnnouncementsFromSupabase = async () => {
+  const client = await getSupabaseAnnouncementsClient();
+  if (!client) return false;
+
+  const { data, error } = await client
+    .from(ANNOUNCEMENTS_TABLE)
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.warn('Could not load announcements from Supabase:', error.message);
+    return false;
+  }
+
+  announcements = (data || []).map(mapAnnouncementFromDb);
+  return true;
+};
+
+const insertAnnouncementSupabase = async (item) => {
+  const client = await getSupabaseAnnouncementsClient();
+  if (!client) return false;
+
+  const { error } = await client
+    .from(ANNOUNCEMENTS_TABLE)
+    .upsert([mapAnnouncementToDb(item)], { onConflict: 'id' });
+
+  if (error) {
+    console.warn('Could not save announcement to Supabase:', error.message);
+    return false;
+  }
+
+  return true;
+};
+
+const deleteAnnouncementSupabase = async (announcementId) => {
+  const client = await getSupabaseAnnouncementsClient();
+  if (!client) return false;
+
+  const { error } = await client
+    .from(ANNOUNCEMENTS_TABLE)
+    .delete()
+    .eq('id', announcementId);
+
+  if (error) {
+    console.warn('Could not delete announcement from Supabase:', error.message);
+    return false;
+  }
+
+  return true;
+};
+
+const clearAnnouncementsSupabase = async () => {
+  const client = await getSupabaseAnnouncementsClient();
+  if (!client) return false;
+
+  const { error } = await client
+    .from(ANNOUNCEMENTS_TABLE)
+    .delete()
+    .not('id', 'is', null);
+
+  if (error) {
+    console.warn('Could not clear announcements in Supabase:', error.message);
+    return false;
+  }
+
+  return true;
 };
 
 const setAnnouncementStatus = (message) => {
@@ -161,14 +232,19 @@ const renderAnnouncements = () => {
       deleteButton.type = 'button';
       deleteButton.className = 'btn-announcement-delete';
       deleteButton.textContent = 'Delete';
-      deleteButton.addEventListener('click', () => {
+      deleteButton.addEventListener('click', async () => {
         const shouldDelete = window.confirm('Delete this announcement?');
         if (!shouldDelete) {
           return;
         }
 
-        announcements.splice(index, 1);
-        saveAnnouncements();
+        const ok = await deleteAnnouncementSupabase(announcement.id);
+        if (!ok) {
+          setAnnouncementStatus('Could not delete announcement from Supabase.');
+          return;
+        }
+
+        await syncAnnouncementsFromSupabase();
         renderAnnouncements();
         setAnnouncementStatus('Announcement deleted.');
       });
@@ -202,23 +278,30 @@ if (announcementForm && announcementTitle && announcementBody) {
       return;
     }
 
-    announcements.unshift({
+    const newAnnouncement = {
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       title: titleValue,
       message: bodyValue,
       imageDataUrl,
       createdAt: new Date().toISOString()
-    });
+    };
 
-    saveAnnouncements();
+    const ok = await insertAnnouncementSupabase(newAnnouncement);
+    if (!ok) {
+      setAnnouncementStatus('Could not post announcement to Supabase.');
+      return;
+    }
+
+    await syncAnnouncementsFromSupabase();
     renderAnnouncements();
+
     announcementForm.reset();
     setAnnouncementStatus('Announcement posted!');
   });
 }
 
 if (clearAnnouncementsButton) {
-  clearAnnouncementsButton.addEventListener('click', () => {
+  clearAnnouncementsButton.addEventListener('click', async () => {
     if (!announcements.length) {
       setAnnouncementStatus('There are no announcements to clear.');
       return;
@@ -229,11 +312,29 @@ if (clearAnnouncementsButton) {
       return;
     }
 
+    const ok = await clearAnnouncementsSupabase();
+    if (!ok) {
+      setAnnouncementStatus('Could not clear announcements in Supabase.');
+      return;
+    }
+
     announcements = [];
-    saveAnnouncements();
     renderAnnouncements();
     setAnnouncementStatus('All announcements cleared.');
   });
 }
 
-renderAnnouncements();
+(async () => {
+  if (!window.isSupabaseConfigured?.()) {
+    if (announcementList) {
+      announcementList.innerHTML = '<p class="announcement-empty">Announcements are unavailable until Supabase is configured.</p>';
+    }
+    if (announcementStatus) {
+      setAnnouncementStatus('Supabase is not configured.');
+    }
+    return;
+  }
+
+  await syncAnnouncementsFromSupabase();
+  renderAnnouncements();
+})();

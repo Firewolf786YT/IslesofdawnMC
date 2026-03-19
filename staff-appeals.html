@@ -74,39 +74,37 @@
     </footer>
 
     <script src="auth.js"></script>
+    <script src="supabase-data.js"></script>
     <script src="script.js"></script>
     <script>
-      document.getElementById('staffAppealsContent').style.display = '';
-      const user = getSession();
-      if (user) {
-        const role = getUserRole(user.uid);
-        const el = document.getElementById('staffAppealsWelcome');
-        el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
-      }
+      (async () => {
+        const allowed = await requireStaffAccess();
+        if (!allowed) return;
 
-      const APPEALS_SUBMISSIONS_KEY = 'islesOfDawnAppeals';
+        document.getElementById('staffAppealsContent').style.display = '';
+        const user = getSession();
+        if (user) {
+          const role = getUserRole(user.uid);
+          const el = document.getElementById('staffAppealsWelcome');
+          el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
+        }
+      })();
+
+      let appealSubmissions = [];
       const appealReviewFilter = document.getElementById('appealReviewFilter');
       const appealReviewFilterReset = document.getElementById('appealReviewFilterReset');
 
       const readAppealSubmissions = () => {
-        try {
-          const stored = localStorage.getItem(APPEALS_SUBMISSIONS_KEY);
-          const parsed = stored ? JSON.parse(stored) : [];
-          if (!Array.isArray(parsed)) return [];
-
-          return parsed
-            .filter((item) => item && typeof item === 'object')
-            .map((item) => ({
-              ...item,
-              status: item.status === 'approved' || item.status === 'denied' ? item.status : 'pending',
-            }));
-        } catch {
-          return [];
-        }
+        return appealSubmissions
+          .filter((item) => item && typeof item === 'object')
+          .map((item) => ({
+            ...item,
+            status: item.status === 'approved' || item.status === 'denied' ? item.status : 'pending',
+          }));
       };
 
       const saveAppealSubmissions = (submissions) => {
-        localStorage.setItem(APPEALS_SUBMISSIONS_KEY, JSON.stringify(submissions));
+        appealSubmissions = Array.isArray(submissions) ? submissions : [];
       };
 
       const getSubmissionCounts = (submissions) => {
@@ -200,7 +198,7 @@
         return map[value] || value || 'Not provided';
       };
 
-      const updateSubmissionStatus = (submissionId, fallbackIndex, nextStatus) => {
+      const updateSubmissionStatus = async (submissionId, fallbackIndex, nextStatus) => {
         const submissions = readAppealSubmissions();
         let targetIndex = submissions.findIndex((submission) => submission.id === submissionId);
 
@@ -214,8 +212,16 @@
 
         submissions[targetIndex].status = nextStatus;
         submissions[targetIndex].reviewedAt = new Date().toISOString();
-        submissions[targetIndex].reviewedBy = user?.name || user?.email || 'Staff';
+        const reviewer = getSession();
+        submissions[targetIndex].reviewedBy = reviewer?.name || reviewer?.email || 'Staff';
         saveAppealSubmissions(submissions);
+
+        await window.updateAppealReviewInSupabase?.(
+          submissions[targetIndex].id,
+          nextStatus,
+          submissions[targetIndex].reviewedBy
+        );
+
         renderAppealReviews();
       };
 
@@ -349,7 +355,22 @@
         });
       };
 
-      renderAppealReviews();
+      (async () => {
+        const allowed = await requireStaffAccess();
+        if (!allowed) return;
+
+        const submissions = await window.syncAppealSubmissionsFromSupabase?.();
+        if (!submissions) {
+          const list = document.getElementById('staffAppealReviewList');
+          if (list) {
+            list.innerHTML = '<p class="announcement-empty">Appeal data unavailable. Verify Supabase setup and RLS policies.</p>';
+          }
+          return;
+        }
+
+        appealSubmissions = submissions;
+        renderAppealReviews();
+      })();
 
       const appealReviewStats = document.getElementById('appealReviewStats');
       if (appealReviewStats && appealReviewFilter) {
@@ -381,11 +402,6 @@
         });
       }
 
-      window.addEventListener('storage', (event) => {
-        if (event.key === APPEALS_SUBMISSIONS_KEY) {
-          renderAppealReviews();
-        }
-      });
     </script>
   </body>
 </html>

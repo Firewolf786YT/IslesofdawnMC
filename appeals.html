@@ -162,9 +162,9 @@
     </footer>
 
     <script src="auth.js"></script>
+    <script src="supabase-data.js"></script>
     <script src="script.js"></script>
     <script>
-      const APPEALS_SUBMISSIONS_KEY = 'islesOfDawnAppeals';
       const punishmentAppealForm = document.getElementById('punishmentAppealForm');
       const appealStatus = document.getElementById('appealStatus');
       const appealQuestionIds = ['appealQ1', 'appealQ2', 'appealQ3', 'appealQ4'];
@@ -202,18 +202,10 @@
           .filter((sentence) => sentence.length >= 3).length;
       };
 
-      const readAppeals = () => {
-        try {
-          const stored = localStorage.getItem(APPEALS_SUBMISSIONS_KEY);
-          const parsed = stored ? JSON.parse(stored) : [];
-          return Array.isArray(parsed) ? parsed : [];
-        } catch {
-          return [];
-        }
-      };
+      window.syncAppealSubmissionsFromSupabase?.();
 
       if (punishmentAppealForm) {
-        punishmentAppealForm.addEventListener('submit', (event) => {
+        punishmentAppealForm.addEventListener('submit', async (event) => {
           event.preventDefault();
 
           const formData = new FormData(punishmentAppealForm);
@@ -255,8 +247,7 @@
             return;
           }
 
-          const appeals = readAppeals();
-          appeals.unshift({
+          const newAppeal = {
             id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
             status: 'pending',
             minecraftName,
@@ -275,12 +266,11 @@
               finalDecision: ackFinalDecision,
             },
             createdAt: new Date().toISOString(),
-          });
+          };
 
-          try {
-            localStorage.setItem(APPEALS_SUBMISSIONS_KEY, JSON.stringify(appeals));
-          } catch {
-            setAppealStatus('Could not save your appeal in browser storage. Please clear site data and try again.');
+          const inserted = await window.insertAppealToSupabase?.(newAppeal);
+          if (!inserted) {
+            setAppealStatus('Could not submit your appeal. Please verify Supabase setup and try again.');
             return;
           }
 
