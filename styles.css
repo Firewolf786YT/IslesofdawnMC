@@ -1148,6 +1148,52 @@ body {
   margin: 1rem 0 0;
 }
 
+@media (max-width: 760px) {
+  .login-main {
+    min-height: auto;
+    padding: 2rem 0 2.5rem;
+  }
+
+  .login-card {
+    padding: 1.25rem;
+  }
+
+  .login-heading {
+    font-size: 1.65rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .login-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-main {
+    padding: 1.5rem 0 2rem;
+  }
+
+  .login-card {
+    padding: 0.9rem;
+    border-radius: 14px;
+  }
+
+  .login-heading {
+    font-size: 1.45rem;
+  }
+
+  .login-sub,
+  .login-note {
+    font-size: 0.95rem;
+  }
+
+  .btn-oauth,
+  .login-actions .btn {
+    min-height: 46px;
+  }
+}
+
 .denied-main {
   padding-top: 4.5rem;
   padding-bottom: 4.5rem;
@@ -1170,12 +1216,6 @@ body {
   justify-content: center;
   gap: 0.8rem;
   flex-wrap: wrap;
-}
-
-@media (max-width: 560px) {
-  .login-actions {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* ── Staff page ─────────────────────────────────────────── */
