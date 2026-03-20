@@ -595,10 +595,10 @@ body {
 .meet-staff-avatar-developer  { background: linear-gradient(135deg, #ffc481, #e47f2d); }
 .meet-staff-avatar-moderator  { background: linear-gradient(135deg, #8ef7a6, #2f8f56); }
 .meet-staff-avatar-helper     { background: linear-gradient(135deg, #ff8bd8, #8b5cf6); }
-.meet-staff-avatar-qa_tester  { background: linear-gradient(135deg, #67e8f9 0%, #06b6d4 48%, #0e7490 100%); }
-.meet-staff-avatar-media      { background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #ea580c 100%); }
-.meet-staff-avatar-event_team { background: linear-gradient(135deg, #86efac 0%, #22c55e 48%, #0f766e 100%); }
-.meet-staff-avatar-builder    { background: linear-gradient(135deg, #fdba74 0%, #f97316 50%, #9a3412 100%); }
+.meet-staff-avatar-qa_tester  { background: linear-gradient(135deg, #22f2ff 0%, #00c8ff 40%, #1d4ed8 100%); }
+.meet-staff-avatar-media      { background: linear-gradient(135deg, #ff5fc6 0%, #ff87de 52%, #ffc1ec 100%); }
+.meet-staff-avatar-event_team { background: linear-gradient(135deg, #ffb23e 0%, #ff7a1a 48%, #ff2f2f 100%); }
+.meet-staff-avatar-builder    { background: linear-gradient(135deg, #5c3a21 0%, #8b5a2b 45%, #d2b48c 100%); }
 
 .meet-staff-card-info {
   display: flex;
@@ -1778,23 +1778,23 @@ body {
 }
 
 .role-pill-qa_tester {
-  background: linear-gradient(135deg, #67e8f9 0%, #06b6d4 50%, #0e7490 100%);
-  border-color: rgba(6, 182, 212, 0.65);
+  background: linear-gradient(135deg, #22f2ff 0%, #00c8ff 42%, #1d4ed8 100%);
+  border-color: rgba(0, 200, 255, 0.72);
 }
 
 .role-pill-media {
-  background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #ea580c 100%);
-  border-color: rgba(245, 158, 11, 0.65);
+  background: linear-gradient(135deg, #ff5fc6 0%, #ff87de 50%, #ffc1ec 100%);
+  border-color: rgba(255, 95, 198, 0.72);
 }
 
 .role-pill-event_team {
-  background: linear-gradient(135deg, #86efac 0%, #22c55e 50%, #0f766e 100%);
-  border-color: rgba(34, 197, 94, 0.65);
+  background: linear-gradient(135deg, #ffb23e 0%, #ff7a1a 48%, #ff2f2f 100%);
+  border-color: rgba(255, 122, 26, 0.72);
 }
 
 .role-pill-builder {
-  background: linear-gradient(135deg, #fdba74 0%, #f97316 50%, #9a3412 100%);
-  border-color: rgba(249, 115, 22, 0.65);
+  background: linear-gradient(135deg, #5c3a21 0%, #8b5a2b 45%, #d2b48c 100%);
+  border-color: rgba(139, 90, 43, 0.72);
 }
 
 .role-pill-moderator {
