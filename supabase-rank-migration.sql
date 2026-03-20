@@ -67,7 +67,9 @@ as $$
   );
 $$;
 
-create or replace function public.list_public_staff_members()
+drop function if exists public.list_public_staff_members();
+
+create function public.list_public_staff_members()
 returns table (
   username text,
   role text,

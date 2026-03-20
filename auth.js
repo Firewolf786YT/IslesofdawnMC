@@ -609,7 +609,8 @@ const saveCurrentUserAvatar = async (file) => {
 
   const { error: profileError } = await client
     .from(USER_PROFILES_TABLE)
-    .upsert([{ user_id: authUid, avatar_url: avatarUrl, updated_at: new Date().toISOString() }], { onConflict: 'user_id' });
+    .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+    .eq('user_id', authUid);
 
   if (profileError) return { ok: false, message: profileError.message };
 
