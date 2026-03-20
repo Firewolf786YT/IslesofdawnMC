@@ -720,6 +720,7 @@ const syncSessionFromSupabase = async () => {
       ...user,
       name: profileResult.ok && profileResult.profile?.username ? profileResult.profile.username : user.name,
       username: profileResult.ok ? profileResult.profile?.username || user.username || null : user.username || null,
+      avatar: profileResult.ok ? profileResult.profile?.avatar_url || user.avatar || null : user.avatar || null,
     };
     setSession(nextUser);
     return nextUser;
@@ -1002,6 +1003,10 @@ const renderNavAuth = () => {
   }
 
   const initial = escHtml((user.name || user.email || '?')[0].toUpperCase());
+  const displayName = escHtml(user.name || user.email);
+  const avatarMarkup = user.avatar
+    ? `<span class="nav-auth-avatar"><img class="nav-auth-avatar-img" src="${escHtml(user.avatar)}" alt="" /></span>`
+    : `<span class="nav-auth-avatar">${initial}</span>`;
   const role = getVerifiedCurrentRole();
   const staffLink = canAccessStaffPortal(role)
     ? '<a class="nav-auth-menu-item nav-auth-menu-item-staff" href="staff.html">Management Portal</a>'
@@ -1010,8 +1015,8 @@ const renderNavAuth = () => {
   slot.innerHTML = `
     <div class="nav-auth-user">
       <button class="nav-auth-trigger" id="navAuthTrigger" type="button" aria-haspopup="menu" aria-expanded="false">
-        <span class="nav-auth-avatar">${initial}</span>
-        <span class="nav-auth-name">${escHtml(user.name || user.email)}</span>
+        ${avatarMarkup}
+        <span class="nav-auth-name">${displayName}</span>
         <span class="nav-auth-caret" aria-hidden="true">▾</span>
       </button>
       <div class="nav-auth-menu is-hidden" id="navAuthMenu" role="menu">

@@ -73,7 +73,8 @@ create function public.list_public_staff_members()
 returns table (
   username text,
   role text,
-  updated_at timestamptz
+  updated_at timestamptz,
+  avatar_url text
 )
 language sql
 stable
@@ -83,7 +84,8 @@ as $$
   select
     up.username,
     ur.role,
-    ur.updated_at
+    ur.updated_at,
+    up.avatar_url
   from public.user_roles ur
   join public.user_profiles up on up.user_id = ur.user_id
   where ur.role in ('builder', 'event_team', 'media', 'qa_tester', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner')
