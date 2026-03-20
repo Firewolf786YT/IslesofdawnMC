@@ -595,10 +595,10 @@ body {
 .meet-staff-avatar-developer  { background: linear-gradient(135deg, #ffc481, #e47f2d); }
 .meet-staff-avatar-moderator  { background: linear-gradient(135deg, #8ef7a6, #2f8f56); }
 .meet-staff-avatar-helper     { background: linear-gradient(135deg, #ff8bd8, #8b5cf6); }
-.meet-staff-avatar-qa_tester  { background: linear-gradient(135deg, #a5f3fc, #0891b2); }
-.meet-staff-avatar-media      { background: linear-gradient(135deg, #fde68a, #f59e0b); }
-.meet-staff-avatar-event_team { background: linear-gradient(135deg, #bbf7d0, #16a34a); }
-.meet-staff-avatar-builder    { background: linear-gradient(135deg, #fed7aa, #c2410c); }
+.meet-staff-avatar-qa_tester  { background: linear-gradient(135deg, #b9f8ff, #22d3ee, #0e7490); }
+.meet-staff-avatar-media      { background: linear-gradient(135deg, #ffe8a3, #f59e0b, #c2410c); }
+.meet-staff-avatar-event_team { background: linear-gradient(135deg, #bbf7d0, #34d399, #0f766e); }
+.meet-staff-avatar-builder    { background: linear-gradient(135deg, #ffd9b3, #fb923c, #9a3412); }
 
 .meet-staff-card-info {
   display: flex;
@@ -1775,6 +1775,26 @@ body {
 .role-pill-helper {
   background: linear-gradient(135deg, #ff8bd8 0%, #8b5cf6 100%);
   border-color: rgba(255, 139, 216, 0.55);
+}
+
+.role-pill-qa_tester {
+  background: linear-gradient(135deg, #b9f8ff 0%, #22d3ee 55%, #0e7490 100%);
+  border-color: rgba(34, 211, 238, 0.55);
+}
+
+.role-pill-media {
+  background: linear-gradient(135deg, #ffe8a3 0%, #f59e0b 55%, #c2410c 100%);
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
+.role-pill-event_team {
+  background: linear-gradient(135deg, #bbf7d0 0%, #34d399 55%, #0f766e 100%);
+  border-color: rgba(52, 211, 153, 0.55);
+}
+
+.role-pill-builder {
+  background: linear-gradient(135deg, #ffd9b3 0%, #fb923c 55%, #9a3412 100%);
+  border-color: rgba(251, 146, 60, 0.55);
 }
 
 .role-pill-moderator {
