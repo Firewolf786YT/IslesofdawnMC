@@ -511,6 +511,100 @@ body {
   color: var(--muted);
 }
 
+.meet-staff-shell {
+  padding: 1.3rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(122, 162, 255, 0.05));
+}
+
+.meet-staff-status {
+  margin-top: 0;
+  margin-bottom: 0.95rem;
+}
+
+.meet-staff-pyramid {
+  display: grid;
+  gap: 0.72rem;
+}
+
+.meet-staff-tier {
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.7rem 0.72rem;
+  background: rgba(13, 17, 23, 0.46);
+}
+
+.meet-staff-tier-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.meet-staff-tier-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.meet-staff-members {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.meet-staff-member {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.28rem 0.62rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.meet-staff-tier-owner {
+  width: min(260px, 100%);
+  margin-inline: auto;
+}
+
+.meet-staff-tier-manager {
+  width: min(360px, 100%);
+  margin-inline: auto;
+}
+
+.meet-staff-tier-admin {
+  width: min(470px, 100%);
+  margin-inline: auto;
+}
+
+.meet-staff-tier-developer {
+  width: min(620px, 100%);
+  margin-inline: auto;
+}
+
+.meet-staff-tier-moderator {
+  width: min(760px, 100%);
+  margin-inline: auto;
+}
+
+.meet-staff-tier-helper {
+  width: min(900px, 100%);
+  margin-inline: auto;
+}
+
 .about-features-heading {
   margin: 0 0 1rem;
   font-size: 1rem;

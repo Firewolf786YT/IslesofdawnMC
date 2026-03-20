@@ -56,7 +56,7 @@ const ROLE_LABELS = Object.freeze({
   owner: 'Owner',
 });
 
-const PORTAL_ROLES = new Set(['developer', 'admin', 'manager', 'owner']);
+const PORTAL_ROLES = new Set(['admin', 'manager', 'owner']);
 const ROLE_MANAGER_ROLES = new Set(['admin', 'manager', 'owner']);
 
 // ── Session ──────────────────────────────────────────────────────────────────
@@ -898,7 +898,7 @@ const renderNavAuth = () => {
   const initial = escHtml((user.name || user.email || '?')[0].toUpperCase());
   const role = getVerifiedCurrentRole();
   const staffLink = canAccessStaffPortal(role)
-    ? '<a class="nav-auth-menu-item nav-auth-menu-item-staff" href="staff.html">Staff Portal</a>'
+    ? '<a class="nav-auth-menu-item nav-auth-menu-item-staff" href="staff.html">Management Portal</a>'
     : '';
 
   slot.innerHTML = `
@@ -974,7 +974,7 @@ window.devLogin = () => {
   const roles = getRolesMap();
   roles[uid] = 'admin';
   localStorage.setItem(ROLES_KEY, JSON.stringify(roles));
-  console.log('✅ Dev admin session started. Redirecting to Staff Portal…');
+  console.log('✅ Dev admin session started. Redirecting to Management Portal…');
   location.replace('staff.html');
 };
 

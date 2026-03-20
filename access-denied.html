@@ -37,7 +37,7 @@
         <p class="eyebrow">Restricted Area</p>
         <h1 class="login-heading">Access denied</h1>
         <p class="login-sub">
-          The Staff Portal is only available to approved ranks.
+          The Management Portal is only available to Admin+ ranks.
         </p>
         <p id="accessDeniedMessage" class="denied-message">
           Sign in with the correct account or ask a manager-level rank to assign the right role.
@@ -63,7 +63,7 @@
         const user = await syncSessionFromSupabase();
 
         if (!user) {
-          messageEl.textContent = 'You are not signed in. Sign in with an approved staff account to continue.';
+          messageEl.textContent = 'You are not signed in. Sign in with an approved management account to continue.';
           return;
         }
 
@@ -75,7 +75,7 @@
         }
 
         const roleLabel = window.getRoleLabel?.(role) || role || 'Player';
-        messageEl.textContent = `${user.name || user.email} is signed in as ${roleLabel}. Ask a manager, admin, or owner to promote this account if it should access staff pages.`;
+        messageEl.textContent = `${user.name || user.email} is signed in as ${roleLabel}. Ask a manager, admin, or owner to promote this account if it should access management pages.`;
       })();
     </script>
   </body>

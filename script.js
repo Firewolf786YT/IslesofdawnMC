@@ -22,8 +22,11 @@ const announcementImage = document.getElementById('announcementImage');
 const announcementList = document.getElementById('announcementList');
 const announcementStatus = document.getElementById('announcementStatus');
 const clearAnnouncementsButton = document.getElementById('clearAnnouncementsButton');
+const meetStaffStatus = document.getElementById('meetStaffStatus');
+const meetStaffPyramid = document.getElementById('meetStaffPyramid');
 const ANNOUNCEMENTS_TABLE = 'announcements';
 const MAX_ANNOUNCEMENT_IMAGE_BYTES = 4 * 1024 * 1024;
+const STAFF_PYRAMID_ROLES = ['owner', 'manager', 'admin', 'developer', 'moderator', 'helper'];
 
 if (yearSpan) {
   yearSpan.textContent = new Date().getFullYear();
@@ -141,6 +144,113 @@ const clearAnnouncementsSupabase = async () => {
   }
 
   return true;
+};
+
+const buildStaffRankBuckets = (rows) => {
+  const buckets = new Map(STAFF_PYRAMID_ROLES.map((role) => [role, []]));
+  (rows || []).forEach((row) => {
+    const role = String(row?.role || '').toLowerCase();
+    const username = String(row?.username || '').trim();
+    if (!buckets.has(role) || !username) {
+      return;
+    }
+
+    buckets.get(role).push(username);
+  });
+
+  STAFF_PYRAMID_ROLES.forEach((role) => {
+    buckets.get(role).sort((a, b) => a.localeCompare(b));
+  });
+
+  return buckets;
+};
+
+const createStaffMemberBadge = (name) => {
+  const badge = document.createElement('span');
+  badge.className = 'meet-staff-member';
+  badge.textContent = name;
+  return badge;
+};
+
+const createStaffTier = (role, members) => {
+  const tier = document.createElement('section');
+  tier.className = `meet-staff-tier meet-staff-tier-${role}`;
+
+  const heading = document.createElement('div');
+  heading.className = 'meet-staff-tier-heading';
+
+  const rolePill = document.createElement('span');
+  rolePill.className = window.getRolePillClass?.(role) || `role-pill role-pill-${role}`;
+  rolePill.textContent = window.getRoleLabel?.(role) || role;
+
+  const count = document.createElement('span');
+  count.className = 'meet-staff-tier-count';
+  count.textContent = `${members.length}`;
+
+  heading.append(rolePill, count);
+
+  const grid = document.createElement('div');
+  grid.className = 'meet-staff-members';
+  members.forEach((memberName) => {
+    grid.appendChild(createStaffMemberBadge(memberName));
+  });
+
+  tier.append(heading, grid);
+  return tier;
+};
+
+const renderMeetStaffPyramid = (rows) => {
+  if (!meetStaffPyramid) {
+    return;
+  }
+
+  const buckets = buildStaffRankBuckets(rows);
+  const tiers = STAFF_PYRAMID_ROLES
+    .map((role) => ({ role, members: buckets.get(role) || [] }))
+    .filter((tier) => tier.members.length > 0);
+
+  meetStaffPyramid.innerHTML = '';
+
+  if (!tiers.length) {
+    const empty = document.createElement('p');
+    empty.className = 'announcement-empty';
+    empty.textContent = 'No staff members are listed yet.';
+    meetStaffPyramid.appendChild(empty);
+    return;
+  }
+
+  tiers.forEach(({ role, members }) => {
+    meetStaffPyramid.appendChild(createStaffTier(role, members));
+  });
+};
+
+const loadMeetStaff = async () => {
+  if (!meetStaffPyramid || !meetStaffStatus) {
+    return;
+  }
+
+  if (!window.isSupabaseConfigured?.()) {
+    meetStaffStatus.textContent = 'Staff roster is unavailable until Supabase is configured.';
+    meetStaffPyramid.innerHTML = '';
+    return;
+  }
+
+  const client = await window.getSupabaseClient?.();
+  if (!client) {
+    meetStaffStatus.textContent = 'Could not connect to Supabase to load the staff roster.';
+    meetStaffPyramid.innerHTML = '';
+    return;
+  }
+
+  const { data, error } = await client.rpc('list_public_staff_members');
+  if (error) {
+    meetStaffStatus.textContent = 'Could not load staff roster yet. Run the latest Supabase migration to enable it.';
+    meetStaffPyramid.innerHTML = '';
+    return;
+  }
+
+  renderMeetStaffPyramid(Array.isArray(data) ? data : []);
+  meetStaffStatus.textContent = 'Live staff roster by rank.';
 };
 
 const setAnnouncementStatus = (message) => {
@@ -342,4 +452,8 @@ if (clearAnnouncementsButton) {
 
   await syncAnnouncementsFromSupabase();
   renderAnnouncements();
+})();
+
+(async () => {
+  await loadMeetStaff();
 })();

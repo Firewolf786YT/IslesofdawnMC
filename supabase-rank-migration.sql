@@ -33,7 +33,7 @@ as $$
     select 1
     from public.user_roles ur
     where ur.user_id = auth.uid()
-      and ur.role in ('developer', 'admin', 'manager', 'owner')
+      and ur.role in ('admin', 'manager', 'owner')
   );
 $$;
 
@@ -67,6 +67,37 @@ as $$
   );
 $$;
 
+create or replace function public.list_public_staff_members()
+returns table (
+  username text,
+  role text,
+  updated_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    up.username,
+    ur.role,
+    ur.updated_at
+  from public.user_roles ur
+  join public.user_profiles up on up.user_id = ur.user_id
+  where ur.role in ('helper', 'moderator', 'developer', 'admin', 'manager', 'owner')
+  order by
+    case ur.role
+      when 'owner' then 1
+      when 'manager' then 2
+      when 'admin' then 3
+      when 'developer' then 4
+      when 'moderator' then 5
+      when 'helper' then 6
+      else 7
+    end,
+    lower(up.username);
+$$;
+
 revoke all on function public.is_staff_or_admin() from public;
 grant execute on function public.is_staff_or_admin() to anon, authenticated;
 
@@ -75,6 +106,9 @@ grant execute on function public.is_admin() to anon, authenticated;
 
 revoke all on function public.is_role_manager() from public;
 grant execute on function public.is_role_manager() to anon, authenticated;
+
+revoke all on function public.list_public_staff_members() from public;
+grant execute on function public.list_public_staff_members() to anon, authenticated;
 
 -- 4) Ensure user role writes are limited to manager-level ranks
 -- Existing policy name in this project is user_roles_admin_write.
