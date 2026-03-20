@@ -79,6 +79,20 @@
 
                 <p class="copy-message" id="profileStatus" aria-live="polite"></p>
               </div>
+
+              <div class="profile-panel card">
+                <h2>Profile Picture</h2>
+                <p class="profile-panel-copy">Shown on the staff roster. Max 2 MB — JPEG, PNG, GIF, or WebP.</p>
+                <div class="avatar-upload-wrap">
+                  <div class="avatar-upload-preview" id="avatarPreview" aria-label="Current avatar"></div>
+                  <div class="avatar-upload-actions">
+                    <label class="btn btn-primary" for="avatarFileInput">Upload Picture</label>
+                    <input id="avatarFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
+                    <button class="btn btn-outline" type="button" id="avatarRemoveBtn" hidden>Remove</button>
+                  </div>
+                </div>
+                <p class="copy-message" id="avatarStatus" aria-live="polite"></p>
+              </div>
             </div>
           </div>
         </div>
@@ -113,10 +127,30 @@
         const profileUsername = document.getElementById('profileUsername');
         const profileStatus = document.getElementById('profileStatus');
         const profileForm = document.getElementById('profileForm');
+        const avatarPreview = document.getElementById('avatarPreview');
+        const avatarFileInput = document.getElementById('avatarFileInput');
+        const avatarRemoveBtn = document.getElementById('avatarRemoveBtn');
+        const avatarStatus = document.getElementById('avatarStatus');
 
         const setStatus = (message, isError = false) => {
           profileStatus.textContent = message;
           profileStatus.style.color = isError ? '#e75f5f' : '';
+        };
+
+        const setAvatarStatus = (message, isError = false) => {
+          avatarStatus.textContent = message;
+          avatarStatus.style.color = isError ? '#e75f5f' : '';
+        };
+
+        const renderAvatarPreview = (avatarUrl, username, role) => {
+          if (avatarUrl) {
+            avatarPreview.innerHTML = `<img src="${avatarUrl}?t=${Date.now()}" alt="${username || 'Your avatar'}" class="avatar-upload-img" />`;
+            avatarRemoveBtn.hidden = false;
+          } else {
+            const initial = (username?.[0] || '?').toUpperCase();
+            avatarPreview.innerHTML = `<div class="meet-staff-avatar meet-staff-avatar-${role || 'player'}" aria-hidden="true">${initial}</div>`;
+            avatarRemoveBtn.hidden = true;
+          }
         };
 
         const renderProfile = async () => {
@@ -132,6 +166,9 @@
           profileRole.innerHTML = `<span class="${window.getRolePillClass?.(currentRole) || 'role-pill role-pill-player'}">${window.getRoleLabel?.(currentRole) || currentRole || 'Player'}</span>`;
           profileAuthUid.textContent = window.getCurrentAuthUid?.() || 'Unavailable';
           profileUsername.value = currentUsername;
+
+          const avatarUrl = profileResult?.ok ? profileResult.profile?.avatar_url || null : null;
+          renderAvatarPreview(avatarUrl, currentUsername, currentRole);
 
           if (!profileResult?.ok && profileResult?.message) {
             setStatus(profileResult.message, true);
@@ -150,6 +187,31 @@
 
           await renderProfile();
           setStatus(result.message || 'Username updated.');
+        });
+
+        avatarFileInput?.addEventListener('change', async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          setAvatarStatus('Uploading…');
+          const result = await window.saveCurrentUserAvatar?.(file);
+          avatarFileInput.value = '';
+          if (!result?.ok) {
+            setAvatarStatus(result?.message || 'Upload failed.', true);
+            return;
+          }
+          await renderProfile();
+          setAvatarStatus(result.message || 'Avatar updated.');
+        });
+
+        avatarRemoveBtn?.addEventListener('click', async () => {
+          setAvatarStatus('Removing…');
+          const result = await window.removeCurrentUserAvatar?.();
+          if (!result?.ok) {
+            setAvatarStatus(result?.message || 'Could not remove avatar.', true);
+            return;
+          }
+          await renderProfile();
+          setAvatarStatus(result.message || 'Avatar removed.');
         });
 
         renderProfile();

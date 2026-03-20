@@ -9,7 +9,7 @@ alter table public.user_roles
 
 alter table public.user_roles
   add constraint user_roles_role_check
-  check (role in ('player', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner'));
+  check (role in ('player', 'builder', 'event_team', 'media', 'qa_tester', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner'));
 
 -- 2) Migrate legacy values to new canonical roles
 update public.user_roles
@@ -84,16 +84,20 @@ as $$
     ur.updated_at
   from public.user_roles ur
   join public.user_profiles up on up.user_id = ur.user_id
-  where ur.role in ('helper', 'moderator', 'developer', 'admin', 'manager', 'owner')
+  where ur.role in ('builder', 'event_team', 'media', 'qa_tester', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner')
   order by
     case ur.role
-      when 'owner' then 1
-      when 'manager' then 2
-      when 'admin' then 3
-      when 'developer' then 4
-      when 'moderator' then 5
-      when 'helper' then 6
-      else 7
+      when 'owner'      then 1
+      when 'manager'    then 2
+      when 'admin'      then 3
+      when 'developer'  then 4
+      when 'moderator'  then 5
+      when 'helper'     then 6
+      when 'qa_tester'  then 7
+      when 'media'      then 8
+      when 'event_team' then 9
+      when 'builder'    then 10
+      else 11
     end,
     lower(up.username);
 $$;

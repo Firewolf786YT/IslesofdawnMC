@@ -37,6 +37,10 @@ const PROFILE_PAGE = 'profile.html';
 const ROLE_ALIASES = Object.freeze({
   user: 'player',
   player: 'player',
+  builder: 'builder',
+  event_team: 'event_team',
+  media: 'media',
+  qa_tester: 'qa_tester',
   helper: 'helper',
   moderator: 'moderator',
   developer: 'developer',
@@ -48,6 +52,10 @@ const ROLE_ALIASES = Object.freeze({
 
 const ROLE_LABELS = Object.freeze({
   player: 'Player',
+  builder: 'Builder',
+  event_team: 'Event Team',
+  media: 'Media',
+  qa_tester: 'QA Tester',
   helper: 'Helper',
   moderator: 'Moderator',
   developer: 'Developer',
@@ -372,7 +380,7 @@ const fetchUserProfileByAuthUid = async (authUid) => {
 
   const { data, error } = await client
     .from(USER_PROFILES_TABLE)
-    .select('user_id, username, updated_at, created_at')
+    .select('user_id, username, avatar_url, updated_at, created_at')
     .eq('user_id', authUid)
     .maybeSingle();
 
@@ -564,8 +572,85 @@ const saveCurrentUserProfile = async (username) => {
   };
 };
 
+const AVATAR_ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+const AVATARS_BUCKET = 'avatars';
+
+const saveCurrentUserAvatar = async (file) => {
+  if (!file) return { ok: false, message: 'No file selected.' };
+
+  if (!AVATAR_ALLOWED_TYPES.has(file.type)) {
+    return { ok: false, message: 'Only JPEG, PNG, GIF, or WebP images are allowed.' };
+  }
+
+  if (file.size > AVATAR_MAX_BYTES) {
+    return { ok: false, message: 'Image must be under 2 MB.' };
+  }
+
+  const client = await getSupabaseClient();
+  if (!client) return { ok: false, message: 'Supabase is not configured yet. Add URL and anon key in auth.js.' };
+
+  const authUid = window.getCurrentAuthUid?.() || '';
+  if (!authUid) return { ok: false, message: 'You need to sign in first.' };
+
+  // Always store at a fixed path so uploads overwrite the previous avatar
+  const filePath = `${authUid}/avatar`;
+
+  const { error: uploadError } = await client.storage
+    .from(AVATARS_BUCKET)
+    .upload(filePath, file, { upsert: true, contentType: file.type });
+
+  if (uploadError) return { ok: false, message: uploadError.message };
+
+  const { data: urlData } = client.storage.from(AVATARS_BUCKET).getPublicUrl(filePath);
+  const avatarUrl = urlData?.publicUrl || null;
+
+  if (!avatarUrl) return { ok: false, message: 'Could not get the public URL for your avatar.' };
+
+  const { error: profileError } = await client
+    .from(USER_PROFILES_TABLE)
+    .upsert([{ user_id: authUid, avatar_url: avatarUrl, updated_at: new Date().toISOString() }], { onConflict: 'user_id' });
+
+  if (profileError) return { ok: false, message: profileError.message };
+
+  const sessionUser = getSession();
+  if (sessionUser) setSession({ ...sessionUser, avatar: avatarUrl });
+
+  return { ok: true, message: 'Avatar updated successfully.', avatarUrl };
+};
+
+const removeCurrentUserAvatar = async () => {
+  const client = await getSupabaseClient();
+  if (!client) return { ok: false, message: 'Supabase is not configured yet. Add URL and anon key in auth.js.' };
+
+  const authUid = window.getCurrentAuthUid?.() || '';
+  if (!authUid) return { ok: false, message: 'You need to sign in first.' };
+
+  const filePath = `${authUid}/avatar`;
+
+  // Remove from storage (ignore not-found errors)
+  const { error: removeError } = await client.storage.from(AVATARS_BUCKET).remove([filePath]);
+  if (removeError && removeError.message !== 'Object not found') {
+    return { ok: false, message: removeError.message };
+  }
+
+  const { error: profileError } = await client
+    .from(USER_PROFILES_TABLE)
+    .update({ avatar_url: null, updated_at: new Date().toISOString() })
+    .eq('user_id', authUid);
+
+  if (profileError) return { ok: false, message: profileError.message };
+
+  const sessionUser = getSession();
+  if (sessionUser) setSession({ ...sessionUser, avatar: null });
+
+  return { ok: true, message: 'Avatar removed.' };
+};
+
 window.getCurrentUserProfile = getCurrentUserProfile;
 window.saveCurrentUserProfile = saveCurrentUserProfile;
+window.saveCurrentUserAvatar = saveCurrentUserAvatar;
+window.removeCurrentUserAvatar = removeCurrentUserAvatar;
 
 const toAppSession = (supabaseUser) => {
   if (!supabaseUser) return null;

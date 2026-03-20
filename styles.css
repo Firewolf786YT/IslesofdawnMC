@@ -512,97 +512,105 @@ body {
 }
 
 .meet-staff-shell {
-  padding: 1.3rem;
+  padding: 1.5rem 1.3rem;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(122, 162, 255, 0.05));
 }
 
 .meet-staff-status {
   margin-top: 0;
-  margin-bottom: 0.95rem;
+  margin-bottom: 0;
+  font-size: 0.82rem;
 }
 
+/* container that holds all rank groups */
 .meet-staff-pyramid {
   display: grid;
-  gap: 0.72rem;
+  gap: 2rem;
+  margin-top: 1.3rem;
 }
 
-.meet-staff-tier {
-  display: grid;
-  justify-items: center;
-  gap: 0.55rem;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.7rem 0.72rem;
-  background: rgba(13, 17, 23, 0.46);
-}
-
-.meet-staff-tier-heading {
-  display: inline-flex;
+/* one group per rank */
+.meet-staff-group {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.45rem;
 }
 
-.meet-staff-tier-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 0.74rem;
-  font-weight: 700;
-}
-
-.meet-staff-members {
+/* card row inside each group — centered, wraps naturally */
+.meet-staff-cards {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.45rem;
+  gap: 0.75rem;
 }
 
-.meet-staff-member {
-  display: inline-flex;
+/* individual profile card */
+.meet-staff-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1.1rem 0.9rem 0.9rem;
+  width: 160px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(13, 17, 23, 0.5);
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.meet-staff-card:hover {
+  border-color: rgba(122, 162, 255, 0.45);
+  background: rgba(122, 162, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+/* avatar circle */
+.meet-staff-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.28rem 0.62rem;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.04);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #f8fbff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.meet-staff-avatar-owner      { background: linear-gradient(135deg, #67b2ff, #8b5cf6); }
+.meet-staff-avatar-manager    { background: linear-gradient(135deg, #ff7fd3, #7aa2ff, #ff7fd3); }
+.meet-staff-avatar-admin      { background: linear-gradient(135deg, #ff9d9d, #c83c3c); }
+.meet-staff-avatar-developer  { background: linear-gradient(135deg, #ffc481, #e47f2d); }
+.meet-staff-avatar-moderator  { background: linear-gradient(135deg, #8ef7a6, #2f8f56); }
+.meet-staff-avatar-helper     { background: linear-gradient(135deg, #ff8bd8, #8b5cf6); }
+.meet-staff-avatar-qa_tester  { background: linear-gradient(135deg, #a5f3fc, #0891b2); }
+.meet-staff-avatar-media      { background: linear-gradient(135deg, #fde68a, #f59e0b); }
+.meet-staff-avatar-event_team { background: linear-gradient(135deg, #bbf7d0, #16a34a); }
+.meet-staff-avatar-builder    { background: linear-gradient(135deg, #fed7aa, #c2410c); }
+
+.meet-staff-card-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.meet-staff-card-name {
+  font-size: 0.9rem;
+  font-weight: 700;
   color: var(--text);
-  font-size: 0.82rem;
-  font-weight: 600;
+  word-break: break-word;
+  line-height: 1.3;
 }
 
-.meet-staff-tier-owner {
-  width: min(260px, 100%);
-  margin-inline: auto;
-}
-
-.meet-staff-tier-manager {
-  width: min(360px, 100%);
-  margin-inline: auto;
-}
-
-.meet-staff-tier-admin {
-  width: min(470px, 100%);
-  margin-inline: auto;
-}
-
-.meet-staff-tier-developer {
-  width: min(620px, 100%);
-  margin-inline: auto;
-}
-
-.meet-staff-tier-moderator {
-  width: min(760px, 100%);
-  margin-inline: auto;
-}
-
-.meet-staff-tier-helper {
-  width: min(900px, 100%);
-  margin-inline: auto;
+@media (max-width: 640px) {
+  .meet-staff-card {
+    width: 130px;
+  }
 }
 
 .about-features-heading {
@@ -1451,7 +1459,7 @@ body {
 
 .profile-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1rem;
   margin-top: 1.4rem;
 }
@@ -1519,6 +1527,58 @@ body {
 .profile-actions {
   display: flex;
   gap: 0.75rem;
+}
+
+/* avatar image fills the circle */
+.meet-staff-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+/* ── Avatar upload (profile page) ──────────────────────── */
+.avatar-upload-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  margin-top: 0.2rem;
+}
+
+.avatar-upload-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+}
+
+.avatar-upload-preview .meet-staff-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  font-size: 1.6rem;
+  box-shadow: none;
+}
+
+.avatar-upload-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.avatar-upload-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
 }
 
 /* ── Staff page ─────────────────────────────────────────── */

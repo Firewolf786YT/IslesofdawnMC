@@ -26,7 +26,7 @@ const meetStaffStatus = document.getElementById('meetStaffStatus');
 const meetStaffPyramid = document.getElementById('meetStaffPyramid');
 const ANNOUNCEMENTS_TABLE = 'announcements';
 const MAX_ANNOUNCEMENT_IMAGE_BYTES = 4 * 1024 * 1024;
-const STAFF_PYRAMID_ROLES = ['owner', 'manager', 'admin', 'developer', 'moderator', 'helper'];
+const STAFF_PYRAMID_ROLES = ['owner', 'manager', 'admin', 'developer', 'moderator', 'helper', 'qa_tester', 'media', 'event_team', 'builder'];
 
 if (yearSpan) {
   yearSpan.textContent = new Date().getFullYear();
@@ -155,48 +155,70 @@ const buildStaffRankBuckets = (rows) => {
       return;
     }
 
-    buckets.get(role).push(username);
+    buckets.get(role).push({ username, avatarUrl: row?.avatar_url || null });
   });
 
   STAFF_PYRAMID_ROLES.forEach((role) => {
-    buckets.get(role).sort((a, b) => a.localeCompare(b));
+    buckets.get(role).sort((a, b) => a.username.localeCompare(b.username));
   });
 
   return buckets;
 };
 
-const createStaffMemberBadge = (name) => {
-  const badge = document.createElement('span');
-  badge.className = 'meet-staff-member';
-  badge.textContent = name;
-  return badge;
+const createStaffCard = (member, role) => {
+  const name = member.username;
+  const initial = (name[0] || '?').toUpperCase();
+  const pillClass = window.getRolePillClass?.(role) || `role-pill role-pill-${role}`;
+  const roleLabel = window.getRoleLabel?.(role) || role;
+
+  const card = document.createElement('article');
+  card.className = `meet-staff-card meet-staff-card-${role}`;
+
+  const avatarWrap = document.createElement('div');
+  avatarWrap.className = `meet-staff-avatar meet-staff-avatar-${role}`;
+  avatarWrap.setAttribute('aria-hidden', 'true');
+
+  if (member.avatarUrl) {
+    const img = document.createElement('img');
+    img.src = member.avatarUrl;
+    img.alt = '';
+    img.className = 'meet-staff-avatar-img';
+    img.onerror = () => {
+      // Fall back to initials if image fails to load
+      avatarWrap.removeChild(img);
+      avatarWrap.textContent = initial;
+    };
+    avatarWrap.appendChild(img);
+  } else {
+    avatarWrap.textContent = initial;
+  }
+
+  const info = document.createElement('div');
+  info.className = 'meet-staff-card-info';
+
+  const username = document.createElement('strong');
+  username.className = 'meet-staff-card-name';
+  username.textContent = name;
+
+  const pill = document.createElement('span');
+  pill.className = pillClass;
+  pill.textContent = roleLabel;
+
+  info.append(username, pill);
+  card.append(avatarWrap, info);
+  return card;
 };
 
-const createStaffTier = (role, members) => {
-  const tier = document.createElement('section');
-  tier.className = `meet-staff-tier meet-staff-tier-${role}`;
-
-  const heading = document.createElement('div');
-  heading.className = 'meet-staff-tier-heading';
-
-  const rolePill = document.createElement('span');
-  rolePill.className = window.getRolePillClass?.(role) || `role-pill role-pill-${role}`;
-  rolePill.textContent = window.getRoleLabel?.(role) || role;
-
-  const count = document.createElement('span');
-  count.className = 'meet-staff-tier-count';
-  count.textContent = `${members.length}`;
-
-  heading.append(rolePill, count);
+const createStaffGroup = (role, members) => {
+  const group = document.createElement('section');
+  group.className = 'meet-staff-group';
 
   const grid = document.createElement('div');
-  grid.className = 'meet-staff-members';
-  members.forEach((memberName) => {
-    grid.appendChild(createStaffMemberBadge(memberName));
-  });
+  grid.className = 'meet-staff-cards';
+  members.forEach((member) => grid.appendChild(createStaffCard(member, role)));
 
-  tier.append(heading, grid);
-  return tier;
+  group.append(grid);
+  return group;
 };
 
 const renderMeetStaffPyramid = (rows) => {
@@ -220,7 +242,7 @@ const renderMeetStaffPyramid = (rows) => {
   }
 
   tiers.forEach(({ role, members }) => {
-    meetStaffPyramid.appendChild(createStaffTier(role, members));
+    meetStaffPyramid.appendChild(createStaffGroup(role, members));
   });
 };
 
