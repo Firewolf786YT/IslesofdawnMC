@@ -595,10 +595,10 @@ body {
 .meet-staff-avatar-developer  { background: linear-gradient(135deg, #ffc481, #e47f2d); }
 .meet-staff-avatar-moderator  { background: linear-gradient(135deg, #8ef7a6, #2f8f56); }
 .meet-staff-avatar-helper     { background: linear-gradient(135deg, #ff8bd8, #8b5cf6); }
-.meet-staff-avatar-qa_tester  { background: linear-gradient(135deg, #b9f8ff, #22d3ee, #0e7490); }
-.meet-staff-avatar-media      { background: linear-gradient(135deg, #ffe8a3, #f59e0b, #c2410c); }
-.meet-staff-avatar-event_team { background: linear-gradient(135deg, #bbf7d0, #34d399, #0f766e); }
-.meet-staff-avatar-builder    { background: linear-gradient(135deg, #ffd9b3, #fb923c, #9a3412); }
+.meet-staff-avatar-qa_tester  { background: linear-gradient(135deg, #67e8f9 0%, #06b6d4 48%, #0e7490 100%); }
+.meet-staff-avatar-media      { background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #ea580c 100%); }
+.meet-staff-avatar-event_team { background: linear-gradient(135deg, #86efac 0%, #22c55e 48%, #0f766e 100%); }
+.meet-staff-avatar-builder    { background: linear-gradient(135deg, #fdba74 0%, #f97316 50%, #9a3412 100%); }
 
 .meet-staff-card-info {
   display: flex;
@@ -1778,23 +1778,23 @@ body {
 }
 
 .role-pill-qa_tester {
-  background: linear-gradient(135deg, #b9f8ff 0%, #22d3ee 55%, #0e7490 100%);
-  border-color: rgba(34, 211, 238, 0.55);
+  background: linear-gradient(135deg, #67e8f9 0%, #06b6d4 50%, #0e7490 100%);
+  border-color: rgba(6, 182, 212, 0.65);
 }
 
 .role-pill-media {
-  background: linear-gradient(135deg, #ffe8a3 0%, #f59e0b 55%, #c2410c 100%);
-  border-color: rgba(245, 158, 11, 0.55);
+  background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #ea580c 100%);
+  border-color: rgba(245, 158, 11, 0.65);
 }
 
 .role-pill-event_team {
-  background: linear-gradient(135deg, #bbf7d0 0%, #34d399 55%, #0f766e 100%);
-  border-color: rgba(52, 211, 153, 0.55);
+  background: linear-gradient(135deg, #86efac 0%, #22c55e 50%, #0f766e 100%);
+  border-color: rgba(34, 197, 94, 0.65);
 }
 
 .role-pill-builder {
-  background: linear-gradient(135deg, #ffd9b3 0%, #fb923c 55%, #9a3412 100%);
-  border-color: rgba(251, 146, 60, 0.55);
+  background: linear-gradient(135deg, #fdba74 0%, #f97316 50%, #9a3412 100%);
+  border-color: rgba(249, 115, 22, 0.65);
 }
 
 .role-pill-moderator {
