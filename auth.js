@@ -607,6 +607,26 @@ const saveCurrentUserAvatar = async (file) => {
 
   if (!avatarUrl) return { ok: false, message: 'Could not get the public URL for your avatar.' };
 
+  const existingProfile = await fetchUserProfileByAuthUid(authUid);
+  if (!existingProfile.ok) {
+    return { ok: false, message: existingProfile.message || 'Could not verify your profile before saving the avatar.' };
+  }
+
+  if (!existingProfile.profile) {
+    const { data: authData, error: authError } = await client.auth.getUser();
+    if (authError || !authData?.user) {
+      return { ok: false, message: authError?.message || 'Could not load your account details to create a profile row.' };
+    }
+
+    const createdProfile = await ensureUserProfileForSupabaseUser(authData.user);
+    if (!createdProfile.ok || !createdProfile.profile) {
+      return { ok: false, message: createdProfile.message || 'Could not create a profile row for this account.' };
+    }
+
+    updateStoredSessionProfile(createdProfile.profile.username || getSession()?.name || 'Player');
+    renderNavAuth();
+  }
+
   const { error: profileError } = await client
     .from(USER_PROFILES_TABLE)
     .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
