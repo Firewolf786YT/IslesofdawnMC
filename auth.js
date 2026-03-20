@@ -34,6 +34,31 @@ const ACCESS_DENIED_PAGE = 'access-denied.html';
 const VERIFIED_ROLE_KEY = 'islesOfDawnVerifiedRole';
 const PROFILE_PAGE = 'profile.html';
 
+const ROLE_ALIASES = Object.freeze({
+  user: 'player',
+  player: 'player',
+  helper: 'helper',
+  moderator: 'moderator',
+  developer: 'developer',
+  admin: 'admin',
+  manager: 'manager',
+  owner: 'owner',
+  staff: 'developer',
+});
+
+const ROLE_LABELS = Object.freeze({
+  player: 'Player',
+  helper: 'Helper',
+  moderator: 'Moderator',
+  developer: 'Developer',
+  admin: 'Admin',
+  manager: 'Manager',
+  owner: 'Owner',
+});
+
+const PORTAL_ROLES = new Set(['developer', 'admin', 'manager', 'owner']);
+const ROLE_MANAGER_ROLES = new Set(['admin', 'manager', 'owner']);
+
 // ── Session ──────────────────────────────────────────────────────────────────
 const getSession = () => {
   try {
@@ -50,14 +75,14 @@ const clearSession = () => {
 };
 
 const setVerifiedCurrentRole = (role) => {
-  const normalizedRole = ['staff', 'admin'].includes(role) ? role : 'user';
+  const normalizedRole = normalizeRoleValue(role) || 'player';
   sessionStorage.setItem(VERIFIED_ROLE_KEY, normalizedRole);
   return normalizedRole;
 };
 
 const getVerifiedCurrentRole = () => {
-  const role = sessionStorage.getItem(VERIFIED_ROLE_KEY);
-  return ['staff', 'admin'].includes(role) ? role : 'user';
+  const role = normalizeRoleValue(sessionStorage.getItem(VERIFIED_ROLE_KEY));
+  return role || 'player';
 };
 
 // ── Roles ────────────────────────────────────────────────────────────────────
@@ -69,11 +94,16 @@ const getRolesMap = () => {
   }
 };
 
-const getUserRole = (uid) => getRolesMap()[uid] || 'user';
+const getUserRole = (uid) => normalizeRoleValue(getRolesMap()[uid]) || 'player';
+
+const getRoleLabel = (role) => ROLE_LABELS[normalizeRoleValue(role) || 'player'] || 'Player';
+const getRolePillClass = (role) => `role-pill role-pill-${normalizeRoleValue(role) || 'player'}`;
+const canAccessStaffPortal = (role) => PORTAL_ROLES.has(normalizeRoleValue(role) || 'player');
+const canManageRoles = (role) => ROLE_MANAGER_ROLES.has(normalizeRoleValue(role) || 'player');
 
 const normalizeRoleValue = (role) => {
   const normalizedRole = String(role || '').trim().toLowerCase();
-  return ['user', 'staff', 'admin'].includes(normalizedRole) ? normalizedRole : '';
+  return ROLE_ALIASES[normalizedRole] || '';
 };
 
 const normalizeAuthUid = (value) => {
@@ -127,7 +157,7 @@ const buildUsernameCandidates = (value, fallbackSuffix = '') => {
 
 const cacheUserRole = (uid, role) => {
   const roles = getRolesMap();
-  roles[uid] = role;
+  roles[uid] = normalizeRoleValue(role) || 'player';
   localStorage.setItem(ROLES_KEY, JSON.stringify(roles));
 };
 
@@ -141,7 +171,7 @@ const extractAuthUidFromSessionUid = (uid) => {
 window.assignRole = async (uid, role) => {
   const normalizedRole = normalizeRoleValue(role);
   if (!normalizedRole) {
-    console.error('❌ Invalid role. Use: user | staff | admin');
+    console.error('❌ Invalid role. Use: player | helper | moderator | developer | admin | manager | owner');
     return;
   }
 
@@ -201,7 +231,7 @@ const listUserRoles = async () => {
 const upsertUserRoleByAuthUid = async (userIdOrSessionUidOrUsername, role) => {
   const normalizedRole = normalizeRoleValue(role);
   if (!normalizedRole) {
-    return { ok: false, message: 'Invalid role. Use user, staff, or admin.' };
+    return { ok: false, message: 'Invalid role. Use player, helper, moderator, developer, admin, manager, or owner.' };
   }
 
   const resolvedIdentity = await resolveUserIdentifierToAuthUid(userIdOrSessionUidOrUsername);
@@ -254,6 +284,10 @@ window.listUserRoles = listUserRoles;
 window.upsertUserRoleByAuthUid = upsertUserRoleByAuthUid;
 window.normalizeAuthUid = normalizeAuthUid;
 window.validateUsernameValue = validateUsernameValue;
+window.getRoleLabel = getRoleLabel;
+window.getRolePillClass = getRolePillClass;
+window.canAccessStaffPortal = canAccessStaffPortal;
+window.canManageRoles = canManageRoles;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const escHtml = (str) => {
@@ -593,13 +627,13 @@ const syncCurrentUserRoleFromSupabase = async () => {
   const client = await getSupabaseClient();
   const sessionUser = getSession();
   if (!client || !sessionUser) {
-    return setVerifiedCurrentRole('user');
+    return setVerifiedCurrentRole('player');
   }
 
   const authUid = extractAuthUidFromSessionUid(sessionUser.uid);
   if (!authUid) {
-    cacheUserRole(sessionUser.uid, 'user');
-    return setVerifiedCurrentRole('user');
+    cacheUserRole(sessionUser.uid, 'player');
+    return setVerifiedCurrentRole('player');
   }
 
   const { data, error } = await client
@@ -610,11 +644,11 @@ const syncCurrentUserRoleFromSupabase = async () => {
 
   if (error && error.code !== 'PGRST116') {
     console.warn('Could not sync role from Supabase:', error.message);
-    cacheUserRole(sessionUser.uid, 'user');
-    return setVerifiedCurrentRole('user');
+    cacheUserRole(sessionUser.uid, 'player');
+    return setVerifiedCurrentRole('player');
   }
 
-  const role = data?.role && ['user', 'staff', 'admin'].includes(data.role) ? data.role : 'user';
+  const role = normalizeRoleValue(data?.role) || 'player';
   cacheUserRole(sessionUser.uid, role);
   return setVerifiedCurrentRole(role);
 };
@@ -812,7 +846,7 @@ const requireStaff = () => {
   }
 
   const role = getUserRole(user.uid);
-  if (role !== 'staff' && role !== 'admin') {
+  if (!canAccessStaffPortal(role)) {
     location.replace(ACCESS_DENIED_PAGE);
     return false;
   }
@@ -830,7 +864,7 @@ const requireStaffAccess = async () => {
 
   await syncCurrentUserRoleFromSupabase();
   const role = getUserRole(current.uid);
-  if (role !== 'staff' && role !== 'admin') {
+  if (!canAccessStaffPortal(role)) {
     location.replace(ACCESS_DENIED_PAGE);
     return false;
   }
@@ -863,7 +897,7 @@ const renderNavAuth = () => {
 
   const initial = escHtml((user.name || user.email || '?')[0].toUpperCase());
   const role = getVerifiedCurrentRole();
-  const staffLink = (role === 'staff' || role === 'admin')
+  const staffLink = canAccessStaffPortal(role)
     ? '<a class="nav-auth-menu-item nav-auth-menu-item-staff" href="staff.html">Staff Portal</a>'
     : '';
 
@@ -954,11 +988,46 @@ window.devLogout = async () => {
 (() => {
   renderNavAuth();
 
-  // Refresh local session from Supabase if configured, then refresh nav UI.
-  syncSessionFromSupabase()
-    .then(() => syncCurrentUserRoleFromSupabase())
-    .then(() => renderNavAuth())
-    .catch(() => {
-      // Keep existing local session behavior if sync fails.
-    });
+  if (!isSupabaseConfigured()) {
+    return;
+  }
+
+  const currentFile = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  const pagesRequiringFreshAuth = new Set([
+    'login.html',
+    'profile.html',
+    'staff.html',
+    'staff-announcements.html',
+    'staff-applications.html',
+    'staff-appeals.html',
+    'apply.html',
+  ]);
+
+  const localSession = getSession();
+  const shouldForceSyncNow = pagesRequiringFreshAuth.has(currentFile);
+
+  if (!localSession && !shouldForceSyncNow) {
+    return;
+  }
+
+  const runSync = () => {
+    // Refresh local session from Supabase if configured, then refresh nav UI.
+    syncSessionFromSupabase()
+      .then((sessionUser) => (sessionUser ? syncCurrentUserRoleFromSupabase() : 'player'))
+      .then(() => renderNavAuth())
+      .catch(() => {
+        // Keep existing local session behavior if sync fails.
+      });
+  };
+
+  if (shouldForceSyncNow) {
+    runSync();
+    return;
+  }
+
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(() => runSync(), { timeout: 1200 });
+  } else {
+    window.setTimeout(runSync, 0);
+  }
 })();

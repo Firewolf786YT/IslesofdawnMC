@@ -49,8 +49,8 @@
           <span>Signing you in…</span>
         </div>
 
-        <!-- Login buttons (hidden until determined no callback is happening) -->
-        <div id="loginOptions" class="is-hidden">
+        <!-- Login buttons (visible by default as a fail-safe) -->
+        <div id="loginOptions">
           <form id="emailAuthForm" class="login-form">
             <label class="login-field">
               <span>Username</span>
@@ -153,6 +153,17 @@
         });
 
         const wireLoginEvents = () => {
+          if (
+            typeof loginWithGoogle !== 'function'
+            || typeof loginWithDiscord !== 'function'
+            || typeof signInWithEmailPassword !== 'function'
+            || typeof createAccountWithEmailPassword !== 'function'
+            || typeof finishLogin !== 'function'
+          ) {
+            setStatus('Auth services did not load correctly. Refresh the page and try again.');
+            return;
+          }
+
           document.getElementById('loginWithGoogle').addEventListener('click', loginWithGoogle);
           document.getElementById('loginWithDiscord').addEventListener('click', loginWithDiscord);
 
@@ -215,6 +226,8 @@
           });
         };
 
+        showLoginOptions();
+
         try {
           await syncSessionFromSupabase();
 
@@ -240,7 +253,6 @@
           setStatus('Sign-in setup failed to load completely. You can still use email/password below.');
         }
 
-        showLoginOptions();
         wireLoginEvents();
       })();
     </script>

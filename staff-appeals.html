@@ -84,8 +84,10 @@
         const user = getSession();
         if (user) {
           const role = getUserRole(user.uid);
+          const roleLabel = window.getRoleLabel?.(role) || role || 'Player';
+          const roleClass = window.getRolePillClass?.(role) || 'role-pill role-pill-player';
           const el = document.getElementById('staffAppealsWelcome');
-          el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
+          el.innerHTML = `Welcome, ${user.name || user.email}. You are signed in as <span class="${roleClass}">${roleLabel}</span>.`;
         }
       })();
 

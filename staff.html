@@ -73,24 +73,6 @@
             </article>
           </div>
 
-          <div class="card staff-permissions-card">
-            <h3>How Permissions Work</h3>
-            <p>
-              Roles are stored in Supabase table <code>public.user_roles</code>.
-              Admins can still assign roles from DevTools using:
-            </p>
-            <code class="staff-code">assignRole(getSession().uid, 'staff')</code>
-            <p style="margin-top: 0.6rem;">
-              To assign someone else, use their full session UID (example:
-              <code>google:uuid...</code> or <code>discord:uuid...</code>).
-              Valid roles: <code>user</code> · <code>staff</code> · <code>admin</code>
-            </p>
-            <p style="margin-top: 0.6rem;">
-              First-time setup requires one admin row inserted in Supabase SQL
-              (see <code>supabase-schema.sql</code> bootstrap comment).
-            </p>
-          </div>
-
           <div class="card staff-diagnostics-card">
             <div class="staff-diagnostics-header">
               <h3>Admin Diagnostics</h3>
@@ -133,9 +115,13 @@
                 <label>
                   Role
                   <select id="roleManagerRole" required>
-                    <option value="user">User</option>
-                    <option value="staff">Staff</option>
+                    <option value="player">Player</option>
+                    <option value="helper">Helper</option>
+                    <option value="moderator">Moderator</option>
+                    <option value="developer">Developer</option>
                     <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
+                    <option value="owner">Owner</option>
                   </select>
                 </label>
               </div>
@@ -177,7 +163,9 @@
         if (user) {
           const role = getUserRole(user.uid);
           const el = document.getElementById('staffWelcome');
-          el.textContent = `Welcome, ${user.name || user.email}. You are signed in as ${role}.`;
+          const label = window.getRoleLabel?.(role) || role;
+          const pillClass = window.getRolePillClass?.(role) || 'role-pill role-pill-player';
+          el.innerHTML = `Welcome, ${user.name || user.email}. You are signed in as <span class="${pillClass}">${label}</span>.`;
         }
 
         const supabaseEl = document.getElementById('diagSupabase');
@@ -214,7 +202,7 @@
                   <span>${row.username ? row.user_id : 'No username set yet'}</span>
                   <span>Updated ${updatedAt}</span>
                 </div>
-                <span class="app-badge ${row.role === 'admin' ? 'staff-role-admin' : row.role === 'staff' ? 'app-badge-open' : 'staff-role-user'}">${row.role}</span>
+                <span class="${window.getRolePillClass?.(row.role) || 'role-pill role-pill-player'}">${window.getRoleLabel?.(row.role) || row.role}</span>
               </div>`;
           }).join('');
         };
@@ -278,12 +266,12 @@
 
           const syncedRole = await window.syncCurrentUserRoleFromSupabase?.();
           const currentUser = getSession();
-          const effectiveRole = syncedRole || (currentUser ? getUserRole(currentUser.uid) : 'user');
+          const effectiveRole = syncedRole || (currentUser ? getUserRole(currentUser.uid) : 'player');
           if (roleEl) {
-            roleEl.textContent = effectiveRole || 'user';
+            roleEl.innerHTML = `<span class="${window.getRolePillClass?.(effectiveRole) || 'role-pill role-pill-player'}">${window.getRoleLabel?.(effectiveRole) || effectiveRole || 'Player'}</span>`;
           }
 
-          roleManagerCard?.classList.toggle('is-hidden', effectiveRole !== 'admin');
+          roleManagerCard?.classList.toggle('is-hidden', !window.canManageRoles?.(effectiveRole));
 
           if (!authUuid) {
             setDiagnosticMessage('No auth UUID detected. Sign in again via login page if needed.');
@@ -292,7 +280,7 @@
 
           setDiagnosticMessage('Diagnostics updated successfully.');
 
-          if (effectiveRole === 'admin') {
+          if (window.canManageRoles?.(effectiveRole)) {
             await refreshRoleList();
           }
         };
@@ -320,7 +308,7 @@
           event.preventDefault();
 
           const targetUserId = roleManagerUserId?.value.trim() || '';
-          const targetRole = roleManagerRole?.value || 'user';
+          const targetRole = roleManagerRole?.value || 'player';
           setRoleStatus('Saving role...');
 
           const result = await window.upsertUserRoleByAuthUid?.(targetUserId, targetRole);

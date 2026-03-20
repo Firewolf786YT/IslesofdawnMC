@@ -1589,16 +1589,55 @@ body {
   font-size: 0.86rem;
 }
 
-.staff-role-admin {
-  color: #0b1a0f;
-  background: linear-gradient(180deg, #f4c96d, #d9a83d);
-  border: 1px solid rgba(244, 201, 109, 0.45);
+.role-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.62rem;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: #f8fbff;
+  border: 1px solid transparent;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.13);
 }
 
-.staff-role-user {
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
+.role-pill-player {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border);
+}
+
+.role-pill-helper {
+  background: linear-gradient(135deg, #ff8bd8 0%, #8b5cf6 100%);
+  border-color: rgba(255, 139, 216, 0.55);
+}
+
+.role-pill-moderator {
+  background: linear-gradient(135deg, #8ef7a6 0%, #2f8f56 100%);
+  border-color: rgba(142, 247, 166, 0.55);
+}
+
+.role-pill-developer {
+  background: linear-gradient(135deg, #ffc481 0%, #e47f2d 100%);
+  border-color: rgba(255, 196, 129, 0.55);
+}
+
+.role-pill-admin {
+  background: linear-gradient(135deg, #ff9d9d 0%, #c83c3c 100%);
+  border-color: rgba(255, 157, 157, 0.55);
+}
+
+.role-pill-manager {
+  background: linear-gradient(135deg, #ff7fd3 0%, #7aa2ff 50%, #ff7fd3 100%);
+  border-color: rgba(255, 127, 211, 0.55);
+}
+
+.role-pill-owner {
+  background: linear-gradient(135deg, #67b2ff 0%, #8b5cf6 100%);
+  border-color: rgba(103, 178, 255, 0.55);
 }
 
 .staff-diagnostics-header {

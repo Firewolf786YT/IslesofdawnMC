@@ -37,10 +37,10 @@
         <p class="eyebrow">Restricted Area</p>
         <h1 class="login-heading">Access denied</h1>
         <p class="login-sub">
-          The Staff Portal is only available to accounts with a staff or admin role.
+          The Staff Portal is only available to approved ranks.
         </p>
         <p id="accessDeniedMessage" class="denied-message">
-          Sign in with the correct account or ask an admin to assign the right role.
+          Sign in with the correct account or ask a manager-level rank to assign the right role.
         </p>
         <div class="denied-actions">
           <a class="btn btn-primary" href="index.html">Back Home</a>
@@ -69,12 +69,13 @@
 
         await syncCurrentUserRoleFromSupabase();
         const role = getUserRole(user.uid);
-        if (role === 'staff' || role === 'admin') {
+        if (window.canAccessStaffPortal?.(role)) {
           location.replace('staff.html');
           return;
         }
 
-        messageEl.textContent = `${user.name || user.email} is signed in as ${role}. Ask an admin to promote this account if it should access staff pages.`;
+        const roleLabel = window.getRoleLabel?.(role) || role || 'Player';
+        messageEl.textContent = `${user.name || user.email} is signed in as ${roleLabel}. Ask a manager, admin, or owner to promote this account if it should access staff pages.`;
       })();
     </script>
   </body>

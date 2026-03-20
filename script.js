@@ -325,6 +325,11 @@ if (clearAnnouncementsButton) {
 }
 
 (async () => {
+  const hasAnnouncementsUi = Boolean(announcementList || announcementForm || clearAnnouncementsButton);
+  if (!hasAnnouncementsUi) {
+    return;
+  }
+
   if (!window.isSupabaseConfigured?.()) {
     if (announcementList) {
       announcementList.innerHTML = '<p class="announcement-empty">Announcements are unavailable until Supabase is configured.</p>';

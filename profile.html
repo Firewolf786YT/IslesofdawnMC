@@ -121,7 +121,7 @@
 
         const renderProfile = async () => {
           const currentUser = getSession();
-          const currentRole = currentUser ? getUserRole(currentUser.uid) : 'user';
+          const currentRole = currentUser ? getUserRole(currentUser.uid) : 'player';
           const profileResult = await window.getCurrentUserProfile?.();
           const currentUsername = profileResult?.ok && profileResult.profile?.username
             ? profileResult.profile.username
@@ -129,7 +129,7 @@
 
           profileCurrentUsername.textContent = currentUsername;
           profileEmail.textContent = currentUser?.email || 'Not available';
-          profileRole.textContent = currentRole || 'user';
+          profileRole.innerHTML = `<span class="${window.getRolePillClass?.(currentRole) || 'role-pill role-pill-player'}">${window.getRoleLabel?.(currentRole) || currentRole || 'Player'}</span>`;
           profileAuthUid.textContent = window.getCurrentAuthUid?.() || 'Unavailable';
           profileUsername.value = currentUsername;
 
