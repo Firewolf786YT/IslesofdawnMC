@@ -73,313 +73,39 @@
     </footer>
 
     <script src="auth.js"></script>
+    <script src="application-config.js"></script>
     <script src="supabase-data.js"></script>
     <script src="script.js"></script>
     <script>
-      (async () => {
-        const allowed = await requireStaffAccess();
-        if (!allowed) return;
-
-        document.getElementById('staffApplicationsContent').hidden = false;
-        const user = getSession();
-        if (user) {
-          const role = getUserRole(user.uid);
-          const roleLabel = window.getRoleLabel?.(role) || role || 'Player';
-          const roleClass = window.getRolePillClass?.(role) || 'role-pill role-pill-player';
-          const el = document.getElementById('staffApplicationsWelcome');
-          el.innerHTML = `Welcome, ${user.name || user.email}. You are signed in as <span class="${roleClass}">${roleLabel}</span>.`;
-        }
-      })();
-
       let appStatuses = {};
-      let applicationSubmissions = [];
-      const applicationReviewFilter = document.getElementById('applicationReviewFilter');
-      const applicationReviewUsername = document.getElementById('applicationReviewUsername');
-      const applicationReviewRole = document.getElementById('applicationReviewRole');
-      const applicationReviewFilterReset = document.getElementById('applicationReviewFilterReset');
+      const managerRoleSelect = document.getElementById('applicationManagerRoleSelect');
+      const openApplicationManagerBtn = document.getElementById('openApplicationManagerBtn');
+      const applicationManagerSelectStatus = document.getElementById('applicationManagerSelectStatus');
+      const STAFF_APP_DEFINITIONS = (window.getApplicationDefinitions?.() || []).map((app) => ({
+        id: app.id,
+        title: app.title,
+        emoji: app.emoji,
+      }));
 
-      const STAFF_APP_DEFINITIONS = [
-        { id: 'support-team', title: 'Support Team', emoji: '🛡️' },
-        { id: 'dev-team', title: 'Development Team', emoji: '⚙️' },
-        { id: 'qa-team', title: 'Quality Assurance Team', emoji: '🔍' },
-        { id: 'build-team', title: 'Build Team', emoji: '🏗️' },
-        { id: 'media-team', title: 'Media Team', emoji: '🎬' },
-        { id: 'event-team', title: 'Event Team', emoji: '🎉' },
-        { id: 'content-creator', title: 'Content Creator', emoji: '📹' },
-      ];
-
-      const readAppStatuses = () => {
-        return appStatuses;
+      const setManagerStatus = (message, isError = false) => {
+        if (!applicationManagerSelectStatus) return;
+        applicationManagerSelectStatus.textContent = message;
+        applicationManagerSelectStatus.style.color = isError ? '#e75f5f' : '';
       };
+
+      const readAppStatuses = () => appStatuses;
 
       const saveAppStatuses = (statuses) => {
         appStatuses = { ...statuses };
         window.pushApplicationStatusesToSupabase?.(appStatuses);
       };
 
-      const readApplicationSubmissions = () => {
-        return applicationSubmissions
-          .filter((item) => item && typeof item === 'object')
-          .map((item) => ({
-            ...item,
-            status: item.status === 'approved' || item.status === 'denied' ? item.status : 'pending',
-          }));
-      };
-
-      const saveApplicationSubmissions = (submissions) => {
-        applicationSubmissions = Array.isArray(submissions) ? submissions : [];
-      };
-
-      const getSubmissionCounts = (submissions) => {
-        const pendingCount = submissions.filter((item) => (item.status || 'pending') === 'pending').length;
-        const approvedCount = submissions.filter((item) => (item.status || 'pending') === 'approved').length;
-        const deniedCount = submissions.filter((item) => (item.status || 'pending') === 'denied').length;
-
-        return {
-          all: submissions.length,
-          pending: pendingCount,
-          approved: approvedCount,
-          denied: deniedCount,
-        };
-      };
-
-      const renderReviewStats = (submissions) => {
-        const stats = document.getElementById('applicationReviewStats');
-        if (!stats) return;
-
-        const counts = getSubmissionCounts(submissions);
-        const selectedFilter = applicationReviewFilter?.value || 'all';
-
-        const pillClass = (value, extraClass = '') => {
-          const isActive = selectedFilter === value ? ' is-active' : '';
-          return `review-stat-pill${extraClass}${isActive}`;
-        };
-
-        stats.innerHTML = `
-          <button type="button" class="${pillClass('all')}" data-filter="all">All: ${counts.all}</button>
-          <button type="button" class="${pillClass('pending', ' review-stat-pill-pending')}" data-filter="pending">Pending: ${counts.pending}</button>
-          <button type="button" class="${pillClass('approved', ' review-stat-pill-approved')}" data-filter="approved">Approved: ${counts.approved}</button>
-          <button type="button" class="${pillClass('denied', ' review-stat-pill-denied')}" data-filter="denied">Denied: ${counts.denied}</button>
-        `;
-      };
-
-      const updateReviewFilterCounts = (submissions) => {
-        if (!applicationReviewFilter) return;
-        const counts = getSubmissionCounts(submissions);
-
-        const labelsByValue = {
-          all: `All (${counts.all})`,
-          pending: `Pending (${counts.pending})`,
-          approved: `Approved (${counts.approved})`,
-          denied: `Denied (${counts.denied})`,
-        };
-
-        Array.from(applicationReviewFilter.options).forEach((option) => {
-          option.textContent = labelsByValue[option.value] || option.textContent;
-        });
-      };
-
-      const renderRoleFilterOptions = () => {
-        if (!applicationReviewRole) return;
-
-        const currentValue = applicationReviewRole.value || 'all';
-        const defaultOption = '<option value="all">All Application Types</option>';
-        const options = STAFF_APP_DEFINITIONS.map((app) => `<option value="${app.id}">${app.title}</option>`).join('');
-        applicationReviewRole.innerHTML = `${defaultOption}${options}`;
-        applicationReviewRole.value = STAFF_APP_DEFINITIONS.some((app) => app.id === currentValue) ? currentValue : 'all';
-      };
-
-      const createReviewInfoItem = (label, value) => {
-        const item = document.createElement('div');
-        item.className = 'staff-app-info-item';
-
-        const infoLabel = document.createElement('p');
-        infoLabel.className = 'staff-app-info-label';
-        infoLabel.textContent = label;
-
-        const infoValue = document.createElement('p');
-        infoValue.className = 'staff-app-info-value';
-        infoValue.textContent = value;
-
-        item.append(infoLabel, infoValue);
-        return item;
-      };
-
-      const createReviewAnswer = (question, answer) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'staff-app-answer';
-
-        const heading = document.createElement('h5');
-        heading.textContent = question;
-
-        const body = document.createElement('p');
-        body.textContent = answer || 'No response provided.';
-
-        wrapper.append(heading, body);
-        return wrapper;
-      };
-
-      const updateSubmissionStatus = async (submissionId, fallbackIndex, nextStatus) => {
-        const submissions = readApplicationSubmissions();
-        let targetIndex = submissions.findIndex((submission) => submission.id === submissionId);
-
-        if (targetIndex === -1) {
-          targetIndex = fallbackIndex;
-        }
-
-        if (targetIndex < 0 || targetIndex >= submissions.length) {
-          return;
-        }
-
-        submissions[targetIndex].status = nextStatus;
-        submissions[targetIndex].reviewedAt = new Date().toISOString();
-        const reviewer = getSession();
-        submissions[targetIndex].reviewedBy = reviewer?.name || reviewer?.email || 'Staff';
-        saveApplicationSubmissions(submissions);
-
-        await window.updateApplicationReviewInSupabase?.(
-          submissions[targetIndex].id,
-          nextStatus,
-          submissions[targetIndex].reviewedBy
-        );
-
-        renderApplicationReviews();
-      };
-
-      const renderApplicationReviews = () => {
-        const list = document.getElementById('staffApplicationReviewList');
-        if (!list) return;
-
-        const submissions = readApplicationSubmissions();
-        renderReviewStats(submissions);
-        updateReviewFilterCounts(submissions);
-        const selectedFilter = applicationReviewFilter?.value || 'all';
-        const usernameFilter = (applicationReviewUsername?.value || '').trim().toLowerCase();
-        const roleFilter = applicationReviewRole?.value || 'all';
-        if (applicationReviewFilterReset) {
-          applicationReviewFilterReset.disabled = selectedFilter === 'all' && !usernameFilter && roleFilter === 'all';
-        }
-
-        const visibleSubmissions = submissions
-          .map((submission, fullIndex) => ({ submission, fullIndex }))
-          .filter(({ submission }) => {
-            const status = submission.status || 'pending';
-            if (selectedFilter !== 'all' && status !== selectedFilter) return false;
-
-            if (roleFilter !== 'all' && submission.roleId !== roleFilter) return false;
-
-            if (!usernameFilter) return true;
-
-            const minecraftUsername = String(submission.minecraftUsername || '').toLowerCase();
-            const discordUsername = String(submission.discord || '').toLowerCase();
-            return minecraftUsername.includes(usernameFilter) || discordUsername.includes(usernameFilter);
-          });
-
-        list.innerHTML = '';
-
-        if (!submissions.length) {
-          const empty = document.createElement('p');
-          empty.className = 'announcement-empty';
-          empty.textContent = 'No applications submitted yet.';
-          list.appendChild(empty);
-          return;
-        }
-
-        if (!visibleSubmissions.length) {
-          const empty = document.createElement('p');
-          empty.className = 'announcement-empty';
-          empty.textContent = `No ${selectedFilter} applications right now.`;
-          list.appendChild(empty);
-          return;
-        }
-
-        visibleSubmissions.forEach(({ submission, fullIndex }) => {
-          const status = submission.status || 'pending';
-          const article = document.createElement('article');
-          article.className = 'announcement-item staff-app-submission';
-
-          const header = document.createElement('div');
-          header.className = 'app-review-header';
-
-          const title = document.createElement('h4');
-          title.textContent = `${submission.roleTitle || 'Unknown Role'} Application`;
-
-          const statusBadge = document.createElement('span');
-          statusBadge.className = `app-review-status app-review-status-${status}`;
-          statusBadge.textContent = status[0].toUpperCase() + status.slice(1);
-
-          header.append(title, statusBadge);
-
-          const meta = document.createElement('p');
-          meta.className = 'announcement-meta';
-          const submittedDate = submission.createdAt ? new Date(submission.createdAt) : null;
-          const reviewedDate = submission.reviewedAt ? new Date(submission.reviewedAt) : null;
-
-          const submittedText = submittedDate && !Number.isNaN(submittedDate.getTime())
-            ? `Submitted ${submittedDate.toLocaleString()}`
-            : 'Submitted recently';
-          const reviewedText = reviewedDate && !Number.isNaN(reviewedDate.getTime())
-            ? ` • Reviewed ${reviewedDate.toLocaleString()} by ${submission.reviewedBy || 'Staff'}`
-            : '';
-
-          meta.textContent = `${submittedText}${reviewedText}`;
-
-          const info = document.createElement('div');
-          info.className = 'staff-app-info-grid';
-          info.append(
-            createReviewInfoItem('Minecraft Username', String(submission.minecraftUsername || 'Not provided')),
-            createReviewInfoItem('Age', String(submission.age || 'Not provided')),
-            createReviewInfoItem('Discord', String(submission.discord || 'Not provided')),
-            createReviewInfoItem('Email', String(submission.email || 'Not provided'))
-          );
-
-          const answers = document.createElement('div');
-          answers.className = 'staff-app-answer-list';
-          answers.append(
-            createReviewAnswer('Why do you want to become a staff member at IslesOfDawnMC?', String(submission.whyJoin || '')),
-            createReviewAnswer('What relevant experience do you have for this role?', String(submission.experience || '')),
-            createReviewAnswer('How would you handle conflict between players or rule-breaking situations?', String(submission.conflictHandling || '')),
-            createReviewAnswer('What would you do to improve the IslesOfDawnMC community as staff?', String(submission.communityImprovement || ''))
-          );
-
-          const acknowledgements = document.createElement('ul');
-          acknowledgements.className = 'staff-app-ack-list';
-
-          const ackVolunteer = document.createElement('li');
-          ackVolunteer.textContent = `Voluntary role acknowledged: ${submission.acknowledgements?.volunteer === 'yes' ? 'Yes' : 'No'}`;
-          const ackContacting = document.createElement('li');
-          ackContacting.textContent = `No staff-contact spam acknowledged: ${submission.acknowledgements?.contacting === 'yes' ? 'Yes' : 'No'}`;
-          const ackHonest = document.createElement('li');
-          ackHonest.textContent = `Honest information confirmed: ${submission.acknowledgements?.honest === 'yes' ? 'Yes' : 'No'}`;
-
-          acknowledgements.append(ackVolunteer, ackContacting, ackHonest);
-
-          const actions = document.createElement('div');
-          actions.className = 'app-review-actions';
-
-          const approveButton = document.createElement('button');
-          approveButton.type = 'button';
-          approveButton.className = 'btn-toggle-open';
-          approveButton.textContent = 'Approve';
-          approveButton.disabled = status === 'approved';
-          approveButton.addEventListener('click', () => {
-            updateSubmissionStatus(submission.id, fullIndex, 'approved');
-          });
-
-          const denyButton = document.createElement('button');
-          denyButton.type = 'button';
-          denyButton.className = 'btn-toggle-close';
-          denyButton.textContent = 'Deny';
-          denyButton.disabled = status === 'denied';
-          denyButton.addEventListener('click', () => {
-            updateSubmissionStatus(submission.id, fullIndex, 'denied');
-          });
-
-          actions.append(approveButton, denyButton);
-
-          article.append(header, meta, info, answers, acknowledgements, actions);
-          list.appendChild(article);
-        });
+      const renderApplicationRoleOptions = () => {
+        if (!managerRoleSelect) return;
+        const options = STAFF_APP_DEFINITIONS
+          .map((app) => `<option value="${app.id}">${app.emoji} ${app.title}</option>`)
+          .join('');
+        managerRoleSelect.innerHTML = options;
       };
 
       const renderAppToggles = () => {
@@ -424,69 +150,38 @@
         const allowed = await requireStaffAccess();
         if (!allowed) return;
 
-        const statuses = await window.syncApplicationStatusesFromSupabase?.();
-        const submissions = await window.syncApplicationSubmissionsFromSupabase?.();
+        document.getElementById('staffApplicationsContent').hidden = false;
+        const user = getSession();
+        if (user) {
+          const role = getUserRole(user.uid);
+          const roleLabel = window.getRoleLabel?.(role) || role || 'Player';
+          const roleClass = window.getRolePillClass?.(role) || 'role-pill role-pill-player';
+          const el = document.getElementById('staffApplicationsWelcome');
+          el.innerHTML = `Welcome, ${user.name || user.email}. You are signed in as <span class="${roleClass}">${roleLabel}</span>.`;
+        }
 
-        if (!statuses || !submissions) {
-          const list = document.getElementById('staffApplicationReviewList');
-          if (list) {
-            list.innerHTML = '<p class="announcement-empty">Staff data unavailable. Verify Supabase setup and RLS policies.</p>';
-          }
+        renderApplicationRoleOptions();
+
+        const statuses = await window.syncApplicationStatusesFromSupabase?.();
+        if (!statuses) {
+          setManagerStatus('Could not load application statuses. Verify Supabase setup and policies.', true);
           return;
         }
 
         appStatuses = statuses;
-        applicationSubmissions = submissions;
         renderAppToggles();
-        renderRoleFilterOptions();
-        renderApplicationReviews();
+        setManagerStatus('Select an application type and open its manager page.');
       })();
 
-      const applicationReviewStats = document.getElementById('applicationReviewStats');
-      if (applicationReviewStats && applicationReviewFilter) {
-        applicationReviewStats.addEventListener('click', (event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLElement)) return;
-
-          const button = target.closest('button[data-filter]');
-          if (!(button instanceof HTMLButtonElement)) return;
-
-          const filterValue = button.dataset.filter;
-          if (!filterValue) return;
-
-          applicationReviewFilter.value = filterValue;
-          renderApplicationReviews();
-        });
-      }
-
-      if (applicationReviewFilter) {
-        applicationReviewFilter.addEventListener('change', () => {
-          renderApplicationReviews();
-        });
-      }
-
-      if (applicationReviewUsername) {
-        applicationReviewUsername.addEventListener('input', () => {
-          renderApplicationReviews();
-        });
-      }
-
-      if (applicationReviewRole) {
-        applicationReviewRole.addEventListener('change', () => {
-          renderApplicationReviews();
-        });
-      }
-
-      if (applicationReviewFilterReset && applicationReviewFilter) {
-        applicationReviewFilterReset.addEventListener('click', () => {
-          applicationReviewFilter.value = 'all';
-          if (applicationReviewUsername) {
-            applicationReviewUsername.value = '';
+      if (openApplicationManagerBtn && managerRoleSelect) {
+        openApplicationManagerBtn.addEventListener('click', () => {
+          const selectedRoleId = String(managerRoleSelect.value || '').trim();
+          if (!selectedRoleId) {
+            setManagerStatus('Please choose an application type first.', true);
+            return;
           }
-          if (applicationReviewRole) {
-            applicationReviewRole.value = 'all';
-          }
-          renderApplicationReviews();
+
+          window.location.href = `staff-application-review.html?role=${encodeURIComponent(selectedRoleId)}`;
         });
       }
 

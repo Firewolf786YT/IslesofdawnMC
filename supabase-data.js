@@ -20,6 +20,7 @@
   };
 
   const fromDbAppSubmission = (row) => ({
+    acknowledgements: row.acknowledgements || {},
     id: row.id,
     status: row.status,
     roleId: row.role_id,
@@ -32,7 +33,9 @@
     experience: row.experience || '',
     conflictHandling: row.conflict_handling || '',
     communityImprovement: row.community_improvement || '',
-    acknowledgements: row.acknowledgements || {},
+    questionPrompts: Array.isArray((row.acknowledgements || {}).questionPrompts)
+      ? (row.acknowledgements || {}).questionPrompts
+      : [],
     reviewedAt: row.reviewed_at || null,
     reviewedBy: row.reviewed_by || null,
     createdAt: row.created_at || new Date().toISOString(),
@@ -51,7 +54,14 @@
     experience: submission.experience || null,
     conflict_handling: submission.conflictHandling || null,
     community_improvement: submission.communityImprovement || null,
-    acknowledgements: submission.acknowledgements || {},
+    acknowledgements: {
+      ...(submission.acknowledgements || {}),
+      questionPrompts: Array.isArray(submission.questionPrompts)
+        ? submission.questionPrompts
+        : Array.isArray(submission.acknowledgements?.questionPrompts)
+          ? submission.acknowledgements.questionPrompts
+          : [],
+    },
     reviewed_at: submission.reviewedAt || null,
     reviewed_by: submission.reviewedBy || null,
     created_at: submission.createdAt || new Date().toISOString(),

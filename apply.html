@@ -80,24 +80,7 @@
 
             <fieldset class="app-form-section">
               <legend>2) Staff Questions</legend>
-              <div class="app-form-long-list">
-                <div>
-                  <label for="appQ1">Why do you want to become a staff member at IslesOfDawnMC?</label>
-                  <textarea id="appQ1" name="whyJoin" rows="4" required></textarea>
-                </div>
-                <div>
-                  <label for="appQ2">What relevant experience do you have for this role?</label>
-                  <textarea id="appQ2" name="experience" rows="4" required></textarea>
-                </div>
-                <div>
-                  <label for="appQ3">How would you handle conflict between players or rule-breaking situations?</label>
-                  <textarea id="appQ3" name="conflictHandling" rows="4" required></textarea>
-                </div>
-                <div>
-                  <label for="appQ4">What would you do to improve the IslesOfDawnMC community as staff?</label>
-                  <textarea id="appQ4" name="communityImprovement" rows="4" required></textarea>
-                </div>
-              </div>
+              <div id="dynamicQuestionList" class="app-form-long-list"></div>
             </fieldset>
 
             <fieldset class="app-form-section">
@@ -146,89 +129,17 @@
     </footer>
 
     <script src="auth.js"></script>
+    <script src="application-config.js"></script>
     <script src="supabase-data.js"></script>
     <script src="script.js"></script>
     <script>
       let appStatuses = {};
-
-      const APP_DEFINITIONS = [
-        {
-          id: 'support-team',
-          title: 'Support Team',
-          emoji: '🛡️',
-          questions: [
-            'Why do you want to join the Support Team at IslesOfDawnMC?',
-            'How would you assist a frustrated player who reports an issue in chat?',
-            'How do you handle rule enforcement while staying respectful and calm?',
-            'What would you do to improve day-to-day player support on the server?',
-          ],
-        },
-        {
-          id: 'dev-team',
-          title: 'Development Team',
-          emoji: '⚙️',
-          questions: [
-            'Why do you want to join the Development Team at IslesOfDawnMC?',
-            'What development experience (plugins, scripts, tools, configs) do you have?',
-            'Describe how you would debug a reported issue from players or staff.',
-            'What system or feature would you build to improve the server long-term?',
-          ],
-        },
-        {
-          id: 'qa-team',
-          title: 'Quality Assurance Team',
-          emoji: '🔍',
-          questions: [
-            'Why do you want to join the QA Team at IslesOfDawnMC?',
-            'How do you test features and document bugs clearly for developers?',
-            'How would you prioritize critical bugs versus minor issues?',
-            'What QA process would you introduce to improve release quality?',
-          ],
-        },
-        {
-          id: 'build-team',
-          title: 'Build Team',
-          emoji: '🏗️',
-          questions: [
-            'Why do you want to join the Build Team at IslesOfDawnMC?',
-            'What building styles/themes are you strongest with, and why?',
-            'How would you collaborate with other builders on a large project?',
-            'What build project would you propose to improve the player experience?',
-          ],
-        },
-        {
-          id: 'media-team',
-          title: 'Media Team',
-          emoji: '🎬',
-          questions: [
-            'Why do you want to join the Media Team at IslesOfDawnMC?',
-            'What media skills do you have (editing, design, trailers, social posts)?',
-            'How would you plan and deliver content on a consistent schedule?',
-            'What media campaign would you run to grow server visibility?',
-          ],
-        },
-        {
-          id: 'event-team',
-          title: 'Event Team',
-          emoji: '🎉',
-          questions: [
-            'Why do you want to join the Event Team at IslesOfDawnMC?',
-            'Describe an event idea and how you would organize it from start to finish.',
-            'How would you handle disputes, confusion, or rule-breaking during an event?',
-            'What would you do to make events more engaging and fair for all players?',
-          ],
-        },
-        {
-          id: 'content-creator',
-          title: 'Content Creator',
-          emoji: '📹',
-          questions: [
-            'Why do you want to apply as a Content Creator for IslesOfDawnMC?',
-            'What type of content do you create and what tools/workflow do you use?',
-            'How would you represent the server brand positively in public content?',
-            'What content series would you launch first to highlight server features?',
-          ],
-        },
+      const APP_DEFINITIONS = window.getApplicationDefinitions?.() || [];
+      const DEFAULT_QUESTION_PROMPTS = [
+        'Why do you want to become a staff member at IslesOfDawnMC?',
+        'What relevant experience do you have for this role?',
+        'How would you handle conflict between players or rule-breaking situations?',
+        'What would you do to improve the IslesOfDawnMC community as staff?',
       ];
 
       const applicationForm = document.getElementById('staffApplicationForm');
@@ -239,30 +150,42 @@
       const applyPageTitle = document.getElementById('applyPageTitle');
       const supportMinecraftUsernameField = document.getElementById('supportMinecraftUsernameField');
       const appMinecraftUsername = document.getElementById('appMinecraftUsername');
-      const questionFieldIds = ['appQ1', 'appQ2', 'appQ3', 'appQ4'];
-      const questionLabelTargets = ['appQ1', 'appQ2', 'appQ3', 'appQ4'];
+      const dynamicQuestionList = document.getElementById('dynamicQuestionList');
       let accessRedirectTimer = null;
       let accessRedirectInterval = null;
+      let renderedQuestionPrompts = [...DEFAULT_QUESTION_PROMPTS];
 
       const getRoleQuestionPrompts = (role) => {
         if (!role || !Array.isArray(role.questions) || role.questions.length !== 4) {
-          return [
-            'Why do you want to become a staff member at IslesOfDawnMC?',
-            'What relevant experience do you have for this role?',
-            'How would you handle conflict between players or rule-breaking situations?',
-            'What would you do to improve the IslesOfDawnMC community as staff?',
-          ];
+          return [];
         }
 
         return role.questions;
       };
 
-      const renderQuestionLabels = (role) => {
+      const renderQuestions = (role) => {
         const prompts = getRoleQuestionPrompts(role);
-        questionLabelTargets.forEach((fieldId, index) => {
-          const label = document.querySelector(`label[for="${fieldId}"]`);
-          if (!label) return;
-          label.textContent = prompts[index] || prompts[0];
+        renderedQuestionPrompts = [...prompts];
+        if (!dynamicQuestionList) return;
+
+        dynamicQuestionList.innerHTML = '';
+        prompts.forEach((prompt, index) => {
+          const wrapper = document.createElement('div');
+          const questionId = `appQuestion${index + 1}`;
+
+          const label = document.createElement('label');
+          label.setAttribute('for', questionId);
+          label.textContent = prompt;
+
+          const textarea = document.createElement('textarea');
+          textarea.id = questionId;
+          textarea.name = `question_${index + 1}`;
+          textarea.rows = 4;
+          textarea.required = true;
+          textarea.dataset.appQuestion = 'true';
+
+          wrapper.append(label, textarea);
+          dynamicQuestionList.appendChild(wrapper);
         });
       };
 
@@ -359,6 +282,13 @@
           return null;
         }
 
+        const questionPrompts = getRoleQuestionPrompts(role);
+        if (questionPrompts.length !== 4) {
+          applicationForm?.classList.add('is-hidden');
+          showAccessNotice('No such application exists yet. This application type does not have questions configured.');
+          return null;
+        }
+
         if (applyPageTitle) {
           applyPageTitle.textContent = `${role.title} Application`;
         }
@@ -385,7 +315,7 @@
           selectedRoleChip.textContent = `${role.emoji} Applying for: ${role.title}`;
         }
 
-        renderQuestionLabels(role);
+        renderQuestions(role);
 
         const isSupportTeamRole = role.id === 'support-team';
         if (supportMinecraftUsernameField && appMinecraftUsername) {
@@ -435,10 +365,8 @@
 
           const formData = new FormData(applicationForm);
 
-          const longAnswers = questionFieldIds.map((id) => {
-            const input = document.getElementById(id);
-            return input ? input.value.trim() : '';
-          });
+          const questionFields = Array.from(document.querySelectorAll('textarea[data-app-question="true"]'));
+          const longAnswers = questionFields.map((input) => String(input.value || '').trim());
 
           const invalidAnswerIndex = longAnswers.findIndex((answer) => countSentences(answer) < 3);
           if (invalidAnswerIndex !== -1) {
@@ -472,6 +400,7 @@
               volunteer: ackVolunteerValue,
               contacting: ackContactingValue,
               honest: ackHonestValue,
+              questionPrompts: [...renderedQuestionPrompts],
             },
             createdAt: new Date().toISOString(),
           };

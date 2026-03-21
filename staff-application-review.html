@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Application Review — IslesOfDawnMC Management</title>
+    <meta name="description" content="Review applications for a selected IslesOfDawnMC application type." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="staffApplicationReviewContent" class="staff-module-page" hidden>
+      <section class="section">
+        <div class="container">
+          <div class="card staff-module-header">
+            <p class="eyebrow">Management Module</p>
+            <h2 id="applicationReviewPageTitle">Application Review</h2>
+            <p id="applicationReviewWelcome" class="hero-text staff-module-subtitle"></p>
+          </div>
+
+          <div class="staff-module-actions">
+            <a class="btn btn-secondary" href="staff-applications.html">Back to Applications Manager</a>
+            <a class="btn btn-primary" href="applications.html">View Public Applications</a>
+          </div>
+
+          <div class="card staff-app-review-card">
+            <div class="staff-app-review-filter">
+              <div>
+                <label for="applicationReviewFilter">Status</label>
+                <select id="applicationReviewFilter">
+                  <option value="all">All</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="denied">Denied</option>
+                </select>
+              </div>
+              <div>
+                <label for="applicationReviewUsername">Username / Discord</label>
+                <input id="applicationReviewUsername" type="text" placeholder="Search applicant" />
+              </div>
+            </div>
+            <p class="copy-message" id="applicationReviewStatus" aria-live="polite"></p>
+            <div id="staffApplicationReviewList" class="announcement-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="application-config.js"></script>
+    <script src="supabase-data.js"></script>
+    <script src="script.js"></script>
+    <script>
+      let selectedApp = null;
+      let applicationSubmissions = [];
+
+      const applicationReviewPageTitle = document.getElementById('applicationReviewPageTitle');
+      const applicationReviewStatus = document.getElementById('applicationReviewStatus');
+      const applicationReviewFilter = document.getElementById('applicationReviewFilter');
+      const applicationReviewUsername = document.getElementById('applicationReviewUsername');
+
+      const setReviewStatus = (message, isError = false) => {
+        if (!applicationReviewStatus) return;
+        applicationReviewStatus.textContent = message;
+        applicationReviewStatus.style.color = isError ? '#e75f5f' : '';
+      };
+
+      const getSelectedAppFromQuery = () => {
+        const params = new URLSearchParams(window.location.search);
+        const roleId = String(params.get('role') || '').trim();
+        return window.getApplicationById?.(roleId) || null;
+      };
+
+      const createReviewInfoItem = (label, value) => {
+        const item = document.createElement('div');
+        item.className = 'staff-app-info-item';
+
+        const infoLabel = document.createElement('p');
+        infoLabel.className = 'staff-app-info-label';
+        infoLabel.textContent = label;
+
+        const infoValue = document.createElement('p');
+        infoValue.className = 'staff-app-info-value';
+        infoValue.textContent = value;
+
+        item.append(infoLabel, infoValue);
+        return item;
+      };
+
+      const createReviewAnswer = (question, answer) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'staff-app-answer';
+
+        const heading = document.createElement('h5');
+        heading.textContent = question;
+
+        const body = document.createElement('p');
+        body.textContent = answer || 'No response provided.';
+
+        wrapper.append(heading, body);
+        return wrapper;
+      };
+
+      const updateSubmissionStatus = async (submissionId, fallbackIndex, nextStatus) => {
+        let targetIndex = applicationSubmissions.findIndex((submission) => submission.id === submissionId);
+        if (targetIndex === -1) {
+          targetIndex = fallbackIndex;
+        }
+
+        if (targetIndex < 0 || targetIndex >= applicationSubmissions.length) {
+          return;
+        }
+
+        applicationSubmissions[targetIndex].status = nextStatus;
+        applicationSubmissions[targetIndex].reviewedAt = new Date().toISOString();
+        const reviewer = getSession();
+        applicationSubmissions[targetIndex].reviewedBy = reviewer?.name || reviewer?.email || 'Staff';
+
+        const updated = await window.updateApplicationReviewInSupabase?.(
+          applicationSubmissions[targetIndex].id,
+          nextStatus,
+          applicationSubmissions[targetIndex].reviewedBy
+        );
+
+        if (!updated) {
+          setReviewStatus('Could not update application status. Verify Supabase connection and policies.', true);
+          return;
+        }
+
+        renderApplicationReviews();
+      };
+
+      const getVisibleSubmissions = () => {
+        const selectedFilter = applicationReviewFilter?.value || 'all';
+        const usernameFilter = String(applicationReviewUsername?.value || '').trim().toLowerCase();
+
+        return applicationSubmissions
+          .map((submission, fullIndex) => ({ submission, fullIndex }))
+          .filter(({ submission }) => {
+            const status = submission.status || 'pending';
+            if (selectedFilter !== 'all' && status !== selectedFilter) return false;
+
+            if (!usernameFilter) return true;
+
+            const minecraftUsername = String(submission.minecraftUsername || '').toLowerCase();
+            const discordUsername = String(submission.discord || '').toLowerCase();
+            return minecraftUsername.includes(usernameFilter) || discordUsername.includes(usernameFilter);
+          });
+      };
+
+      const renderApplicationReviews = () => {
+        const list = document.getElementById('staffApplicationReviewList');
+        if (!list || !selectedApp) return;
+
+        const visibleSubmissions = getVisibleSubmissions();
+        list.innerHTML = '';
+
+        if (!applicationSubmissions.length) {
+          const empty = document.createElement('p');
+          empty.className = 'announcement-empty';
+          empty.textContent = `No ${selectedApp.title} applications submitted yet.`;
+          list.appendChild(empty);
+          return;
+        }
+
+        if (!visibleSubmissions.length) {
+          const empty = document.createElement('p');
+          empty.className = 'announcement-empty';
+          empty.textContent = 'No matching applications for the selected filters.';
+          list.appendChild(empty);
+          return;
+        }
+
+        visibleSubmissions.forEach(({ submission, fullIndex }) => {
+          const status = submission.status || 'pending';
+          const article = document.createElement('article');
+          article.className = 'announcement-item staff-app-submission';
+
+          const header = document.createElement('div');
+          header.className = 'app-review-header';
+
+          const title = document.createElement('h4');
+          title.textContent = `${selectedApp.title} Application`;
+
+          const statusBadge = document.createElement('span');
+          statusBadge.className = `app-review-status app-review-status-${status}`;
+          statusBadge.textContent = status[0].toUpperCase() + status.slice(1);
+
+          header.append(title, statusBadge);
+
+          const meta = document.createElement('p');
+          meta.className = 'announcement-meta';
+          const submittedDate = submission.createdAt ? new Date(submission.createdAt) : null;
+          const reviewedDate = submission.reviewedAt ? new Date(submission.reviewedAt) : null;
+
+          const submittedText = submittedDate && !Number.isNaN(submittedDate.getTime())
+            ? `Submitted ${submittedDate.toLocaleString()}`
+            : 'Submitted recently';
+          const reviewedText = reviewedDate && !Number.isNaN(reviewedDate.getTime())
+            ? ` • Reviewed ${reviewedDate.toLocaleString()} by ${submission.reviewedBy || 'Staff'}`
+            : '';
+
+          meta.textContent = `${submittedText}${reviewedText}`;
+
+          const info = document.createElement('div');
+          info.className = 'staff-app-info-grid';
+          info.append(
+            createReviewInfoItem('Minecraft Username', String(submission.minecraftUsername || 'Not provided')),
+            createReviewInfoItem('Age', String(submission.age || 'Not provided')),
+            createReviewInfoItem('Discord', String(submission.discord || 'Not provided')),
+            createReviewInfoItem('Email', String(submission.email || 'Not provided'))
+          );
+
+          const prompts = Array.isArray(submission.questionPrompts) && submission.questionPrompts.length === 4
+            ? submission.questionPrompts
+            : (window.getApplicationQuestions?.(selectedApp.id) || []);
+
+          const answers = document.createElement('div');
+          answers.className = 'staff-app-answer-list';
+          answers.append(
+            createReviewAnswer(prompts[0] || 'Question 1', String(submission.whyJoin || '')),
+            createReviewAnswer(prompts[1] || 'Question 2', String(submission.experience || '')),
+            createReviewAnswer(prompts[2] || 'Question 3', String(submission.conflictHandling || '')),
+            createReviewAnswer(prompts[3] || 'Question 4', String(submission.communityImprovement || ''))
+          );
+
+          const acknowledgements = document.createElement('ul');
+          acknowledgements.className = 'staff-app-ack-list';
+
+          const ackVolunteer = document.createElement('li');
+          ackVolunteer.textContent = `Voluntary role acknowledged: ${submission.acknowledgements?.volunteer === 'yes' ? 'Yes' : 'No'}`;
+          const ackContacting = document.createElement('li');
+          ackContacting.textContent = `No staff-contact spam acknowledged: ${submission.acknowledgements?.contacting === 'yes' ? 'Yes' : 'No'}`;
+          const ackHonest = document.createElement('li');
+          ackHonest.textContent = `Honest information confirmed: ${submission.acknowledgements?.honest === 'yes' ? 'Yes' : 'No'}`;
+
+          acknowledgements.append(ackVolunteer, ackContacting, ackHonest);
+
+          const actions = document.createElement('div');
+          actions.className = 'app-review-actions';
+
+          const approveButton = document.createElement('button');
+          approveButton.type = 'button';
+          approveButton.className = 'btn-toggle-open';
+          approveButton.textContent = 'Approve';
+          approveButton.disabled = status === 'approved';
+          approveButton.addEventListener('click', () => {
+            updateSubmissionStatus(submission.id, fullIndex, 'approved');
+          });
+
+          const denyButton = document.createElement('button');
+          denyButton.type = 'button';
+          denyButton.className = 'btn-toggle-close';
+          denyButton.textContent = 'Deny';
+          denyButton.disabled = status === 'denied';
+          denyButton.addEventListener('click', () => {
+            updateSubmissionStatus(submission.id, fullIndex, 'denied');
+          });
+
+          actions.append(approveButton, denyButton);
+
+          article.append(header, meta, info, answers, acknowledgements, actions);
+          list.appendChild(article);
+        });
+      };
+
+      (async () => {
+        const allowed = await requireStaffAccess();
+        if (!allowed) return;
+
+        selectedApp = getSelectedAppFromQuery();
+        if (!selectedApp) {
+          window.location.replace('staff-applications.html');
+          return;
+        }
+
+        document.getElementById('staffApplicationReviewContent').hidden = false;
+
+        if (applicationReviewPageTitle) {
+          applicationReviewPageTitle.textContent = `${selectedApp.title} Applications`;
+        }
+
+        const user = getSession();
+        if (user) {
+          const role = getUserRole(user.uid);
+          const roleLabel = window.getRoleLabel?.(role) || role || 'Player';
+          const roleClass = window.getRolePillClass?.(role) || 'role-pill role-pill-player';
+          const el = document.getElementById('applicationReviewWelcome');
+          el.innerHTML = `Reviewing ${selectedApp.title} submissions. Signed in as <span class="${roleClass}">${roleLabel}</span>.`;
+        }
+
+        const submissions = await window.syncApplicationSubmissionsFromSupabase?.();
+        if (!submissions) {
+          setReviewStatus('Could not load application submissions. Verify Supabase setup and RLS policies.', true);
+          renderApplicationReviews();
+          return;
+        }
+
+        applicationSubmissions = submissions
+          .filter((item) => item && item.roleId === selectedApp.id)
+          .map((item) => ({
+            ...item,
+            status: item.status === 'approved' || item.status === 'denied' ? item.status : 'pending',
+          }));
+
+        setReviewStatus(`${applicationSubmissions.length} ${selectedApp.title} submission${applicationSubmissions.length === 1 ? '' : 's'} loaded.`);
+        renderApplicationReviews();
+      })();
+
+      if (applicationReviewFilter) {
+        applicationReviewFilter.addEventListener('change', () => {
+          renderApplicationReviews();
+        });
+      }
+
+      if (applicationReviewUsername) {
+        applicationReviewUsername.addEventListener('input', () => {
+          renderApplicationReviews();
+        });
+      }
+    </script>
+  </body>
+</html>

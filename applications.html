@@ -76,69 +76,12 @@
     </footer>
 
     <script src="auth.js"></script>
+    <script src="application-config.js"></script>
     <script src="supabase-data.js"></script>
     <script src="script.js"></script>
     <script>
       let appStatuses = {};
-
-      const APP_DEFINITIONS = [
-        {
-          id: 'support-team',
-          title: 'Support Team',
-          emoji: '🛡️',
-          description:
-            'Help players with questions, moderate chat, and maintain a positive community environment.',
-          section: 'main',
-        },
-        {
-          id: 'dev-team',
-          title: 'Development Team',
-          emoji: '⚙️',
-          description:
-            'Build plugins, design features, and drive the technical side of the IslesOfDawnMC experience.',
-          section: 'main',
-        },
-        {
-          id: 'qa-team',
-          title: 'Quality Assurance Team',
-          emoji: '🔍',
-          description:
-            'Test new content and updates to ensure a polished, bug-free experience for every player.',
-          section: 'main',
-        },
-        {
-          id: 'build-team',
-          title: 'Build Team',
-          emoji: '🏗️',
-          description:
-            'Design and create immersive server builds, hubs, and themed environments.',
-          section: 'additional',
-        },
-        {
-          id: 'media-team',
-          title: 'Media Team',
-          emoji: '🎬',
-          description:
-            'Create graphics, trailers, and social media assets to showcase IslesOfDawnMC.',
-          section: 'additional',
-        },
-        {
-          id: 'event-team',
-          title: 'Event Team',
-          emoji: '🎉',
-          description:
-            'Plan and host community events that keep gameplay fresh and exciting.',
-          section: 'additional',
-        },
-        {
-          id: 'content-creator',
-          title: 'Content Creator',
-          emoji: '📹',
-          description:
-            'Produce streams or videos featuring the server and help grow the community.',
-          section: 'additional',
-        },
-      ];
+      const APP_DEFINITIONS = window.getApplicationDefinitions?.() || [];
 
       const isAppOpen = (id) => {
         return appStatuses[id] === true;
