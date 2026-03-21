@@ -716,7 +716,8 @@ const syncSessionFromSupabase = async () => {
   const { data, error } = await client.auth.getSession();
   if (error) {
     console.error('Supabase session read failed:', error.message);
-    return getSession();
+    clearSession();
+    return null;
   }
 
   const user = data?.session?.user ? toAppSession(data.session.user) : null;
@@ -1147,8 +1148,9 @@ window.devLogout = async () => {
 
   const localSession = getSession();
   const shouldForceSyncNow = pagesRequiringFreshAuth.has(currentFile);
+  const hasNavAuthSlot = Boolean(document.getElementById('navAuth'));
 
-  if (!localSession && !shouldForceSyncNow) {
+  if (!localSession && !shouldForceSyncNow && !hasNavAuthSlot) {
     return;
   }
 
