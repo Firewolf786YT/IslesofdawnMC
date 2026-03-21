@@ -246,7 +246,12 @@
 
           if (hasCallback) {
             setFormBusy(true, 'Completing sign-in…');
-            await window.handleOAuthCallback?.();
+            if (typeof window.handleOAuthCallback !== 'function') {
+              setFormBusy(false);
+              setStatus('Auth callback handler is unavailable. Refresh and try again.');
+              return;
+            }
+            await window.handleOAuthCallback();
             return;
           }
         } catch (error) {

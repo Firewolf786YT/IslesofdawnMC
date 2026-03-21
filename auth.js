@@ -918,6 +918,15 @@ const handleOAuthCallback = async () => {
     return;
   }
 
+  if (queryParams.code) {
+    const { error: exchangeError } = await client.auth.exchangeCodeForSession(queryParams.code);
+    if (exchangeError) {
+      showLoginError(`Could not complete sign-in callback: ${exchangeError.message}`);
+      showLoginOptions();
+      return;
+    }
+  }
+
   const user = await syncSessionFromSupabase();
 
   if (user) {
@@ -925,6 +934,18 @@ const handleOAuthCallback = async () => {
     history.replaceState({}, '', 'login.html');
     finishLogin();
     return;
+  }
+
+  const { data: userData, error: userError } = await client.auth.getUser();
+  if (!userError && userData?.user) {
+    const fallbackSession = toAppSession(userData.user);
+    if (fallbackSession) {
+      setSession(fallbackSession);
+      await syncCurrentUserRoleFromSupabase();
+      history.replaceState({}, '', 'login.html');
+      finishLogin();
+      return;
+    }
   }
 
   showLoginError('Could not complete sign-in. Please try again.');
