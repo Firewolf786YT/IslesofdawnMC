@@ -53,31 +53,14 @@
           </div>
 
           <div class="card staff-app-review-card">
-            <h3>Application Reviews</h3>
-            <p>Review submitted applications and mark each one as approved or denied.</p>
-            <div id="applicationReviewStats" class="staff-app-review-stats" aria-live="polite"></div>
+            <h3>Application Responses</h3>
+            <p>Which application would you like to view the responses for?</p>
             <div class="staff-app-review-filter">
-              <label for="applicationReviewFilter">Filter by status</label>
-              <select id="applicationReviewFilter">
-                <option value="all">All</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="denied">Denied</option>
-              </select>
-              <label for="applicationReviewUsername">Username</label>
-              <input
-                id="applicationReviewUsername"
-                type="text"
-                placeholder="Search Minecraft or Discord username"
-                autocomplete="off"
-              />
-              <label for="applicationReviewRole">Application Type</label>
-              <select id="applicationReviewRole">
-                <option value="all">All Application Types</option>
-              </select>
-              <button id="applicationReviewFilterReset" type="button" class="btn btn-secondary review-filter-reset">Reset to All</button>
+              <label for="applicationManagerRoleSelect">Application Type</label>
+              <select id="applicationManagerRoleSelect"></select>
+              <button id="openApplicationManagerBtn" type="button" class="btn btn-primary">Open Selected Manager</button>
             </div>
-            <div id="staffApplicationReviewList" class="staff-app-review-list"></div>
+            <p class="copy-message" id="applicationManagerSelectStatus" aria-live="polite"></p>
           </div>
         </div>
       </section>
