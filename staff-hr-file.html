@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Staff File — IslesOfDawnMC Management</title>
+    <meta name="description" content="View and manage an individual staff member file." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="hrFileContent" class="staff-module-page" hidden>
+      <section class="section">
+        <div class="container">
+
+          <!-- File header -->
+          <div class="card staff-module-header">
+            <p class="eyebrow">Staff File</p>
+            <h2 id="hrFileName">Loading…</h2>
+            <p id="hrFileSubtitle" class="hero-text staff-module-subtitle"></p>
+          </div>
+
+          <div class="staff-module-actions">
+            <a href="staff-hr.html" class="btn btn-secondary">← Back to HR Portal</a>
+          </div>
+
+          <!-- ── Onboarding Checklist ─────────────────────────────────────── -->
+          <div class="card hr-onboarding-card">
+            <h3>📋 Onboarding Checklist</h3>
+            <div class="hr-checklist">
+
+              <!-- Step 1 -->
+              <div class="hr-check-step">
+                <label class="hr-check-label">
+                  <input type="checkbox" id="chkInterviewScheduled" />
+                  <span>Setup Interview</span>
+                </label>
+              </div>
+
+              <!-- Step 2 -->
+              <div class="hr-check-step">
+                <label class="hr-check-label">
+                  <input type="checkbox" id="chkInterviewComplete" />
+                  <span>Interview Complete</span>
+                </label>
+              </div>
+
+              <!-- Step 3: Interview Status -->
+              <div class="hr-check-step">
+                <p class="hr-check-label-text">Set Interview Status</p>
+                <div class="app-radio-group" role="radiogroup" aria-label="Interview status">
+                  <label class="app-radio-option">
+                    <input type="radio" name="interviewStatus" value="pending" />
+                    <span>Pending</span>
+                  </label>
+                  <label class="app-radio-option">
+                    <input type="radio" name="interviewStatus" value="approved" />
+                    <span>Approved ✓</span>
+                  </label>
+                  <label class="app-radio-option">
+                    <input type="radio" name="interviewStatus" value="denied" />
+                    <span>Denied ✗</span>
+                  </label>
+                </div>
+
+                <!-- Lockout warning — shown when Denied is selected -->
+                <div id="lockoutWarning" class="hr-lockout-warning is-hidden">
+                  ⚠️ Setting status to <strong>Denied</strong> will lock this applicant from re-applying for <strong>2 weeks</strong> from when you save.
+                </div>
+
+                <!-- Role assignment — shown when Approved is selected -->
+                <div id="roleAssignPanel" class="hr-role-assign is-hidden">
+                  <p class="hr-check-label-text" style="margin-bottom: 0.5rem;">Assign Staff Role</p>
+                  <div class="hr-role-assign-row">
+                    <select id="assignRoleSelect">
+                      <option value="">— Select a role —</option>
+                      <option value="helper">Helper</option>
+                      <option value="moderator">Moderator</option>
+                      <option value="developer">Developer</option>
+                      <option value="admin">Admin</option>
+                      <option value="qa_tester">QA Tester</option>
+                      <option value="media">Media</option>
+                      <option value="event_team">Event Team</option>
+                      <option value="builder">Builder</option>
+                    </select>
+                    <button id="assignRoleBtn" class="btn btn-primary" type="button">Assign &amp; Sync Role</button>
+                  </div>
+                  <p class="copy-message" id="assignRoleStatus" aria-live="polite"></p>
+                </div>
+              </div>
+
+              <!-- Interview Notes -->
+              <div class="hr-check-step">
+                <label for="interviewNotes" class="hr-check-label-text">Interview Notes</label>
+                <textarea id="interviewNotes" rows="3" placeholder="Record notes from the interview…" style="margin-top: 0.5rem; width: 100%;"></textarea>
+              </div>
+
+              <div class="staff-module-actions">
+                <button id="saveChecklistBtn" class="btn btn-primary" type="button">Save Checklist</button>
+              </div>
+              <p class="copy-message" id="checklistStatus" aria-live="polite"></p>
+
+            </div>
+          </div>
+
+          <!-- ── Tabs ──────────────────────────────────────────────────────── -->
+          <div class="hr-tabs" role="tablist">
+            <button class="hr-tab-btn active" data-tab="overview"     role="tab" aria-selected="true">Overview</button>
+            <button class="hr-tab-btn"        data-tab="feedback"     role="tab" aria-selected="false">Feedback</button>
+            <button class="hr-tab-btn"        data-tab="disciplinary" role="tab" aria-selected="false">Disciplinary Actions</button>
+            <button class="hr-tab-btn"        data-tab="activity"     role="tab" aria-selected="false">Activity</button>
+          </div>
+
+          <!-- ── Overview Tab ──────────────────────────────────────────────── -->
+          <div id="tab-overview" class="hr-tab-panel card" role="tabpanel">
+            <div id="overviewInfoGrid" class="staff-app-info-grid"></div>
+
+            <div class="staff-module-actions" style="margin-top: 1rem;">
+              <button id="toggleEditOverview" class="btn btn-secondary" type="button">Edit Overview</button>
+            </div>
+
+            <form id="editOverviewForm" class="is-hidden" novalidate style="margin-top: 1rem;">
+              <div class="app-form-grid">
+                <label>
+                  Minecraft Username
+                  <input id="editUsername" type="text" />
+                </label>
+                <label>
+                  Discord Username
+                  <input id="editDiscord" type="text" />
+                </label>
+                <label>
+                  Email
+                  <input id="editEmail" type="email" />
+                </label>
+                <label>
+                  Linked Account UUID
+                  <input id="editUserId" type="text" placeholder="Supabase auth UUID (for role sync)" />
+                </label>
+              </div>
+              <label style="display: block; margin-top: 0.8rem; font-weight: 600;">
+                Manager Notes
+                <textarea id="editNotes" rows="4" style="margin-top: 0.4rem; width: 100%;"></textarea>
+              </label>
+              <div class="staff-module-actions" style="margin-top: 0.8rem;">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <button type="button" id="cancelEditOverview" class="btn btn-secondary">Cancel</button>
+              </div>
+              <p class="copy-message" id="editOverviewStatus" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <!-- ── Feedback Tab ──────────────────────────────────────────────── -->
+          <div id="tab-feedback" class="hr-tab-panel card" hidden role="tabpanel">
+            <div id="feedbackList" class="hr-log-list"></div>
+            <div class="hr-log-add">
+              <button id="toggleFeedbackForm" class="btn btn-primary" type="button">+ Add Feedback</button>
+              <form id="feedbackForm" class="hr-log-form is-hidden" novalidate>
+                <div class="app-form-grid" style="margin-top: 0.8rem;">
+                  <label>
+                    Type
+                    <select id="feedbackType">
+                      <option value="positive">Positive</option>
+                      <option value="neutral">Neutral</option>
+                      <option value="negative">Negative</option>
+                    </select>
+                  </label>
+                </div>
+                <label style="display: block; margin-top: 0.8rem; font-weight: 600;">
+                  Feedback Content
+                  <textarea id="feedbackContent" rows="4" placeholder="Describe the feedback…" required style="margin-top: 0.4rem; width: 100%;"></textarea>
+                </label>
+                <div class="staff-module-actions" style="margin-top: 0.8rem;">
+                  <button type="submit" class="btn btn-primary">Save</button>
+                  <button type="button" id="cancelFeedbackForm" class="btn btn-secondary">Cancel</button>
+                </div>
+                <p class="copy-message" id="feedbackStatus" aria-live="polite"></p>
+              </form>
+            </div>
+          </div>
+
+          <!-- ── Disciplinary Tab ──────────────────────────────────────────── -->
+          <div id="tab-disciplinary" class="hr-tab-panel card" hidden role="tabpanel">
+            <div id="disciplinaryList" class="hr-log-list"></div>
+            <div class="hr-log-add">
+              <button id="toggleDisciplinaryForm" class="btn btn-primary" type="button">+ Add Disciplinary Action</button>
+              <form id="disciplinaryForm" class="hr-log-form is-hidden" novalidate>
+                <div class="app-form-grid" style="margin-top: 0.8rem;">
+                  <label>
+                    Action Type
+                    <select id="disciplinaryType">
+                      <option value="verbal_warning">Verbal Warning</option>
+                      <option value="written_warning">Written Warning</option>
+                      <option value="suspension">Suspension</option>
+                      <option value="demotion">Demotion</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
+                  <label>
+                    Issued By <em>*</em>
+                    <input id="disciplinaryIssuedBy" type="text" placeholder="Your name" required />
+                  </label>
+                </div>
+                <label style="display: block; margin-top: 0.8rem; font-weight: 600;">
+                  Reason / Details <em>*</em>
+                  <textarea id="disciplinaryReason" rows="4" placeholder="Describe the reason for this action…" required style="margin-top: 0.4rem; width: 100%;"></textarea>
+                </label>
+                <div class="staff-module-actions" style="margin-top: 0.8rem;">
+                  <button type="submit" class="btn btn-primary">Save</button>
+                  <button type="button" id="cancelDisciplinaryForm" class="btn btn-secondary">Cancel</button>
+                </div>
+                <p class="copy-message" id="disciplinaryStatus" aria-live="polite"></p>
+              </form>
+            </div>
+          </div>
+
+          <!-- ── Activity Tab ──────────────────────────────────────────────── -->
+          <div id="tab-activity" class="hr-tab-panel card" hidden role="tabpanel">
+            <div id="activityList" class="hr-log-list"></div>
+            <div class="hr-log-add">
+              <button id="toggleActivityForm" class="btn btn-primary" type="button">+ Log Activity</button>
+              <form id="activityForm" class="hr-log-form is-hidden" novalidate>
+                <div class="app-form-grid" style="margin-top: 0.8rem;">
+                  <label>
+                    Type
+                    <select id="activityType">
+                      <option value="note">Note</option>
+                      <option value="absence">Absence</option>
+                      <option value="meeting">Meeting</option>
+                      <option value="promotion">Promotion / Role Change</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
+                  <label>
+                    Logged By <em>*</em>
+                    <input id="activityLoggedBy" type="text" placeholder="Your name" required />
+                  </label>
+                </div>
+                <label style="display: block; margin-top: 0.8rem; font-weight: 600;">
+                  Details <em>*</em>
+                  <textarea id="activityContent" rows="4" placeholder="Describe the activity or note…" required style="margin-top: 0.4rem; width: 100%;"></textarea>
+                </label>
+                <div class="staff-module-actions" style="margin-top: 0.8rem;">
+                  <button type="submit" class="btn btn-primary">Save</button>
+                  <button type="button" id="cancelActivityForm" class="btn btn-secondary">Cancel</button>
+                </div>
+                <p class="copy-message" id="activityStatus" aria-live="polite"></p>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="application-config.js"></script>
+    <script src="supabase-data.js"></script>
+    <script src="script.js"></script>
+    <script>
+      // ── State ───────────────────────────────────────────────────────────────
+      let currentFile   = null;
+      let currentFileId = null;
+
+      const getFileIdFromQuery = () => {
+        const params = new URLSearchParams(window.location.search);
+        return String(params.get('id') || '').trim();
+      };
+
+      // ── Utilities ───────────────────────────────────────────────────────────
+      const escHtml = (str) =>
+        String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+      const formatDate = (isoStr) => {
+        if (!isoStr) return '—';
+        const d = new Date(isoStr);
+        return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+      };
+
+      const setStatus = (id, msg, isError = false) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = msg;
+        el.style.color = isError ? '#e75f5f' : '';
+      };
+
+      // ── Tabs ────────────────────────────────────────────────────────────────
+      document.querySelectorAll('.hr-tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.hr-tab-btn').forEach((b) => {
+            b.classList.remove('active');
+            b.setAttribute('aria-selected', 'false');
+          });
+          document.querySelectorAll('.hr-tab-panel').forEach((p) => { p.hidden = true; });
+          btn.classList.add('active');
+          btn.setAttribute('aria-selected', 'true');
+          const panel = document.getElementById(`tab-${btn.dataset.tab}`);
+          if (panel) panel.hidden = false;
+
+          // Lazy-load logs on first tab click
+          if (btn.dataset.tab === 'feedback'     && !btn.dataset.loaded) { btn.dataset.loaded = '1'; loadFeedback(); }
+          if (btn.dataset.tab === 'disciplinary' && !btn.dataset.loaded) { btn.dataset.loaded = '1'; loadDisciplinary(); }
+          if (btn.dataset.tab === 'activity'     && !btn.dataset.loaded) { btn.dataset.loaded = '1'; loadActivity(); }
+        });
+      });
+
+      // ── File Header ─────────────────────────────────────────────────────────
+      const updateFileHeader = (file) => {
+        const nameEl     = document.getElementById('hrFileName');
+        const subtitleEl = document.getElementById('hrFileSubtitle');
+        if (!file) return;
+
+        const ob = file.onboarding || {};
+        let statusLabel = 'Onboarding';
+        let statusCls   = 'hr-status-onboarding';
+        if (ob.interviewStatus === 'approved') { statusLabel = 'Active Staff';        statusCls = 'hr-status-active';    }
+        else if (ob.interviewStatus === 'denied')   { statusLabel = 'Interview Denied'; statusCls = 'hr-status-denied';    }
+        else if (ob.interviewComplete)              { statusLabel = 'Awaiting Decision'; statusCls = 'hr-status-waiting';   }
+        else if (ob.interviewScheduled)             { statusLabel = 'Interview Scheduled'; statusCls = 'hr-status-interview'; }
+
+        if (nameEl) {
+          nameEl.innerHTML = `${escHtml(file.minecraftUsername || 'Unknown')} <span class="hr-status-badge ${statusCls}">${statusLabel}</span>`;
+        }
+        if (subtitleEl) {
+          const roleTitle = window.getApplicationById?.(file.appliedRoleId)?.title || file.appliedRoleId || '';
+          subtitleEl.textContent = `Staff file${roleTitle ? ` — Applied for ${roleTitle}` : ''} · Created ${formatDate(file.createdAt)}`;
+        }
+      };
+
+      // ── Onboarding Checklist ─────────────────────────────────────────────────
+      const renderOnboarding = (file) => {
+        const ob = file.onboarding || {};
+        const chkScheduled = document.getElementById('chkInterviewScheduled');
+        const chkComplete  = document.getElementById('chkInterviewComplete');
+        const notesArea    = document.getElementById('interviewNotes');
+
+        if (chkScheduled) chkScheduled.checked = ob.interviewScheduled === true;
+        if (chkComplete)  chkComplete.checked  = ob.interviewComplete  === true;
+        if (notesArea)    notesArea.value       = ob.interviewNotes    || '';
+
+        const statusVal   = ob.interviewStatus || 'pending';
+        const statusRadio = document.querySelector(`input[name="interviewStatus"][value="${statusVal}"]`);
+        if (statusRadio) statusRadio.checked = true;
+
+        updateInterviewStatusUI(statusVal, file);
+      };
+
+      const updateInterviewStatusUI = (status, file) => {
+        const lockoutWarning  = document.getElementById('lockoutWarning');
+        const roleAssignPanel = document.getElementById('roleAssignPanel');
+
+        if (lockoutWarning)  lockoutWarning.classList.toggle('is-hidden',  status !== 'denied');
+        if (roleAssignPanel) roleAssignPanel.classList.toggle('is-hidden', status !== 'approved');
+
+        if (status === 'approved' && file?.assignedRole) {
+          const sel = document.getElementById('assignRoleSelect');
+          if (sel) sel.value = file.assignedRole;
+        }
+      };
+
+      document.querySelectorAll('input[name="interviewStatus"]').forEach((radio) => {
+        radio.addEventListener('change', () => updateInterviewStatusUI(radio.value, currentFile));
+      });
+
+      document.getElementById('saveChecklistBtn')?.addEventListener('click', async () => {
+        if (!currentFileId || !currentFile) return;
+        setStatus('checklistStatus', 'Saving…');
+
+        const interviewStatus = document.querySelector('input[name="interviewStatus"]:checked')?.value || 'pending';
+        const nowIso = new Date().toISOString();
+        const onboarding = {
+          interviewScheduled: document.getElementById('chkInterviewScheduled')?.checked === true,
+          interviewComplete:  document.getElementById('chkInterviewComplete')?.checked  === true,
+          interviewStatus,
+          interviewNotes:     (document.getElementById('interviewNotes')?.value || '').trim(),
+          approvedAt: currentFile.onboarding?.approvedAt || null,
+          deniedAt:   currentFile.onboarding?.deniedAt   || null,
+        };
+
+        // Stamp timestamps on first status change
+        if (interviewStatus === 'approved' && !onboarding.approvedAt) onboarding.approvedAt = nowIso;
+        if (interviewStatus === 'denied'   && !onboarding.deniedAt)   onboarding.deniedAt   = nowIso;
+
+        const isActive = interviewStatus === 'approved';
+        const result   = await window.updateStaffFile?.(currentFileId, { onboarding, isActive });
+
+        if (!result?.ok) {
+          setStatus('checklistStatus', result?.message || 'Could not save checklist.', true);
+          return;
+        }
+
+        currentFile = result.file;
+
+        // Lock applicant out for 2 weeks if interview was denied
+        if (interviewStatus === 'denied' && currentFile.minecraftUsername) {
+          await window.setApplicationLockout?.(currentFile.minecraftUsername, 'Interview denied');
+          setStatus('checklistStatus', 'Checklist saved. Applicant locked from re-applying for 2 weeks.');
+        } else {
+          setStatus('checklistStatus', 'Checklist saved.');
+        }
+
+        updateFileHeader(currentFile);
+      });
+
+      document.getElementById('assignRoleBtn')?.addEventListener('click', async () => {
+        if (!currentFileId || !currentFile) return;
+        const role = document.getElementById('assignRoleSelect')?.value || '';
+        if (!role) { setStatus('assignRoleStatus', 'Please select a role.', true); return; }
+
+        setStatus('assignRoleStatus', 'Assigning…');
+
+        const result = await window.updateStaffFile?.(currentFileId, { assignedRole: role, isActive: true });
+        if (!result?.ok) { setStatus('assignRoleStatus', result?.message || 'Could not update file.', true); return; }
+
+        currentFile = result.file;
+
+        // Sync to user_roles table if user account is linked
+        if (currentFile.userId) {
+          const syncResult = await window.upsertUserRoleByAuthUid?.(currentFile.userId, role);
+          if (!syncResult?.ok) {
+            setStatus('assignRoleStatus', `File updated, but role sync failed: ${syncResult?.message || 'Unknown error'}`, true);
+          } else {
+            setStatus('assignRoleStatus', `Role "${window.getRoleLabel?.(role) || role}" assigned and synced to account.`);
+          }
+        } else {
+          setStatus('assignRoleStatus', `Role "${window.getRoleLabel?.(role) || role}" assigned. No linked account — sync will happen once account is linked.`);
+        }
+
+        // Auto-log the promotion to Activity
+        const reviewer = getSession();
+        const loggedBy = reviewer?.name || reviewer?.email || 'Staff';
+        await window.addStaffActivity?.(currentFileId, {
+          type:      'promotion',
+          content:   `Role assigned: ${window.getRoleLabel?.(role) || role}`,
+          logged_by: loggedBy,
+        });
+
+        renderOverview(currentFile);
+      });
+
+      // ── Overview Tab ────────────────────────────────────────────────────────
+      const renderOverview = (file) => {
+        const grid = document.getElementById('overviewInfoGrid');
+        if (!grid || !file) return;
+
+        const appliedRoleTitle = window.getApplicationById?.(file.appliedRoleId)?.title || file.appliedRoleId || '—';
+        const assignedRoleLabel = file.assignedRole
+          ? (window.getRoleLabel?.(file.assignedRole) || file.assignedRole)
+          : 'Not assigned';
+
+        const items = [
+          ['Minecraft Username', file.minecraftUsername || '—'],
+          ['Discord',            file.discord           || '—'],
+          ['Email',              file.email             || '—'],
+          ['Applied Role',       appliedRoleTitle],
+          ['Assigned Role',      assignedRoleLabel],
+          ['Linked Account UUID', file.userId || 'Not linked'],
+          ['File Status',        file.isActive ? '✔ Active Staff Member' : 'Onboarding / Inactive'],
+          ['File Created',       formatDate(file.createdAt)],
+        ];
+
+        grid.innerHTML = items.map(([label, value]) => `
+          <div class="staff-app-info-item">
+            <p class="staff-app-info-label">${escHtml(label)}</p>
+            <p class="staff-app-info-value">${escHtml(String(value))}</p>
+          </div>
+        `).join('');
+
+        if (file.notes) {
+          grid.innerHTML += `
+            <div class="staff-app-info-item" style="grid-column: 1 / -1;">
+              <p class="staff-app-info-label">Manager Notes</p>
+              <p class="staff-app-info-value" style="white-space: pre-wrap;">${escHtml(file.notes)}</p>
+            </div>
+          `;
+        }
+
+        // Pre-fill edit form
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+        set('editUsername', file.minecraftUsername);
+        set('editDiscord',  file.discord);
+        set('editEmail',    file.email);
+        set('editUserId',   file.userId);
+        set('editNotes',    file.notes);
+      };
+
+      document.getElementById('toggleEditOverview')?.addEventListener('click', () => {
+        document.getElementById('editOverviewForm')?.classList.toggle('is-hidden');
+      });
+      document.getElementById('cancelEditOverview')?.addEventListener('click', () => {
+        document.getElementById('editOverviewForm')?.classList.add('is-hidden');
+      });
+
+      document.getElementById('editOverviewForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentFileId) return;
+        setStatus('editOverviewStatus', 'Saving…');
+
+        const patch = {
+          minecraftUsername: (document.getElementById('editUsername')?.value || '').trim(),
+          discord:           (document.getElementById('editDiscord')?.value  || '').trim(),
+          email:             (document.getElementById('editEmail')?.value    || '').trim(),
+          userId:            (document.getElementById('editUserId')?.value   || '').trim() || null,
+          notes:             (document.getElementById('editNotes')?.value    || '').trim(),
+        };
+
+        const result = await window.updateStaffFile?.(currentFileId, patch);
+        if (!result?.ok) {
+          setStatus('editOverviewStatus', result?.message || 'Could not save changes.', true);
+          return;
+        }
+
+        currentFile = result.file;
+        renderOverview(currentFile);
+        updateFileHeader(currentFile);
+        document.getElementById('editOverviewForm')?.classList.add('is-hidden');
+        setStatus('editOverviewStatus', 'Changes saved.');
+      });
+
+      // ── Log Entry Rendering ──────────────────────────────────────────────────
+      const LOG_TYPE_LABELS = {
+        positive: 'Positive', neutral: 'Neutral', negative: 'Negative',
+        verbal_warning: 'Verbal Warning', written_warning: 'Written Warning',
+        suspension: 'Suspension', demotion: 'Demotion',
+        note: 'Note', absence: 'Absence', meeting: 'Meeting', promotion: 'Promotion', other: 'Other',
+      };
+
+      const LOG_TYPE_CLASSES = {
+        positive: 'hr-log-type-positive', neutral: 'hr-log-type-neutral', negative: 'hr-log-type-negative',
+        verbal_warning: 'hr-log-type-warning', written_warning: 'hr-log-type-warning',
+        suspension: 'hr-log-type-severe', demotion: 'hr-log-type-severe',
+        note: 'hr-log-type-neutral', absence: 'hr-log-type-warning',
+        meeting: 'hr-log-type-neutral', promotion: 'hr-log-type-positive', other: 'hr-log-type-neutral',
+      };
+
+      const renderLogEntries = (listId, entries, emptyLabel) => {
+        const list = document.getElementById(listId);
+        if (!list) return;
+        list.innerHTML = '';
+
+        if (!entries.length) {
+          list.innerHTML = `<p class="announcement-empty">No ${emptyLabel || 'entries'} yet.</p>`;
+          return;
+        }
+
+        entries.forEach((entry) => {
+          const typeVal   = String(entry.type || 'other');
+          const typeLabel = LOG_TYPE_LABELS[typeVal] || typeVal;
+          const typeCls   = LOG_TYPE_CLASSES[typeVal] || 'hr-log-type-neutral';
+          const byField   = entry.author || entry.issued_by || entry.logged_by || '';
+          const body      = String(entry.content || entry.reason || '');
+
+          const item = document.createElement('div');
+          item.className = 'hr-log-entry';
+          item.innerHTML = `
+            <div class="hr-log-entry-header">
+              <span class="hr-log-type ${escHtml(typeCls)}">${escHtml(typeLabel)}</span>
+              <span class="hr-log-meta">${byField ? `by ${escHtml(byField)} · ` : ''}${escHtml(formatDate(entry.created_at))}</span>
+            </div>
+            <p class="hr-log-body">${escHtml(body)}</p>
+          `;
+          list.appendChild(item);
+        });
+      };
+
+      // ── Log loading ─────────────────────────────────────────────────────────
+      const loadFeedback = async () => {
+        if (!currentFileId) return;
+        const result = await window.getStaffFeedback?.(currentFileId);
+        renderLogEntries('feedbackList', result?.entries || [], 'feedback entries');
+      };
+
+      const loadDisciplinary = async () => {
+        if (!currentFileId) return;
+        const result = await window.getStaffDisciplinary?.(currentFileId);
+        renderLogEntries('disciplinaryList', result?.entries || [], 'disciplinary actions');
+      };
+
+      const loadActivity = async () => {
+        if (!currentFileId) return;
+        const result = await window.getStaffActivity?.(currentFileId);
+        renderLogEntries('activityList', result?.entries || [], 'activity entries');
+      };
+
+      // ── Log form toggles ─────────────────────────────────────────────────────
+      const wireToggle = (toggleId, formId, cancelId) => {
+        document.getElementById(toggleId)?.addEventListener('click', () => {
+          document.getElementById(formId)?.classList.toggle('is-hidden');
+        });
+        document.getElementById(cancelId)?.addEventListener('click', () => {
+          document.getElementById(formId)?.classList.add('is-hidden');
+        });
+      };
+      wireToggle('toggleFeedbackForm',     'feedbackForm',     'cancelFeedbackForm');
+      wireToggle('toggleDisciplinaryForm', 'disciplinaryForm', 'cancelDisciplinaryForm');
+      wireToggle('toggleActivityForm',     'activityForm',     'cancelActivityForm');
+
+      // ── Log form submissions ─────────────────────────────────────────────────
+      document.getElementById('feedbackForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentFileId) return;
+        const content = (document.getElementById('feedbackContent')?.value || '').trim();
+        if (!content) { setStatus('feedbackStatus', 'Please enter feedback content.', true); return; }
+        setStatus('feedbackStatus', 'Saving…');
+
+        const reviewer = getSession();
+        const result = await window.addStaffFeedback?.(currentFileId, {
+          author:  reviewer?.name || reviewer?.email || 'Staff',
+          type:    document.getElementById('feedbackType')?.value || 'neutral',
+          content,
+        });
+        if (!result?.ok) { setStatus('feedbackStatus', result?.message || 'Could not save.', true); return; }
+        document.getElementById('feedbackForm')?.reset();
+        document.getElementById('feedbackForm')?.classList.add('is-hidden');
+        setStatus('feedbackStatus', 'Feedback saved.');
+        await loadFeedback();
+      });
+
+      document.getElementById('disciplinaryForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentFileId) return;
+        const reason   = (document.getElementById('disciplinaryReason')?.value   || '').trim();
+        const issuedBy = (document.getElementById('disciplinaryIssuedBy')?.value || '').trim();
+        if (!reason || !issuedBy) { setStatus('disciplinaryStatus', 'Please fill in all required fields.', true); return; }
+        setStatus('disciplinaryStatus', 'Saving…');
+
+        const result = await window.addStaffDisciplinary?.(currentFileId, {
+          type:      document.getElementById('disciplinaryType')?.value || 'verbal_warning',
+          reason,
+          issued_by: issuedBy,
+        });
+        if (!result?.ok) { setStatus('disciplinaryStatus', result?.message || 'Could not save.', true); return; }
+        document.getElementById('disciplinaryForm')?.reset();
+        document.getElementById('disciplinaryForm')?.classList.add('is-hidden');
+        setStatus('disciplinaryStatus', 'Action recorded.');
+        await loadDisciplinary();
+      });
+
+      document.getElementById('activityForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentFileId) return;
+        const content  = (document.getElementById('activityContent')?.value  || '').trim();
+        const loggedBy = (document.getElementById('activityLoggedBy')?.value || '').trim();
+        if (!content || !loggedBy) { setStatus('activityStatus', 'Please fill in all required fields.', true); return; }
+        setStatus('activityStatus', 'Saving…');
+
+        const result = await window.addStaffActivity?.(currentFileId, {
+          type:      document.getElementById('activityType')?.value || 'note',
+          content,
+          logged_by: loggedBy,
+        });
+        if (!result?.ok) { setStatus('activityStatus', result?.message || 'Could not save.', true); return; }
+        document.getElementById('activityForm')?.reset();
+        document.getElementById('activityForm')?.classList.add('is-hidden');
+        setStatus('activityStatus', 'Activity logged.');
+        await loadActivity();
+      });
+
+      // ── Init ─────────────────────────────────────────────────────────────────
+      (async () => {
+        const allowed = await requireStaffAccess();
+        if (!allowed) return;
+
+        currentFileId = getFileIdFromQuery();
+        if (!currentFileId) {
+          window.location.replace('staff-hr.html');
+          return;
+        }
+
+        document.getElementById('hrFileContent').hidden = false;
+
+        const result = await window.getStaffFileById?.(currentFileId);
+        if (!result?.ok || !result.file) {
+          const nameEl = document.getElementById('hrFileName');
+          if (nameEl) nameEl.textContent = 'Staff file not found.';
+          return;
+        }
+
+        currentFile = result.file;
+        updateFileHeader(currentFile);
+        renderOnboarding(currentFile);
+        renderOverview(currentFile);
+
+        // Pre-fill logged-by fields with current user name
+        const user = getSession();
+        if (user) {
+          const name = user.name || user.email || '';
+          ['disciplinaryIssuedBy', 'activityLoggedBy'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el && !el.value) el.value = name;
+          });
+        }
+
+        // Load feedback immediately (visible tab)
+        await loadFeedback();
+      })();
+    </script>
+  </body>
+</html>

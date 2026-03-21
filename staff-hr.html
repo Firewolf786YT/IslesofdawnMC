@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HR Portal — IslesOfDawnMC Management</title>
+    <meta name="description" content="IslesOfDawnMC HR portal for managing staff member files and onboarding." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="hrPortalContent" class="staff-module-page" hidden>
+      <section class="section">
+        <div class="container">
+
+          <div class="card staff-module-header">
+            <p class="eyebrow">Management Module</p>
+            <h2>🗂️ HR Portal — Staff Member Logs</h2>
+            <p id="hrPortalWelcome" class="hero-text staff-module-subtitle"></p>
+          </div>
+
+          <div class="staff-module-actions">
+            <a class="btn btn-secondary" href="staff.html">← Back to Portal</a>
+            <button id="toggleCreatePanel" class="btn btn-primary" type="button">+ Create Staff File</button>
+          </div>
+
+          <!-- Manual create panel -->
+          <div id="hrCreatePanel" class="card is-hidden" style="margin-top: 1rem;">
+            <h3>Create Staff File Manually</h3>
+            <p class="staff-diagnostics-subtitle">Use this to add a staff member who did not go through the application system.</p>
+            <form id="hrCreateForm" novalidate style="margin-top: 1rem;">
+              <div class="app-form-grid">
+                <label>
+                  Minecraft Username <em>*</em>
+                  <input id="hrCreateUsername" type="text" placeholder="IslesPlayer" required />
+                </label>
+                <label>
+                  Discord Username
+                  <input id="hrCreateDiscord" type="text" placeholder="user#0000" />
+                </label>
+                <label>
+                  Email
+                  <input id="hrCreateEmail" type="email" placeholder="you@example.com" />
+                </label>
+                <label>
+                  Applied Role
+                  <select id="hrCreateRole">
+                    <option value="">— None —</option>
+                  </select>
+                </label>
+              </div>
+              <div class="staff-module-actions">
+                <button type="submit" class="btn btn-primary">Create File</button>
+                <button type="button" id="cancelCreatePanel" class="btn btn-secondary">Cancel</button>
+              </div>
+              <p class="copy-message" id="hrCreateStatus" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <!-- Filter + list -->
+          <div class="card staff-app-review-card" style="margin-top: 1rem;">
+            <div class="staff-app-review-filter">
+              <div>
+                <label for="hrStatusFilter">Status</label>
+                <select id="hrStatusFilter">
+                  <option value="all">All Files</option>
+                  <option value="active">Active Staff</option>
+                  <option value="onboarding">In Onboarding</option>
+                  <option value="denied">Interview Denied</option>
+                </select>
+              </div>
+              <div>
+                <label for="hrUsernameSearch">Username</label>
+                <input id="hrUsernameSearch" type="text" placeholder="Search by Minecraft username" />
+              </div>
+            </div>
+            <p class="copy-message" id="hrPortalStatus" aria-live="polite"></p>
+            <div id="hrFileList" class="hr-file-list"></div>
+          </div>
+
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="application-config.js"></script>
+    <script src="supabase-data.js"></script>
+    <script src="script.js"></script>
+    <script>
+      let allFiles = [];
+
+      const escHtml = (str) =>
+        String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+      const setHrStatus = (msg, isError = false) => {
+        const el = document.getElementById('hrPortalStatus');
+        if (!el) return;
+        el.textContent = msg;
+        el.style.color = isError ? '#e75f5f' : '';
+      };
+
+      const getOnboardingStatusInfo = (file) => {
+        const ob = file.onboarding || {};
+        if (ob.interviewStatus === 'approved') return { label: 'Active Staff', cls: 'hr-status-active' };
+        if (ob.interviewStatus === 'denied')   return { label: 'Interview Denied', cls: 'hr-status-denied' };
+        if (ob.interviewComplete)              return { label: 'Awaiting Decision', cls: 'hr-status-waiting' };
+        if (ob.interviewScheduled)             return { label: 'Interview Scheduled', cls: 'hr-status-interview' };
+        return { label: 'Onboarding', cls: 'hr-status-onboarding' };
+      };
+
+      const renderFileList = () => {
+        const list = document.getElementById('hrFileList');
+        if (!list) return;
+
+        const statusFilter = document.getElementById('hrStatusFilter')?.value || 'all';
+        const nameFilter   = (document.getElementById('hrUsernameSearch')?.value || '').trim().toLowerCase();
+
+        let visible = allFiles;
+
+        if (nameFilter) {
+          visible = visible.filter((f) => f.minecraftUsername.toLowerCase().includes(nameFilter));
+        }
+
+        if (statusFilter !== 'all') {
+          visible = visible.filter((f) => {
+            const ob = f.onboarding || {};
+            if (statusFilter === 'active')     return ob.interviewStatus === 'approved';
+            if (statusFilter === 'onboarding') return ob.interviewStatus !== 'approved' && ob.interviewStatus !== 'denied';
+            if (statusFilter === 'denied')     return ob.interviewStatus === 'denied';
+            return true;
+          });
+        }
+
+        list.innerHTML = '';
+
+        if (!visible.length) {
+          list.innerHTML = '<p class="announcement-empty">No staff files found matching the selected criteria.</p>';
+          return;
+        }
+
+        visible.forEach((file) => {
+          const { label: statusLabel, cls: statusCls } = getOnboardingStatusInfo(file);
+          const initial          = (file.minecraftUsername[0] || '?').toUpperCase();
+          const appliedRoleTitle = window.getApplicationById?.(file.appliedRoleId)?.title || file.appliedRoleId || '—';
+          const assignedRole     = file.assignedRole;
+          const rolePillHtml     = assignedRole
+            ? `<span class="${escHtml(window.getRolePillClass?.(assignedRole) || 'role-pill')}">${escHtml(window.getRoleLabel?.(assignedRole) || assignedRole)}</span>`
+            : '<span class="hr-no-role">No role assigned</span>';
+
+          const createdDate = new Date(file.createdAt);
+          const dateText    = !Number.isNaN(createdDate.getTime()) ? createdDate.toLocaleDateString() : '';
+
+          const row = document.createElement('div');
+          row.className = 'hr-file-row';
+          row.setAttribute('tabindex', '0');
+          row.setAttribute('role', 'button');
+          row.setAttribute('aria-label', `Open staff file for ${file.minecraftUsername}`);
+
+          row.innerHTML = `
+            <div class="hr-file-avatar" aria-hidden="true">${escHtml(initial)}</div>
+            <div class="hr-file-meta">
+              <div class="hr-file-name">${escHtml(file.minecraftUsername)}</div>
+              <div class="hr-file-details">Applied: <strong>${escHtml(appliedRoleTitle)}</strong>&ensp;·&ensp;Role: ${rolePillHtml}</div>
+            </div>
+            <div class="hr-file-right">
+              <span class="hr-status-badge ${escHtml(statusCls)}">${escHtml(statusLabel)}</span>
+              ${dateText ? `<span class="hr-file-date">${escHtml(dateText)}</span>` : ''}
+            </div>
+          `;
+
+          const navigate = () => {
+            window.location.href = `staff-hr-file.html?id=${encodeURIComponent(file.id)}`;
+          };
+          row.addEventListener('click', navigate);
+          row.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(); }
+          });
+
+          list.appendChild(row);
+        });
+      };
+
+      const loadFiles = async () => {
+        setHrStatus('Loading staff files…');
+        const result = await window.getStaffFiles?.();
+        if (!result?.ok) {
+          setHrStatus(result?.message || 'Could not load staff files. Verify Supabase connection and RLS policies.', true);
+          const list = document.getElementById('hrFileList');
+          if (list) list.innerHTML = '<p class="announcement-empty">Staff file data unavailable.</p>';
+          return;
+        }
+        allFiles = result.files || [];
+        setHrStatus(`${allFiles.length} staff file${allFiles.length === 1 ? '' : 's'} found.`);
+        renderFileList();
+      };
+
+      document.getElementById('hrStatusFilter')?.addEventListener('change', renderFileList);
+      document.getElementById('hrUsernameSearch')?.addEventListener('input', renderFileList);
+
+      document.getElementById('toggleCreatePanel')?.addEventListener('click', () => {
+        document.getElementById('hrCreatePanel')?.classList.toggle('is-hidden');
+      });
+
+      document.getElementById('cancelCreatePanel')?.addEventListener('click', () => {
+        document.getElementById('hrCreatePanel')?.classList.add('is-hidden');
+      });
+
+      document.getElementById('hrCreateForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = (document.getElementById('hrCreateUsername')?.value || '').trim();
+        const statusEl = document.getElementById('hrCreateStatus');
+        if (!username) {
+          if (statusEl) { statusEl.textContent = 'Minecraft username is required.'; statusEl.style.color = '#e75f5f'; }
+          return;
+        }
+        if (statusEl) { statusEl.textContent = 'Creating…'; statusEl.style.color = ''; }
+
+        const result = await window.createStaffFile?.({
+          minecraftUsername: username,
+          discord:      (document.getElementById('hrCreateDiscord')?.value || '').trim(),
+          email:        (document.getElementById('hrCreateEmail')?.value || '').trim(),
+          appliedRoleId: document.getElementById('hrCreateRole')?.value || '',
+        });
+
+        if (!result?.ok) {
+          if (statusEl) { statusEl.textContent = result?.message || 'Could not create staff file.'; statusEl.style.color = '#e75f5f'; }
+          return;
+        }
+
+        document.getElementById('hrCreatePanel')?.classList.add('is-hidden');
+        document.getElementById('hrCreateForm')?.reset();
+        await loadFiles();
+        setHrStatus('Staff file created successfully.');
+      });
+
+      (async () => {
+        const allowed = await requireStaffAccess();
+        if (!allowed) return;
+
+        document.getElementById('hrPortalContent').hidden = false;
+
+        const user = getSession();
+        if (user) {
+          const role     = getUserRole(user.uid);
+          const label    = window.getRoleLabel?.(role) || role;
+          const pillClass = window.getRolePillClass?.(role) || 'role-pill role-pill-player';
+          const el = document.getElementById('hrPortalWelcome');
+          if (el) {
+            el.innerHTML = `Manage staff member files and onboarding. Signed in as <span class="${pillClass}">${label}</span>.`;
+          }
+        }
+
+        // Populate role select from application config
+        const roleSelect = document.getElementById('hrCreateRole');
+        if (roleSelect) {
+          (window.getApplicationDefinitions?.() || []).forEach((def) => {
+            const opt = document.createElement('option');
+            opt.value = def.id;
+            opt.textContent = def.title;
+            roleSelect.appendChild(opt);
+          });
+        }
+
+        await loadFiles();
+      })();
+    </script>
+  </body>
+</html>

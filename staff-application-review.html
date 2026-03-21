@@ -44,6 +44,7 @@
           <div class="staff-module-actions">
             <a class="btn btn-secondary" href="staff-applications.html">Back to Applications Manager</a>
             <a class="btn btn-primary" href="applications.html">View Public Applications</a>
+            <a class="btn btn-secondary" href="staff-hr.html">🗂️ HR Portal</a>
           </div>
 
           <div class="card staff-app-review-card">
@@ -285,8 +286,21 @@
           approveButton.className = 'btn-toggle-open';
           approveButton.textContent = 'Approve';
           approveButton.disabled = status === 'approved';
-          approveButton.addEventListener('click', () => {
-            updateSubmissionStatus(submission.id, fullIndex, 'approved');
+          approveButton.addEventListener('click', async () => {
+            await updateSubmissionStatus(submission.id, fullIndex, 'approved');
+            // Auto-create a staff file to start onboarding
+            const fileResult = await window.createStaffFile?.({
+              minecraftUsername: submission.minecraftUsername || '',
+              discord:           submission.discord           || '',
+              email:             submission.email             || '',
+              appliedRoleId:     selectedApp.id,
+              applicationId:     submission.id,
+            });
+            if (fileResult?.ok) {
+              setReviewStatus(`✔ Approved. Staff file created for ${submission.minecraftUsername || 'applicant'}. Open the HR Portal to continue onboarding.`);
+            } else {
+              setReviewStatus('✔ Approved. Note: Staff file could not be auto-created — create one manually in the HR Portal.');
+            }
           });
 
           const denyButton = document.createElement('button');
@@ -294,8 +308,18 @@
           denyButton.className = 'btn-toggle-close';
           denyButton.textContent = 'Deny';
           denyButton.disabled = status === 'denied';
-          denyButton.addEventListener('click', () => {
-            updateSubmissionStatus(submission.id, fullIndex, 'denied');
+          denyButton.addEventListener('click', async () => {
+            await updateSubmissionStatus(submission.id, fullIndex, 'denied');
+            // Lock applicant from re-applying for 2 weeks
+            if (submission.minecraftUsername) {
+              await window.setApplicationLockout?.(
+                submission.minecraftUsername,
+                `${selectedApp.title} application denied`
+              );
+              setReviewStatus(`✔ Denied. ${submission.minecraftUsername} is locked from re-applying for 2 weeks.`);
+            } else {
+              setReviewStatus('✔ Application denied.');
+            }
           });
 
           actions.append(approveButton, denyButton);

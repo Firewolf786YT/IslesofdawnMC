@@ -3,7 +3,7 @@
   const currentFile = location.pathname.split('/').pop() || 'index.html';
   document.querySelectorAll('.nav-links a').forEach((link) => {
     const linkFile = link.getAttribute('href').split('/').pop().split('#')[0] || 'index.html';
-    const isStaffModulePage = currentFile === 'staff.html' || currentFile === 'staff-announcements.html' || currentFile === 'staff-applications.html' || currentFile === 'staff-application-review.html' || currentFile === 'staff-appeals.html';
+    const isStaffModulePage = currentFile === 'staff.html' || currentFile === 'staff-announcements.html' || currentFile === 'staff-applications.html' || currentFile === 'staff-application-review.html' || currentFile === 'staff-appeals.html' || currentFile === 'staff-hr.html' || currentFile === 'staff-hr-file.html';
     const isStaffNavLink = linkFile === 'staff.html';
     if (linkFile === currentFile || (isStaffModulePage && isStaffNavLink)) {
       link.classList.add('nav-active');

@@ -97,6 +97,27 @@
           </div>
         </div>
       </section>
+
+      <!-- Staff File Section — only shown to users who have a staff file -->
+      <section class="section" id="profileStaffSection" hidden>
+        <div class="container">
+          <div class="card">
+            <p class="eyebrow">Staff Member</p>
+            <h2 style="margin: 0.3rem 0 0;">My Staff File</h2>
+            <p class="profile-subtitle">Your staff record as maintained by the IslesOfDawnMC management team. This information is visible only to you and management.</p>
+
+            <div class="hr-tabs" role="tablist" style="margin-top: 1.1rem;">
+              <button class="hr-tab-btn active" data-profile-tab="feedback"     role="tab" aria-selected="true">Feedback</button>
+              <button class="hr-tab-btn"        data-profile-tab="disciplinary" role="tab" aria-selected="false">Disciplinary Actions</button>
+              <button class="hr-tab-btn"        data-profile-tab="activity"     role="tab" aria-selected="false">Activity</button>
+            </div>
+
+            <div id="profile-tab-feedback"     class="hr-tab-panel" role="tabpanel" style="margin-top: 0.75rem;"><div id="profileFeedbackList" class="hr-log-list"></div></div>
+            <div id="profile-tab-disciplinary" class="hr-tab-panel" role="tabpanel" style="margin-top: 0.75rem;" hidden><div id="profileDisciplinaryList" class="hr-log-list"></div></div>
+            <div id="profile-tab-activity"     class="hr-tab-panel" role="tabpanel" style="margin-top: 0.75rem;" hidden><div id="profileActivityList"    class="hr-log-list"></div></div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="site-footer">
@@ -106,6 +127,7 @@
     </footer>
 
     <script src="auth.js"></script>
+    <script src="supabase-data.js"></script>
     <script src="script.js"></script>
     <script>
       (async () => {
@@ -188,6 +210,104 @@
           await renderProfile();
           setStatus(result.message || 'Username updated.');
         });
+
+        // ── Staff file sections ────────────────────────────────────────────
+        const escHtml = (str) =>
+          String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        const formatDate = (isoStr) => {
+          if (!isoStr) return '—';
+          const d = new Date(isoStr);
+          return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+        };
+
+        const LOG_TYPE_LABELS = {
+          positive: 'Positive', neutral: 'Neutral', negative: 'Negative',
+          verbal_warning: 'Verbal Warning', written_warning: 'Written Warning',
+          suspension: 'Suspension', demotion: 'Demotion',
+          note: 'Note', absence: 'Absence', meeting: 'Meeting', promotion: 'Promotion', other: 'Other',
+        };
+        const LOG_TYPE_CLASSES = {
+          positive: 'hr-log-type-positive', neutral: 'hr-log-type-neutral', negative: 'hr-log-type-negative',
+          verbal_warning: 'hr-log-type-warning', written_warning: 'hr-log-type-warning',
+          suspension: 'hr-log-type-severe', demotion: 'hr-log-type-severe',
+          note: 'hr-log-type-neutral', absence: 'hr-log-type-warning',
+          meeting: 'hr-log-type-neutral', promotion: 'hr-log-type-positive', other: 'hr-log-type-neutral',
+        };
+
+        const renderProfileLog = (listId, entries, emptyLabel) => {
+          const list = document.getElementById(listId);
+          if (!list) return;
+          list.innerHTML = '';
+          if (!entries.length) {
+            list.innerHTML = `<p class="announcement-empty">No ${emptyLabel} on record.</p>`;
+            return;
+          }
+          entries.forEach((entry) => {
+            const typeVal   = String(entry.type || 'other');
+            const typeLabel = LOG_TYPE_LABELS[typeVal] || typeVal;
+            const typeCls   = LOG_TYPE_CLASSES[typeVal] || 'hr-log-type-neutral';
+            const body      = String(entry.content || entry.reason || '');
+            const item = document.createElement('div');
+            item.className = 'hr-log-entry';
+            item.innerHTML = `
+              <div class="hr-log-entry-header">
+                <span class="hr-log-type ${escHtml(typeCls)}">${escHtml(typeLabel)}</span>
+                <span class="hr-log-meta">${escHtml(formatDate(entry.created_at))}</span>
+              </div>
+              <p class="hr-log-body">${escHtml(body)}</p>
+            `;
+            list.appendChild(item);
+          });
+        };
+
+        // Profile tab switching
+        document.querySelectorAll('.hr-tab-btn[data-profile-tab]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.hr-tab-btn[data-profile-tab]').forEach((b) => {
+              b.classList.remove('active'); b.setAttribute('aria-selected', 'false');
+            });
+            document.querySelectorAll('#profileStaffSection .hr-tab-panel').forEach((p) => { p.hidden = true; });
+            btn.classList.add('active'); btn.setAttribute('aria-selected', 'true');
+            const panel = document.getElementById(`profile-tab-${btn.dataset.profileTab}`);
+            if (panel) panel.hidden = false;
+          });
+        });
+
+        // Try to find this user's staff file
+        const tryLoadStaffFile = async () => {
+          const authUid = window.getCurrentAuthUid?.();
+          let fileResult = null;
+
+          if (authUid) {
+            fileResult = await window.getStaffFileByUserId?.(authUid);
+          }
+
+          // Fall back to matching by profile username
+          if (!fileResult?.file) {
+            const usernameText = document.getElementById('profileCurrentUsername')?.textContent;
+            if (usernameText && usernameText !== 'Loading…') {
+              fileResult = await window.getStaffFileByMinecraftUsername?.(usernameText);
+            }
+          }
+
+          if (fileResult?.ok && fileResult?.file) {
+            const fileId = fileResult.file.id;
+            const staffSection = document.getElementById('profileStaffSection');
+            if (staffSection) staffSection.hidden = false;
+
+            const [fbResult, discResult, actResult] = await Promise.all([
+              window.getStaffFeedback?.(fileId),
+              window.getStaffDisciplinary?.(fileId),
+              window.getStaffActivity?.(fileId),
+            ]);
+            renderProfileLog('profileFeedbackList',    fbResult?.entries   || [], 'feedback');
+            renderProfileLog('profileDisciplinaryList', discResult?.entries || [], 'disciplinary actions');
+            renderProfileLog('profileActivityList',     actResult?.entries  || [], 'activity entries');
+          }
+        };
+
+        await tryLoadStaffFile();
 
         avatarFileInput?.addEventListener('change', async (e) => {
           const file = e.target.files?.[0];

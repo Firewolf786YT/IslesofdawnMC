@@ -438,6 +438,14 @@
             return;
           }
 
+          // Check if applicant is locked out from a previous denial
+          const lockoutCheck = await window.checkApplicationLockout?.(minecraftUsernameValue);
+          if (lockoutCheck?.locked) {
+            const unlockDate = lockoutCheck.unlocksAt?.toLocaleDateString?.() || 'a future date';
+            setApplicationStatus(`You are not eligible to re-apply at this time. Your previous application was denied. You may apply again after ${unlockDate}.`);
+            return;
+          }
+
           const formData = new FormData(applicationForm);
 
           const questionFields = Array.from(document.querySelectorAll('textarea[data-app-question="true"]'));

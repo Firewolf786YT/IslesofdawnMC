@@ -265,4 +265,267 @@
 
     return true;
   };
+
+  // ===========================================================================
+  // HR Portal — Staff Files, Log Entries, and Application Lockouts
+  // ===========================================================================
+
+  const HR_TABLES = {
+    staffFiles: 'staff_files',
+    staffFeedback: 'staff_feedback',
+    staffDisciplinary: 'staff_disciplinary',
+    staffActivity: 'staff_activity',
+    lockouts: 'application_lockouts',
+  };
+
+  const fromDbStaffFile = (row) => ({
+    id: row.id,
+    minecraftUsername: row.minecraft_username || '',
+    userId: row.user_id || null,
+    discord: row.discord || '',
+    email: row.email || '',
+    appliedRoleId: row.applied_role_id || '',
+    assignedRole: row.assigned_role || '',
+    applicationId: row.application_id || null,
+    onboarding: row.onboarding || {
+      interviewScheduled: false,
+      interviewComplete: false,
+      interviewStatus: 'pending',
+      interviewNotes: '',
+      approvedAt: null,
+      deniedAt: null,
+    },
+    notes: row.notes || '',
+    isActive: row.is_active === true,
+    createdAt: row.created_at || new Date().toISOString(),
+    updatedAt: row.updated_at || new Date().toISOString(),
+  });
+
+  window.createStaffFile = async (data) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const row = {
+      minecraft_username: String(data.minecraftUsername || '').trim(),
+      user_id: data.userId || null,
+      discord: data.discord || null,
+      email: data.email || null,
+      applied_role_id: data.appliedRoleId || null,
+      assigned_role: data.assignedRole || null,
+      application_id: data.applicationId || null,
+      onboarding: {
+        interviewScheduled: false,
+        interviewComplete: false,
+        interviewStatus: 'pending',
+        interviewNotes: '',
+        approvedAt: null,
+        deniedAt: null,
+      },
+      notes: data.notes || '',
+      is_active: false,
+    };
+
+    const { data: result, error } = await client
+      .from(HR_TABLES.staffFiles)
+      .insert([row])
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('Could not create staff file:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, file: fromDbStaffFile(result) };
+  };
+
+  window.getStaffFiles = async () => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', files: [] };
+
+    const { data, error } = await client
+      .from(HR_TABLES.staffFiles)
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Could not fetch staff files:', error.message);
+      return { ok: false, message: error.message, files: [] };
+    }
+
+    return { ok: true, files: (data || []).map(fromDbStaffFile) };
+  };
+
+  window.getStaffFileById = async (id) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', file: null };
+
+    const { data, error } = await client
+      .from(HR_TABLES.staffFiles)
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Could not fetch staff file:', error.message);
+      return { ok: false, message: error.message, file: null };
+    }
+
+    return { ok: true, file: data ? fromDbStaffFile(data) : null };
+  };
+
+  window.getStaffFileByUserId = async (userId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', file: null };
+
+    const { data, error } = await client
+      .from(HR_TABLES.staffFiles)
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Could not fetch staff file by user_id:', error.message);
+      return { ok: false, message: error.message, file: null };
+    }
+
+    return { ok: true, file: data ? fromDbStaffFile(data) : null };
+  };
+
+  window.getStaffFileByMinecraftUsername = async (username) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', file: null };
+
+    const { data, error } = await client
+      .from(HR_TABLES.staffFiles)
+      .select('*')
+      .ilike('minecraft_username', String(username || '').trim())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Could not fetch staff file by username:', error.message);
+      return { ok: false, message: error.message, file: null };
+    }
+
+    return { ok: true, file: data ? fromDbStaffFile(data) : null };
+  };
+
+  window.updateStaffFile = async (id, patch) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const dbPatch = { updated_at: new Date().toISOString() };
+    if (patch.minecraftUsername !== undefined) dbPatch.minecraft_username = patch.minecraftUsername;
+    if (patch.userId !== undefined) dbPatch.user_id = patch.userId || null;
+    if (patch.discord !== undefined) dbPatch.discord = patch.discord;
+    if (patch.email !== undefined) dbPatch.email = patch.email;
+    if (patch.assignedRole !== undefined) dbPatch.assigned_role = patch.assignedRole;
+    if (patch.onboarding !== undefined) dbPatch.onboarding = patch.onboarding;
+    if (patch.notes !== undefined) dbPatch.notes = patch.notes;
+    if (patch.isActive !== undefined) dbPatch.is_active = patch.isActive;
+
+    const { data, error } = await client
+      .from(HR_TABLES.staffFiles)
+      .update(dbPatch)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('Could not update staff file:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, file: fromDbStaffFile(data) };
+  };
+
+  // ── Generic log entry helpers ─────────────────────────────────────────────
+
+  const insertStaffLog = async (table, staffFileId, entry) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const { data, error } = await client
+      .from(table)
+      .insert([{ staff_file_id: staffFileId, ...entry }])
+      .select()
+      .single();
+
+    if (error) {
+      console.warn(`Could not insert into ${table}:`, error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, entry: data };
+  };
+
+  const fetchStaffLog = async (table, staffFileId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', entries: [] };
+
+    const { data, error } = await client
+      .from(table)
+      .select('*')
+      .eq('staff_file_id', staffFileId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn(`Could not fetch from ${table}:`, error.message);
+      return { ok: false, message: error.message, entries: [] };
+    }
+
+    return { ok: true, entries: data || [] };
+  };
+
+  window.addStaffFeedback    = (fileId, entry) => insertStaffLog(HR_TABLES.staffFeedback, fileId, entry);
+  window.getStaffFeedback    = (fileId) => fetchStaffLog(HR_TABLES.staffFeedback, fileId);
+  window.addStaffDisciplinary = (fileId, entry) => insertStaffLog(HR_TABLES.staffDisciplinary, fileId, entry);
+  window.getStaffDisciplinary = (fileId) => fetchStaffLog(HR_TABLES.staffDisciplinary, fileId);
+  window.addStaffActivity    = (fileId, entry) => insertStaffLog(HR_TABLES.staffActivity, fileId, entry);
+  window.getStaffActivity    = (fileId) => fetchStaffLog(HR_TABLES.staffActivity, fileId);
+
+  // ── Application lockouts ──────────────────────────────────────────────────
+
+  window.checkApplicationLockout = async (minecraftUsername) => {
+    const client = await getClient();
+    if (!client) return { locked: false, unlocksAt: null };
+
+    const now = new Date().toISOString();
+    const { data, error } = await client
+      .from(HR_TABLES.lockouts)
+      .select('locked_until')
+      .ilike('minecraft_username', String(minecraftUsername || '').trim())
+      .gt('locked_until', now)
+      .order('locked_until', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) return { locked: false, unlocksAt: null };
+    return { locked: true, unlocksAt: new Date(data.locked_until) };
+  };
+
+  window.setApplicationLockout = async (minecraftUsername, reason) => {
+    const client = await getClient();
+    if (!client) return false;
+
+    const lockedUntil = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    const { error } = await client
+      .from(HR_TABLES.lockouts)
+      .insert([{
+        minecraft_username: String(minecraftUsername || '').trim(),
+        locked_until: lockedUntil,
+        reason: String(reason || 'Application denied'),
+      }]);
+
+    if (error) {
+      console.warn('Could not set application lockout:', error.message);
+      return false;
+    }
+
+    return true;
+  };
 })();
