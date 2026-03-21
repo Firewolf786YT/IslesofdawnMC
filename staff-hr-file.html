@@ -297,9 +297,6 @@
       };
 
       // ── Utilities ───────────────────────────────────────────────────────────
-      const escHtml = (str) =>
-        String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
       const formatDate = (isoStr) => {
         if (!isoStr) return '—';
         const d = new Date(isoStr);

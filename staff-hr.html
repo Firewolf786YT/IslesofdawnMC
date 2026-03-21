@@ -118,9 +118,6 @@
     <script>
       let allFiles = [];
 
-      const escHtml = (str) =>
-        String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
       const setHrStatus = (msg, isError = false) => {
         const el = document.getElementById('hrPortalStatus');
         if (!el) return;
