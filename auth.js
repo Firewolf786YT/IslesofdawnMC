@@ -937,6 +937,11 @@ const finishLogin = () => {
   location.replace(next);
 };
 
+window.loginWithGoogle = loginWithGoogle;
+window.loginWithDiscord = loginWithDiscord;
+window.handleOAuthCallback = handleOAuthCallback;
+window.finishLogin = finishLogin;
+
 // ── Login page helpers ────────────────────────────────────────────────────────
 const showLoginError = (msg) => {
   const el = document.getElementById('loginError');
@@ -949,6 +954,8 @@ const showLoginOptions = () => {
   document.getElementById('loginLoader')?.classList.add('is-hidden');
   document.getElementById('loginOptions')?.classList.remove('is-hidden');
 };
+
+window.showLoginOptions = showLoginOptions;
 
 // ── Staff guard ───────────────────────────────────────────────────────────────
 const requireStaff = () => {

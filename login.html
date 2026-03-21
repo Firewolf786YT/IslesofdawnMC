@@ -153,19 +153,20 @@
         });
 
         const wireLoginEvents = () => {
+          const authApi = window;
           if (
-            typeof loginWithGoogle !== 'function'
-            || typeof loginWithDiscord !== 'function'
-            || typeof signInWithEmailPassword !== 'function'
-            || typeof createAccountWithEmailPassword !== 'function'
-            || typeof finishLogin !== 'function'
+            typeof authApi.loginWithGoogle !== 'function'
+            || typeof authApi.loginWithDiscord !== 'function'
+            || typeof authApi.signInWithEmailPassword !== 'function'
+            || typeof authApi.createAccountWithEmailPassword !== 'function'
+            || typeof authApi.finishLogin !== 'function'
           ) {
             setStatus('Auth services did not load correctly. Refresh the page and try again.');
             return;
           }
 
-          document.getElementById('loginWithGoogle').addEventListener('click', loginWithGoogle);
-          document.getElementById('loginWithDiscord').addEventListener('click', loginWithDiscord);
+          document.getElementById('loginWithGoogle').addEventListener('click', authApi.loginWithGoogle);
+          document.getElementById('loginWithDiscord').addEventListener('click', authApi.loginWithDiscord);
 
           emailAuthForm.addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -178,14 +179,14 @@
             }
 
             setFormBusy(true, 'Signing you in…');
-            const result = await signInWithEmailPassword(email, password);
+            const result = await authApi.signInWithEmailPassword(email, password);
             if (!result?.ok) {
               setFormBusy(false);
               setStatus(result?.message || 'Sign-in failed. Please try again.');
               return;
             }
 
-            finishLogin();
+            authApi.finishLogin();
           });
 
           emailCreateBtn.addEventListener('click', async () => {
@@ -208,7 +209,7 @@
             }
 
             setFormBusy(true, 'Creating your account…');
-            const result = await createAccountWithEmailPassword(email, password, displayName);
+            const result = await authApi.createAccountWithEmailPassword(email, password, displayName);
             if (!result?.ok) {
               setFormBusy(false);
               setStatus(result?.message || 'Account creation failed. Please try again.');
@@ -222,11 +223,11 @@
               return;
             }
 
-            finishLogin();
+            authApi.finishLogin();
           });
         };
 
-        showLoginOptions();
+        window.showLoginOptions?.();
 
         try {
           await syncSessionFromSupabase();
@@ -245,7 +246,7 @@
 
           if (hasCallback) {
             setFormBusy(true, 'Completing sign-in…');
-            await handleOAuthCallback();
+            await window.handleOAuthCallback?.();
             return;
           }
         } catch (error) {
