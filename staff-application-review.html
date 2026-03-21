@@ -253,6 +253,18 @@
             createReviewAnswer(prompts[3] || 'Question 4', String(submission.communityImprovement || ''))
           );
 
+          const extraResponses = Array.isArray(submission.extraResponses)
+            ? submission.extraResponses
+            : Array.isArray(submission.acknowledgements?.extraResponses)
+              ? submission.acknowledgements.extraResponses
+              : [];
+
+          extraResponses
+            .filter((item) => item && typeof item === 'object')
+            .forEach((item) => {
+              answers.append(createReviewAnswer(String(item.label || 'Additional Question'), String(item.answer || 'No response provided.')));
+            });
+
           const acknowledgements = document.createElement('ul');
           acknowledgements.className = 'staff-app-ack-list';
 

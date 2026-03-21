@@ -36,6 +36,9 @@
     questionPrompts: Array.isArray((row.acknowledgements || {}).questionPrompts)
       ? (row.acknowledgements || {}).questionPrompts
       : [],
+    extraResponses: Array.isArray((row.acknowledgements || {}).extraResponses)
+      ? (row.acknowledgements || {}).extraResponses
+      : [],
     reviewedAt: row.reviewed_at || null,
     reviewedBy: row.reviewed_by || null,
     createdAt: row.created_at || new Date().toISOString(),
@@ -60,6 +63,11 @@
         ? submission.questionPrompts
         : Array.isArray(submission.acknowledgements?.questionPrompts)
           ? submission.acknowledgements.questionPrompts
+          : [],
+      extraResponses: Array.isArray(submission.extraResponses)
+        ? submission.extraResponses
+        : Array.isArray(submission.acknowledgements?.extraResponses)
+          ? submission.acknowledgements.extraResponses
           : [],
     },
     reviewed_at: submission.reviewedAt || null,

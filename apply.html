@@ -59,9 +59,9 @@
               <legend>1) Information</legend>
               <div class="app-form-grid">
                 <input id="applicationRole" name="role" type="hidden" />
-                <div id="supportMinecraftUsernameField" class="is-hidden">
+                <div id="applicationMinecraftUsernameField">
                   <label for="appMinecraftUsername">Minecraft Username</label>
-                  <input id="appMinecraftUsername" name="minecraftUsername" type="text" placeholder="e.g. IslesPlayer" />
+                  <input id="appMinecraftUsername" name="minecraftUsername" type="text" placeholder="e.g. IslesPlayer" required />
                 </div>
                 <div>
                   <label for="appAge">Age</label>
@@ -81,34 +81,50 @@
             <fieldset class="app-form-section">
               <legend>2) Staff Questions</legend>
               <div id="dynamicQuestionList" class="app-form-long-list"></div>
+              <div id="dynamicExtraQuestionList" class="app-form-long-list"></div>
             </fieldset>
 
             <fieldset class="app-form-section">
               <legend>3) Acknowledgements</legend>
               <div class="app-ack-list">
                 <div>
-                  <label for="ackVolunteer">Do you understand this is a voluntary role?</label>
-                  <select id="ackVolunteer" name="ackVolunteer" required>
-                    <option value="">Select yes or no</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
+                  <label>Do you understand this is a voluntary role?</label>
+                  <div class="app-radio-group" role="radiogroup" aria-label="Voluntary role acknowledgement">
+                    <label class="app-radio-option">
+                      <input type="radio" name="ackVolunteer" value="yes" required />
+                      <span>Yes</span>
+                    </label>
+                    <label class="app-radio-option">
+                      <input type="radio" name="ackVolunteer" value="no" required />
+                      <span>No</span>
+                    </label>
+                  </div>
                 </div>
                 <div>
-                  <label for="ackContacting">Do you understand contacting staff repeatedly about your application may result in denial?</label>
-                  <select id="ackContacting" name="ackContacting" required>
-                    <option value="">Select yes or no</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
+                  <label>Do you understand contacting staff repeatedly about your application may result in denial?</label>
+                  <div class="app-radio-group" role="radiogroup" aria-label="No repeated staff contact acknowledgement">
+                    <label class="app-radio-option">
+                      <input type="radio" name="ackContacting" value="yes" required />
+                      <span>Yes</span>
+                    </label>
+                    <label class="app-radio-option">
+                      <input type="radio" name="ackContacting" value="no" required />
+                      <span>No</span>
+                    </label>
+                  </div>
                 </div>
                 <div>
-                  <label for="ackHonest">Do you confirm that all information in this application is honest and accurate?</label>
-                  <select id="ackHonest" name="ackHonest" required>
-                    <option value="">Select yes or no</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
+                  <label>Do you confirm that all information in this application is honest and accurate?</label>
+                  <div class="app-radio-group" role="radiogroup" aria-label="Honesty acknowledgement">
+                    <label class="app-radio-option">
+                      <input type="radio" name="ackHonest" value="yes" required />
+                      <span>Yes</span>
+                    </label>
+                    <label class="app-radio-option">
+                      <input type="radio" name="ackHonest" value="no" required />
+                      <span>No</span>
+                    </label>
+                  </div>
                 </div>
               </div>
             </fieldset>
@@ -148,12 +164,14 @@
       const appAccessNotice = document.getElementById('appAccessNotice');
       const selectedRoleChip = document.getElementById('selectedRoleChip');
       const applyPageTitle = document.getElementById('applyPageTitle');
-      const supportMinecraftUsernameField = document.getElementById('supportMinecraftUsernameField');
+      const applicationMinecraftUsernameField = document.getElementById('applicationMinecraftUsernameField');
       const appMinecraftUsername = document.getElementById('appMinecraftUsername');
       const dynamicQuestionList = document.getElementById('dynamicQuestionList');
+      const dynamicExtraQuestionList = document.getElementById('dynamicExtraQuestionList');
       let accessRedirectTimer = null;
       let accessRedirectInterval = null;
       let renderedQuestionPrompts = [...DEFAULT_QUESTION_PROMPTS];
+      let renderedExtraQuestions = [];
 
       const getRoleQuestionPrompts = (role) => {
         if (!role || !Array.isArray(role.questions) || role.questions.length !== 4) {
@@ -186,6 +204,67 @@
 
           wrapper.append(label, textarea);
           dynamicQuestionList.appendChild(wrapper);
+        });
+      };
+
+      const getRoleExtraQuestions = (role) => {
+        if (!role || !Array.isArray(role.extraQuestions)) {
+          return [];
+        }
+
+        return role.extraQuestions
+          .filter((item) => item && typeof item === 'object')
+          .map((item) => ({
+            id: String(item.id || '').trim(),
+            label: String(item.label || '').trim(),
+            type: String(item.type || 'text').trim().toLowerCase(),
+          }))
+          .filter((item) => item.id && item.label && (item.type === 'yesno' || item.type === 'text'));
+      };
+
+      const renderExtraQuestions = (role) => {
+        renderedExtraQuestions = getRoleExtraQuestions(role);
+        if (!dynamicExtraQuestionList) return;
+
+        dynamicExtraQuestionList.innerHTML = '';
+        if (!renderedExtraQuestions.length) {
+          return;
+        }
+
+        renderedExtraQuestions.forEach((question) => {
+          const wrapper = document.createElement('div');
+
+          const label = document.createElement('label');
+          label.textContent = question.label;
+
+          const fieldName = `extra_${question.id}`;
+          if (question.type === 'yesno') {
+            const radioGroup = document.createElement('div');
+            radioGroup.className = 'app-radio-group';
+            radioGroup.setAttribute('role', 'radiogroup');
+            radioGroup.setAttribute('aria-label', question.label);
+
+            const yesLabel = document.createElement('label');
+            yesLabel.className = 'app-radio-option';
+            yesLabel.innerHTML = `<input type="radio" name="${fieldName}" value="yes" required data-app-extra-id="${question.id}" /> <span>Yes</span>`;
+
+            const noLabel = document.createElement('label');
+            noLabel.className = 'app-radio-option';
+            noLabel.innerHTML = `<input type="radio" name="${fieldName}" value="no" required data-app-extra-id="${question.id}" /> <span>No</span>`;
+
+            radioGroup.append(yesLabel, noLabel);
+            wrapper.append(label, radioGroup);
+          } else {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.name = fieldName;
+            input.required = true;
+            input.dataset.appExtraId = question.id;
+            input.placeholder = question.label;
+            wrapper.append(label, input);
+          }
+
+          dynamicExtraQuestionList.appendChild(wrapper);
         });
       };
 
@@ -316,15 +395,11 @@
         }
 
         renderQuestions(role);
+        renderExtraQuestions(role);
 
-        const isSupportTeamRole = role.id === 'support-team';
-        if (supportMinecraftUsernameField && appMinecraftUsername) {
-          supportMinecraftUsernameField.classList.toggle('is-hidden', !isSupportTeamRole);
-          appMinecraftUsername.required = isSupportTeamRole;
-
-          if (!isSupportTeamRole) {
-            appMinecraftUsername.value = '';
-          }
+        if (applicationMinecraftUsernameField && appMinecraftUsername) {
+          applicationMinecraftUsernameField.classList.remove('is-hidden');
+          appMinecraftUsername.required = true;
         }
 
         return role;
@@ -358,8 +433,8 @@
             return;
           }
 
-          if (role.id === 'support-team' && !minecraftUsernameValue) {
-            setApplicationStatus('Please provide your Minecraft Username for the Support Team application.');
+          if (!minecraftUsernameValue) {
+            setApplicationStatus('Please provide your Minecraft Username.');
             return;
           }
 
@@ -383,12 +458,29 @@
             return;
           }
 
+          const extraResponses = [];
+          for (const question of renderedExtraQuestions) {
+            const fieldName = `extra_${question.id}`;
+            const answerValue = String(formData.get(fieldName) || '').trim();
+            if (!answerValue) {
+              setApplicationStatus(`Please answer: ${question.label}`);
+              return;
+            }
+
+            extraResponses.push({
+              id: question.id,
+              label: question.label,
+              type: question.type,
+              answer: answerValue,
+            });
+          }
+
           const newSubmission = {
             id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
             status: 'pending',
             roleId: role.id,
             roleTitle: role.title,
-            minecraftUsername: role.id === 'support-team' ? minecraftUsernameValue : '',
+            minecraftUsername: minecraftUsernameValue,
             age: String(formData.get('age') || '').trim(),
             discord: String(formData.get('discord') || '').trim(),
             email: String(formData.get('email') || '').trim(),
@@ -401,6 +493,7 @@
               contacting: ackContactingValue,
               honest: ackHonestValue,
               questionPrompts: [...renderedQuestionPrompts],
+              extraResponses,
             },
             createdAt: new Date().toISOString(),
           };

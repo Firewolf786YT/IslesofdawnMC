@@ -2072,6 +2072,29 @@ body {
   min-height: 110px;
 }
 
+.app-radio-group {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.app-radio-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.app-radio-option input[type='radio'] {
+  width: auto;
+  margin: 0;
+}
+
 .app-form-actions {
   margin-top: 1rem;
   display: flex;

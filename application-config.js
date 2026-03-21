@@ -12,6 +12,18 @@
         'How do you handle rule enforcement while staying respectful and calm?',
         'What would you do to improve day-to-day player support on the server?',
       ],
+      extraQuestions: [
+        {
+          id: 'working-microphone',
+          label: 'Do you have a working Microphone?',
+          type: 'yesno',
+        },
+        {
+          id: 'working-recording-software',
+          label: 'Do you have a working Video Recording Software?',
+          type: 'yesno',
+        },
+      ],
     },
     {
       id: 'dev-team',
@@ -37,6 +49,18 @@
         'How do you test features and document bugs clearly for developers?',
         'How would you prioritize critical bugs versus minor issues?',
         'What QA process would you introduce to improve release quality?',
+      ],
+      extraQuestions: [
+        {
+          id: 'working-microphone',
+          label: 'Do you have a working Microphone?',
+          type: 'yesno',
+        },
+        {
+          id: 'working-recording-software',
+          label: 'Do you have a working Video Recording Software?',
+          type: 'yesno',
+        },
       ],
     },
     {
@@ -64,6 +88,18 @@
         'How would you plan and deliver content on a consistent schedule?',
         'What media campaign would you run to grow server visibility?',
       ],
+      extraQuestions: [
+        {
+          id: 'working-microphone',
+          label: 'Do you have a working Microphone?',
+          type: 'yesno',
+        },
+        {
+          id: 'working-recording-software',
+          label: 'Do you have a working Video Recording Software?',
+          type: 'yesno',
+        },
+      ],
     },
     {
       id: 'event-team',
@@ -90,12 +126,27 @@
         'How would you represent the server brand positively in public content?',
         'What content series would you launch first to highlight server features?',
       ],
+      extraQuestions: [
+        {
+          id: 'social-medias',
+          label: 'What social medias do you use?',
+          type: 'text',
+        },
+        {
+          id: 'followers-count',
+          label: 'How many followers do you have?',
+          type: 'text',
+        },
+      ],
     },
   ];
 
   const cloneDefinition = (definition) => ({
     ...definition,
     questions: Array.isArray(definition.questions) ? [...definition.questions] : [],
+    extraQuestions: Array.isArray(definition.extraQuestions)
+      ? definition.extraQuestions.map((question) => ({ ...question }))
+      : [],
   });
 
   const getApplicationDefinitions = () => APPLICATION_DEFINITIONS.map(cloneDefinition);
