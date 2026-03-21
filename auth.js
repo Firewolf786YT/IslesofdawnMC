@@ -65,6 +65,7 @@ const ROLE_LABELS = Object.freeze({
 });
 
 const PORTAL_ROLES = new Set(['admin', 'manager', 'owner']);
+const STAFF_PORTAL_ROLES = new Set(['builder', 'event_team', 'media', 'qa_tester', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner']);
 const ROLE_MANAGER_ROLES = new Set(['admin', 'manager', 'owner']);
 
 // ── Session ──────────────────────────────────────────────────────────────────
@@ -107,6 +108,7 @@ const getUserRole = (uid) => normalizeRoleValue(getRolesMap()[uid]) || 'player';
 const getRoleLabel = (role) => ROLE_LABELS[normalizeRoleValue(role) || 'player'] || 'Player';
 const getRolePillClass = (role) => `role-pill role-pill-${normalizeRoleValue(role) || 'player'}`;
 const canAccessStaffPortal = (role) => PORTAL_ROLES.has(normalizeRoleValue(role) || 'player');
+const canAccessStaffMemberPortal = (role) => STAFF_PORTAL_ROLES.has(normalizeRoleValue(role) || 'player');
 const canManageRoles = (role) => ROLE_MANAGER_ROLES.has(normalizeRoleValue(role) || 'player');
 
 const normalizeRoleValue = (role) => {
@@ -290,11 +292,13 @@ const upsertUserRoleByAuthUid = async (userIdOrSessionUidOrUsername, role) => {
 
 window.listUserRoles = listUserRoles;
 window.upsertUserRoleByAuthUid = upsertUserRoleByAuthUid;
+window.resolveUserIdentifierToAuthUid = resolveUserIdentifierToAuthUid;
 window.normalizeAuthUid = normalizeAuthUid;
 window.validateUsernameValue = validateUsernameValue;
 window.getRoleLabel = getRoleLabel;
 window.getRolePillClass = getRolePillClass;
 window.canAccessStaffPortal = canAccessStaffPortal;
+window.canAccessStaffMemberPortal = canAccessStaffMemberPortal;
 window.canManageRoles = canManageRoles;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -979,7 +983,26 @@ const requireStaffAccess = async () => {
   return true;
 };
 
+const requireGeneralStaffAccess = async () => {
+  const current = await syncSessionFromSupabase();
+  if (!current) {
+    sessionStorage.setItem(LOGIN_NEXT_SK, location.href);
+    location.replace('login.html');
+    return false;
+  }
+
+  await syncCurrentUserRoleFromSupabase();
+  const role = getUserRole(current.uid);
+  if (!canAccessStaffMemberPortal(role)) {
+    location.replace(ACCESS_DENIED_PAGE);
+    return false;
+  }
+
+  return true;
+};
+
 window.requireStaffAccess = requireStaffAccess;
+window.requireGeneralStaffAccess = requireGeneralStaffAccess;
 
 // ── Nav auth widget ────────────────────────────────────────────────────────────
 const renderNavAuth = () => {
@@ -1008,7 +1031,10 @@ const renderNavAuth = () => {
     ? `<span class="nav-auth-avatar"><img class="nav-auth-avatar-img" src="${escHtml(user.avatar)}" alt="" /></span>`
     : `<span class="nav-auth-avatar">${initial}</span>`;
   const role = getVerifiedCurrentRole();
-  const staffLink = canAccessStaffPortal(role)
+  const staffPortalLink = canAccessStaffMemberPortal(role)
+    ? '<a class="nav-auth-menu-item nav-auth-menu-item-staff" href="staff-portal.html">Staff Portal</a>'
+    : '';
+  const managementLink = canAccessStaffPortal(role)
     ? '<a class="nav-auth-menu-item nav-auth-menu-item-staff" href="staff.html">Management Portal</a>'
     : '';
 
@@ -1021,7 +1047,8 @@ const renderNavAuth = () => {
       </button>
       <div class="nav-auth-menu is-hidden" id="navAuthMenu" role="menu">
         <a class="nav-auth-menu-item" href="${PROFILE_PAGE}" role="menuitem">Profile</a>
-        ${staffLink}
+        ${staffPortalLink}
+        ${managementLink}
         <button class="nav-auth-menu-item nav-auth-menu-logout" id="navLogoutBtn" type="button" role="menuitem">Log out</button>
       </div>
     </div>`;
@@ -1108,6 +1135,7 @@ window.devLogout = async () => {
     'login.html',
     'profile.html',
     'staff.html',
+    'staff-portal.html',
     'staff-announcements.html',
     'staff-applications.html',
     'staff-appeals.html',

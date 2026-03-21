@@ -17,9 +17,14 @@ CREATE TABLE IF NOT EXISTS public.staff_files (
   application_id    text,        -- id from application_submissions
   onboarding        jsonb       NOT NULL DEFAULT '{
     "interviewScheduled": false,
+    "interviewDate": "",
     "interviewComplete": false,
     "interviewStatus": "pending",
     "interviewNotes": "",
+    "onboardingSetup": false,
+    "portalGuided": false,
+    "workflowExplained": false,
+    "onboardingComplete": false,
     "approvedAt": null,
     "deniedAt": null
   }'::jsonb,
@@ -78,6 +83,24 @@ CREATE TABLE IF NOT EXISTS public.application_lockouts (
   created_at         timestamptz DEFAULT now() NOT NULL
 );
 
+-- ---------------------------------------------------------------------------
+-- 6. Staff LOA Requests — request time away from duties
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.staff_loa_requests (
+  id                uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+  staff_file_id     uuid        NOT NULL REFERENCES public.staff_files(id) ON DELETE CASCADE,
+  requester_user_id uuid        REFERENCES auth.users(id) ON DELETE SET NULL,
+  reason            text        NOT NULL,
+  start_date        date,
+  end_date          date,
+  status            text        NOT NULL DEFAULT 'pending', -- pending | approved | denied
+  manager_note      text        DEFAULT '',
+  reviewed_by       uuid        REFERENCES auth.users(id) ON DELETE SET NULL,
+  reviewed_at       timestamptz,
+  created_at        timestamptz DEFAULT now() NOT NULL,
+  updated_at        timestamptz DEFAULT now() NOT NULL
+);
+
 -- =============================================================================
 -- Row-Level Security (RLS) — enable after reviewing for your setup
 -- =============================================================================
@@ -87,6 +110,7 @@ ALTER TABLE public.staff_feedback      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.staff_disciplinary  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.staff_activity      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.application_lockouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.staff_loa_requests  ENABLE ROW LEVEL SECURITY;
 
 -- ---------------------------------------------------------------------------
 -- Helper function — returns true if the calling user has a management role
@@ -181,6 +205,33 @@ CREATE POLICY "management_write_lockouts"
   USING (public.is_management_user())
   WITH CHECK (public.is_management_user());
 
+-- ---------------------------------------------------------------------------
+-- Policies: staff_loa_requests
+-- ---------------------------------------------------------------------------
+CREATE POLICY "management_all_on_staff_loa_requests"
+  ON public.staff_loa_requests FOR ALL
+  USING (public.is_management_user())
+  WITH CHECK (public.is_management_user());
+
+CREATE POLICY "staff_read_own_loa_requests"
+  ON public.staff_loa_requests FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.staff_files sf
+      WHERE sf.id = staff_file_id AND sf.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "staff_insert_own_loa_requests"
+  ON public.staff_loa_requests FOR INSERT
+  WITH CHECK (
+    requester_user_id = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM public.staff_files sf
+      WHERE sf.id = staff_file_id AND sf.user_id = auth.uid()
+    )
+  );
+
 -- =============================================================================
 -- Indexes (optional but recommended for performance)
 -- =============================================================================
@@ -201,3 +252,9 @@ CREATE INDEX IF NOT EXISTS idx_staff_activity_file_id
 
 CREATE INDEX IF NOT EXISTS idx_lockouts_username_expiry
   ON public.application_lockouts (lower(minecraft_username), locked_until);
+
+CREATE INDEX IF NOT EXISTS idx_staff_loa_requests_file_id
+  ON public.staff_loa_requests (staff_file_id);
+
+CREATE INDEX IF NOT EXISTS idx_staff_loa_requests_status_created
+  ON public.staff_loa_requests (status, created_at DESC);

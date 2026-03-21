@@ -288,6 +288,12 @@
           approveButton.disabled = status === 'approved';
           approveButton.addEventListener('click', async () => {
             await updateSubmissionStatus(submission.id, fullIndex, 'approved');
+            // Try to resolve the applicant's Supabase auth UUID by their Minecraft username
+            let resolvedUserId = null;
+            if (submission.minecraftUsername) {
+              const resolved = await window.resolveUserIdentifierToAuthUid?.(submission.minecraftUsername);
+              if (resolved?.ok && resolved.authUid) resolvedUserId = resolved.authUid;
+            }
             // Auto-create a staff file to start onboarding
             const fileResult = await window.createStaffFile?.({
               minecraftUsername: submission.minecraftUsername || '',
@@ -295,9 +301,11 @@
               email:             submission.email             || '',
               appliedRoleId:     selectedApp.id,
               applicationId:     submission.id,
+              userId:            resolvedUserId,
             });
             if (fileResult?.ok) {
-              setReviewStatus(`✔ Approved. Staff file created for ${submission.minecraftUsername || 'applicant'}. Open the HR Portal to continue onboarding.`);
+              const linked = resolvedUserId ? ' Account UUID auto-linked.' : ' No site account found — link UUID manually in the HR Portal.';
+              setReviewStatus(`✔ Approved. Staff file created for ${submission.minecraftUsername || 'applicant'}.${linked}`);
             } else {
               setReviewStatus('✔ Approved. Note: Staff file could not be auto-created — create one manually in the HR Portal.');
             }

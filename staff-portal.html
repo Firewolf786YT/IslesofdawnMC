@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Staff Portal — IslesOfDawnMC</title>
+    <meta name="description" content="Staff-wide portal for LOA requests and shared staff modules." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="staffPortalContent" class="staff-module-page" hidden>
+      <section class="section">
+        <div class="container">
+          <div class="card staff-module-header">
+            <p class="eyebrow">Staff Area</p>
+            <h2>Staff Portal</h2>
+            <p id="staffPortalWelcome" class="hero-text staff-module-subtitle"></p>
+          </div>
+
+          <div class="staff-module-actions">
+            <a class="btn btn-secondary" href="index.html">← Back to Home</a>
+            <a class="btn btn-secondary" href="profile.html">Open Profile</a>
+          </div>
+
+          <div class="card" style="margin-top: 1rem;">
+            <h3 style="margin: 0 0 0.4rem;">Request an LOA</h3>
+            <p class="staff-diagnostics-subtitle">Submit a Leave of Absence request if you have an emergency or cannot be active on the server.</p>
+            <form id="loaRequestForm" novalidate style="margin-top: 0.8rem;">
+              <div class="app-form-grid">
+                <label>
+                  Start Date
+                  <input id="loaStartDate" type="date" />
+                </label>
+                <label>
+                  End Date
+                  <input id="loaEndDate" type="date" />
+                </label>
+              </div>
+              <label style="display:block;margin-top:0.8rem;font-weight:600;">
+                Reason <em>*</em>
+                <textarea id="loaReason" rows="4" placeholder="Explain your LOA request..." required style="margin-top:0.4rem;width:100%;"></textarea>
+              </label>
+              <div class="staff-module-actions" style="margin-top:0.8rem;">
+                <button type="submit" class="btn btn-primary">Submit LOA Request</button>
+              </div>
+              <p class="copy-message" id="loaRequestStatus" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <div class="card" style="margin-top: 1rem;">
+            <h3 style="margin: 0 0 0.4rem;">My LOA Requests</h3>
+            <div id="myLoaRequestsList" class="hr-log-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="supabase-data.js"></script>
+    <script src="script.js"></script>
+    <script>
+      (async () => {
+        const allowed = await requireGeneralStaffAccess();
+        if (!allowed) return;
+
+        document.getElementById('staffPortalContent').hidden = false;
+
+        const user = getSession();
+        if (user) {
+          const role = getUserRole(user.uid);
+          const label = window.getRoleLabel?.(role) || role;
+          const pillClass = window.getRolePillClass?.(role) || 'role-pill role-pill-player';
+          const el = document.getElementById('staffPortalWelcome');
+          if (el) {
+            el.innerHTML = `Welcome, ${user.name || user.email}. You are signed in as <span class="${pillClass}">${label}</span>.`;
+          }
+        }
+
+        const escHtml = (str) => String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+
+        const formatDate = (isoStr) => {
+          if (!isoStr) return '—';
+          const d = new Date(isoStr);
+          return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+        };
+
+        let currentStaffFile = null;
+
+        const renderMyLoaRequests = (requests = []) => {
+          const list = document.getElementById('myLoaRequestsList');
+          if (!list) return;
+          list.innerHTML = '';
+
+          if (!requests.length) {
+            list.innerHTML = '<p class="announcement-empty">No LOA requests submitted yet.</p>';
+            return;
+          }
+
+          requests.forEach((request) => {
+            const status = String(request.status || 'pending');
+            const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+            const statusClass = status === 'approved'
+              ? 'hr-status-active'
+              : status === 'denied'
+                ? 'hr-status-denied'
+                : 'hr-status-onboarding';
+            const dates = [request.startDate, request.endDate].filter(Boolean).join(' to ') || 'No date range provided';
+
+            const item = document.createElement('div');
+            item.className = 'hr-log-entry';
+            item.innerHTML = `
+              <div class="hr-log-entry-header">
+                <span class="hr-status-badge ${escHtml(statusClass)}">${escHtml(statusLabel)}</span>
+                <span class="hr-log-meta">${escHtml(formatDate(request.createdAt))}</span>
+              </div>
+              <p class="hr-log-body"><strong>Dates:</strong> ${escHtml(dates)}</p>
+              <p class="hr-log-body">${escHtml(request.reason || '')}</p>
+              ${request.managerNote ? `<p class="hr-log-body"><strong>Management Note:</strong> ${escHtml(request.managerNote)}</p>` : ''}
+            `;
+            list.appendChild(item);
+          });
+        };
+
+        const loadStaffFile = async () => {
+          const authUid = window.getCurrentAuthUid?.();
+          let fileResult = null;
+
+          if (authUid) {
+            fileResult = await window.getStaffFileByUserId?.(authUid);
+          }
+
+          if (!fileResult?.file) {
+            const profileResult = await window.getCurrentUserProfile?.();
+            const username = profileResult?.ok ? profileResult.profile?.username || '' : '';
+            if (username) {
+              fileResult = await window.getStaffFileByMinecraftUsername?.(username);
+            }
+          }
+
+          currentStaffFile = fileResult?.ok && fileResult?.file ? fileResult.file : null;
+        };
+
+        const loadLoaList = async () => {
+          if (!currentStaffFile?.id) {
+            renderMyLoaRequests([]);
+            return;
+          }
+
+          const loaResult = await window.getLoaRequestsByStaffFile?.(currentStaffFile.id);
+          renderMyLoaRequests(loaResult?.requests || []);
+        };
+
+        await loadStaffFile();
+        await loadLoaList();
+
+        document.getElementById('loaRequestForm')?.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const statusEl = document.getElementById('loaRequestStatus');
+          const reason = (document.getElementById('loaReason')?.value || '').trim();
+          const startDate = document.getElementById('loaStartDate')?.value || null;
+          const endDate = document.getElementById('loaEndDate')?.value || null;
+
+          if (!currentStaffFile?.id) {
+            if (statusEl) { statusEl.textContent = 'No linked staff file was found for your account.'; statusEl.style.color = '#e75f5f'; }
+            return;
+          }
+          if (!reason) {
+            if (statusEl) { statusEl.textContent = 'Please provide a reason for the LOA request.'; statusEl.style.color = '#e75f5f'; }
+            return;
+          }
+
+          if (statusEl) { statusEl.textContent = 'Submitting LOA request…'; statusEl.style.color = ''; }
+
+          const createResult = await window.createLoaRequest?.({
+            staffFileId: currentStaffFile.id,
+            requesterUserId: window.getCurrentAuthUid?.() || null,
+            reason,
+            startDate,
+            endDate,
+          });
+
+          if (!createResult?.ok) {
+            if (statusEl) { statusEl.textContent = createResult?.message || 'Could not submit LOA request.'; statusEl.style.color = '#e75f5f'; }
+            return;
+          }
+
+          await window.addStaffActivity?.(currentStaffFile.id, {
+            type: 'absence',
+            content: 'Requested LOA: Pending',
+            logged_by: getSession()?.name || getSession()?.email || 'Staff',
+          });
+
+          document.getElementById('loaRequestForm')?.reset();
+          if (statusEl) { statusEl.textContent = 'LOA request submitted.'; statusEl.style.color = ''; }
+          await loadLoaList();
+        });
+      })();
+    </script>
+  </body>
+</html>

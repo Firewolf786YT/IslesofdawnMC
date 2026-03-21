@@ -71,6 +71,13 @@
                     <option value="">— None —</option>
                   </select>
                 </label>
+                  <label>
+                    Linked Account UUID
+                    <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.3rem;">
+                      <input id="hrCreateUserId" type="text" placeholder="Auto-filled or enter manually" style="flex:1;" />
+                      <button type="button" id="hrCreateLookupBtn" class="btn btn-secondary" style="white-space:nowrap;">Auto-Lookup</button>
+                    </div>
+                  </label>
               </div>
               <div class="staff-module-actions">
                 <button type="submit" class="btn btn-primary">Create File</button>
@@ -101,6 +108,29 @@
             <div id="hrFileList" class="hr-file-list"></div>
           </div>
 
+          <div class="card staff-app-review-card" style="margin-top: 1rem;">
+            <div class="staff-diagnostics-header" style="margin-bottom: 0.8rem;">
+              <h3>LOA Requests</h3>
+            </div>
+            <div class="staff-app-review-filter">
+              <div>
+                <label for="hrLoaStatusFilter">Status</label>
+                <select id="hrLoaStatusFilter">
+                  <option value="all">All Requests</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="denied">Denied</option>
+                </select>
+              </div>
+              <div>
+                <label for="hrLoaSearch">Username</label>
+                <input id="hrLoaSearch" type="text" placeholder="Search by Minecraft username" />
+              </div>
+            </div>
+            <p class="copy-message" id="hrLoaStatus" aria-live="polite"></p>
+            <div id="hrLoaList" class="hr-log-list"></div>
+          </div>
+
         </div>
       </section>
     </main>
@@ -117,6 +147,7 @@
     <script src="script.js"></script>
     <script>
       let allFiles = [];
+      let allLoaRequests = [];
 
       const setHrStatus = (msg, isError = false) => {
         const el = document.getElementById('hrPortalStatus');
@@ -220,8 +251,142 @@
         renderFileList();
       };
 
+      const renderLoaList = () => {
+        const list = document.getElementById('hrLoaList');
+        if (!list) return;
+
+        const statusFilter = document.getElementById('hrLoaStatusFilter')?.value || 'all';
+        const search = (document.getElementById('hrLoaSearch')?.value || '').trim().toLowerCase();
+
+        let visible = allLoaRequests;
+        if (statusFilter !== 'all') {
+          visible = visible.filter((request) => String(request.status || '') === statusFilter);
+        }
+        if (search) {
+          visible = visible.filter((request) => String(request.staffFile?.minecraftUsername || '').toLowerCase().includes(search));
+        }
+
+        list.innerHTML = '';
+        if (!visible.length) {
+          list.innerHTML = '<p class="announcement-empty">No LOA requests found for this filter.</p>';
+          return;
+        }
+
+        visible.forEach((request) => {
+          const status = String(request.status || 'pending');
+          const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+          const statusClass = status === 'approved'
+            ? 'hr-status-active'
+            : status === 'denied'
+              ? 'hr-status-denied'
+              : 'hr-status-onboarding';
+          const username = request.staffFile?.minecraftUsername || 'Unknown';
+          const dateRange = [request.startDate, request.endDate].filter(Boolean).join(' to ') || 'No date range provided';
+
+          const row = document.createElement('div');
+          row.className = 'hr-log-entry';
+          row.innerHTML = `
+            <div class="hr-log-entry-header">
+              <span class="hr-status-badge ${escHtml(statusClass)}">${escHtml(statusLabel)}</span>
+              <span class="hr-log-meta">${escHtml(new Date(request.createdAt).toLocaleString())}</span>
+            </div>
+            <p class="hr-log-body"><strong>${escHtml(username)}</strong> requested LOA</p>
+            <p class="hr-log-body"><strong>Dates:</strong> ${escHtml(dateRange)}</p>
+            <p class="hr-log-body">${escHtml(request.reason || '')}</p>
+            ${request.managerNote ? `<p class="hr-log-body"><strong>Management Note:</strong> ${escHtml(request.managerNote)}</p>` : ''}
+            ${status === 'pending' ? `
+              <div class="app-form-grid" style="margin-top: 0.6rem;">
+                <label>
+                  Decision Note (optional)
+                  <input type="text" id="loa-note-${escHtml(request.id)}" placeholder="Add context for this decision" />
+                </label>
+              </div>
+              <div class="staff-module-actions" style="margin-top:0.7rem;">
+                <button class="btn btn-primary" type="button" data-loa-action="approve" data-loa-id="${escHtml(request.id)}">Approve</button>
+                <button class="btn btn-secondary" type="button" data-loa-action="deny" data-loa-id="${escHtml(request.id)}">Deny</button>
+              </div>
+            ` : ''}
+          `;
+          list.appendChild(row);
+        });
+
+        list.querySelectorAll('button[data-loa-action]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            const requestId = button.getAttribute('data-loa-id');
+            const action = button.getAttribute('data-loa-action');
+            if (!requestId || !action) return;
+
+            const selected = allLoaRequests.find((request) => request.id === requestId);
+            if (!selected) return;
+
+            const noteInput = document.getElementById(`loa-note-${requestId}`);
+            const managerNote = (noteInput?.value || '').trim();
+            const statusEl = document.getElementById('hrLoaStatus');
+            if (statusEl) { statusEl.textContent = `Updating LOA request…`; statusEl.style.color = ''; }
+
+            const updateResult = await window.updateLoaRequestStatus?.(requestId, {
+              status: action === 'approve' ? 'approved' : 'denied',
+              managerNote,
+              reviewedBy: window.getCurrentAuthUid?.() || null,
+            });
+
+            if (!updateResult?.ok) {
+              if (statusEl) { statusEl.textContent = updateResult?.message || 'Could not update LOA request.'; statusEl.style.color = '#e75f5f'; }
+              return;
+            }
+
+            const nextStatusText = action === 'approve' ? 'Approved' : 'Denied';
+            if (selected.staffFileId) {
+              await window.addStaffActivity?.(selected.staffFileId, {
+                type: 'absence',
+                content: `Requested LOA: ${nextStatusText}`,
+                logged_by: getSession()?.name || getSession()?.email || 'Management',
+              });
+            }
+
+            if (statusEl) { statusEl.textContent = `LOA request ${nextStatusText.toLowerCase()}.`; statusEl.style.color = ''; }
+            await loadLoaRequests();
+          });
+        });
+      };
+
+      const loadLoaRequests = async () => {
+        const statusEl = document.getElementById('hrLoaStatus');
+        if (statusEl) { statusEl.textContent = 'Loading LOA requests…'; statusEl.style.color = ''; }
+        const result = await window.getAllLoaRequests?.();
+        if (!result?.ok) {
+          allLoaRequests = [];
+          if (statusEl) { statusEl.textContent = result?.message || 'Could not load LOA requests.'; statusEl.style.color = '#e75f5f'; }
+          renderLoaList();
+          return;
+        }
+        allLoaRequests = result.requests || [];
+        if (statusEl) { statusEl.textContent = `${allLoaRequests.length} LOA request${allLoaRequests.length === 1 ? '' : 's'} loaded.`; statusEl.style.color = ''; }
+        renderLoaList();
+      };
+
       document.getElementById('hrStatusFilter')?.addEventListener('change', renderFileList);
       document.getElementById('hrUsernameSearch')?.addEventListener('input', renderFileList);
+      document.getElementById('hrLoaStatusFilter')?.addEventListener('change', renderLoaList);
+      document.getElementById('hrLoaSearch')?.addEventListener('input', renderLoaList);
+
+      document.getElementById('hrCreateLookupBtn')?.addEventListener('click', async () => {
+        const username = (document.getElementById('hrCreateUsername')?.value || '').trim();
+        const statusEl = document.getElementById('hrCreateStatus');
+        if (!username) {
+          if (statusEl) { statusEl.textContent = 'Enter a Minecraft username first.'; statusEl.style.color = '#e75f5f'; }
+          return;
+        }
+        if (statusEl) { statusEl.textContent = 'Looking up account…'; statusEl.style.color = ''; }
+        const resolved = await window.resolveUserIdentifierToAuthUid?.(username);
+        const uidField = document.getElementById('hrCreateUserId');
+        if (resolved?.ok && resolved.authUid) {
+          if (uidField) uidField.value = resolved.authUid;
+          if (statusEl) { statusEl.textContent = `Account found: ${resolved.username || resolved.authUid}`; statusEl.style.color = ''; }
+        } else {
+          if (statusEl) { statusEl.textContent = 'No site account found for that username. You can enter the UUID manually.'; statusEl.style.color = '#e75f5f'; }
+        }
+      });
 
       document.getElementById('toggleCreatePanel')?.addEventListener('click', () => {
         document.getElementById('hrCreatePanel')?.classList.toggle('is-hidden');
@@ -241,11 +406,22 @@
         }
         if (statusEl) { statusEl.textContent = 'Creating…'; statusEl.style.color = ''; }
 
+        // Try to auto-resolve UUID if not already filled in
+        let resolvedUserId = (document.getElementById('hrCreateUserId')?.value || '').trim() || null;
+        if (!resolvedUserId) {
+          const resolved = await window.resolveUserIdentifierToAuthUid?.(username);
+          if (resolved?.ok && resolved.authUid) {
+            resolvedUserId = resolved.authUid;
+            const uidField = document.getElementById('hrCreateUserId');
+            if (uidField) uidField.value = resolvedUserId;
+          }
+        }
         const result = await window.createStaffFile?.({
           minecraftUsername: username,
           discord:      (document.getElementById('hrCreateDiscord')?.value || '').trim(),
           email:        (document.getElementById('hrCreateEmail')?.value || '').trim(),
           appliedRoleId: document.getElementById('hrCreateRole')?.value || '',
+          userId:       resolvedUserId,
         });
 
         if (!result?.ok) {
@@ -288,6 +464,7 @@
         }
 
         await loadFiles();
+        await loadLoaRequests();
       })();
     </script>
   </body>

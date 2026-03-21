@@ -212,7 +212,7 @@
         });
 
         // ── Staff file sections ────────────────────────────────────────────
-        const escHtml = (str) =>
+        const escProfile = (str) =>
           String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
         const formatDate = (isoStr) => {
@@ -252,10 +252,10 @@
             item.className = 'hr-log-entry';
             item.innerHTML = `
               <div class="hr-log-entry-header">
-                <span class="hr-log-type ${escHtml(typeCls)}">${escHtml(typeLabel)}</span>
-                <span class="hr-log-meta">${escHtml(formatDate(entry.created_at))}</span>
+                <span class="hr-log-type ${escProfile(typeCls)}">${escProfile(typeLabel)}</span>
+                <span class="hr-log-meta">${escProfile(formatDate(entry.created_at))}</span>
               </div>
-              <p class="hr-log-body">${escHtml(body)}</p>
+              <p class="hr-log-body">${escProfile(body)}</p>
             `;
             list.appendChild(item);
           });

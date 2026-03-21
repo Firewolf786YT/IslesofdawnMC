@@ -276,6 +276,21 @@
     staffDisciplinary: 'staff_disciplinary',
     staffActivity: 'staff_activity',
     lockouts: 'application_lockouts',
+    loaRequests: 'staff_loa_requests',
+  };
+
+  const DEFAULT_ONBOARDING = {
+    interviewScheduled: false,
+    interviewDate: '',
+    interviewComplete: false,
+    interviewStatus: 'pending',
+    interviewNotes: '',
+    onboardingSetup: false,
+    portalGuided: false,
+    workflowExplained: false,
+    onboardingComplete: false,
+    approvedAt: null,
+    deniedAt: null,
   };
 
   const fromDbStaffFile = (row) => ({
@@ -287,13 +302,9 @@
     appliedRoleId: row.applied_role_id || '',
     assignedRole: row.assigned_role || '',
     applicationId: row.application_id || null,
-    onboarding: row.onboarding || {
-      interviewScheduled: false,
-      interviewComplete: false,
-      interviewStatus: 'pending',
-      interviewNotes: '',
-      approvedAt: null,
-      deniedAt: null,
+    onboarding: {
+      ...DEFAULT_ONBOARDING,
+      ...(row.onboarding || {}),
     },
     notes: row.notes || '',
     isActive: row.is_active === true,
@@ -313,14 +324,7 @@
       applied_role_id: data.appliedRoleId || null,
       assigned_role: data.assignedRole || null,
       application_id: data.applicationId || null,
-      onboarding: {
-        interviewScheduled: false,
-        interviewComplete: false,
-        interviewStatus: 'pending',
-        interviewNotes: '',
-        approvedAt: null,
-        deniedAt: null,
-      },
+      onboarding: { ...DEFAULT_ONBOARDING },
       notes: data.notes || '',
       is_active: false,
     };
@@ -527,5 +531,128 @@
     }
 
     return true;
+  };
+
+  // ── Staff LOA requests ───────────────────────────────────────────────────
+
+  const fromDbLoaRequest = (row) => ({
+    id: row.id,
+    staffFileId: row.staff_file_id,
+    requesterUserId: row.requester_user_id || null,
+    reason: row.reason || '',
+    startDate: row.start_date || null,
+    endDate: row.end_date || null,
+    status: row.status || 'pending',
+    managerNote: row.manager_note || '',
+    reviewedBy: row.reviewed_by || null,
+    reviewedAt: row.reviewed_at || null,
+    createdAt: row.created_at || null,
+    updatedAt: row.updated_at || null,
+    staffFile: row.staff_files
+      ? {
+          id: row.staff_files.id,
+          minecraftUsername: row.staff_files.minecraft_username || '',
+          assignedRole: row.staff_files.assigned_role || '',
+          userId: row.staff_files.user_id || null,
+        }
+      : null,
+  });
+
+  window.createLoaRequest = async ({ staffFileId, requesterUserId, reason, startDate, endDate }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const payload = {
+      staff_file_id: staffFileId,
+      requester_user_id: requesterUserId || null,
+      reason: String(reason || '').trim(),
+      start_date: startDate || null,
+      end_date: endDate || null,
+      status: 'pending',
+      manager_note: '',
+      reviewed_by: null,
+      reviewed_at: null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await client
+      .from(HR_TABLES.loaRequests)
+      .insert([payload])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not create LOA request:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, request: fromDbLoaRequest(data) };
+  };
+
+  window.getLoaRequestsByStaffFile = async (staffFileId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', requests: [] };
+
+    const { data, error } = await client
+      .from(HR_TABLES.loaRequests)
+      .select('*')
+      .eq('staff_file_id', staffFileId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Could not fetch LOA requests:', error.message);
+      return { ok: false, message: error.message, requests: [] };
+    }
+
+    return { ok: true, requests: (data || []).map(fromDbLoaRequest) };
+  };
+
+  window.getAllLoaRequests = async () => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', requests: [] };
+
+    const { data, error } = await client
+      .from(HR_TABLES.loaRequests)
+      .select('*, staff_files(id, minecraft_username, assigned_role, user_id)')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Could not fetch all LOA requests:', error.message);
+      return { ok: false, message: error.message, requests: [] };
+    }
+
+    return { ok: true, requests: (data || []).map(fromDbLoaRequest) };
+  };
+
+  window.updateLoaRequestStatus = async (requestId, { status, managerNote, reviewedBy }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const nextStatus = String(status || '').trim().toLowerCase();
+    if (!['pending', 'approved', 'denied'].includes(nextStatus)) {
+      return { ok: false, message: 'Invalid LOA status.' };
+    }
+
+    const patch = {
+      status: nextStatus,
+      manager_note: String(managerNote || '').trim(),
+      reviewed_by: reviewedBy || null,
+      reviewed_at: nextStatus === 'pending' ? null : new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await client
+      .from(HR_TABLES.loaRequests)
+      .update(patch)
+      .eq('id', requestId)
+      .select('*, staff_files(id, minecraft_username, assigned_role, user_id)')
+      .single();
+
+    if (error) {
+      console.warn('Could not update LOA status:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, request: fromDbLoaRequest(data) };
   };
 })();
