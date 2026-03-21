@@ -292,7 +292,6 @@ const upsertUserRoleByAuthUid = async (userIdOrSessionUidOrUsername, role) => {
 
 window.listUserRoles = listUserRoles;
 window.upsertUserRoleByAuthUid = upsertUserRoleByAuthUid;
-window.resolveUserIdentifierToAuthUid = resolveUserIdentifierToAuthUid;
 window.getSession = getSession;
 window.getUserRole = getUserRole;
 window.normalizeAuthUid = normalizeAuthUid;
@@ -452,6 +451,8 @@ const resolveUserIdentifierToAuthUid = async (value) => {
 
   return { ok: true, authUid: data.user_id, username: data.username || usernameCheck.username };
 };
+
+window.resolveUserIdentifierToAuthUid = resolveUserIdentifierToAuthUid;
 
 const updateStoredSessionProfile = (username) => {
   const sessionUser = getSession();
