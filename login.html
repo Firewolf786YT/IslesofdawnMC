@@ -152,16 +152,54 @@
           password: loginPassword.value,
         });
 
+        const REQUIRED_AUTH_APIS = [
+          'loginWithGoogle',
+          'loginWithDiscord',
+          'signInWithEmailPassword',
+          'createAccountWithEmailPassword',
+          'finishLogin',
+          'syncSessionFromSupabase',
+          'getSession',
+          'handleOAuthCallback',
+        ];
+
+        const getMissingAuthApis = () => REQUIRED_AUTH_APIS.filter((name) => typeof window[name] !== 'function');
+
+        const reloadAuthScriptOnce = async () => {
+          if (window.__authScriptReloadAttempted) return;
+          window.__authScriptReloadAttempted = true;
+
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = `auth.js?v=${Date.now()}`;
+            script.async = false;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Could not reload auth.js'));
+            document.head.appendChild(script);
+          });
+        };
+
+        const ensureAuthApisReady = async () => {
+          let missing = getMissingAuthApis();
+          if (!missing.length) return { ok: true };
+
+          try {
+            await reloadAuthScriptOnce();
+          } catch (error) {
+            return { ok: false, missing, reloadError: error instanceof Error ? error.message : String(error || '') };
+          }
+
+          missing = getMissingAuthApis();
+          if (!missing.length) return { ok: true };
+
+          return { ok: false, missing };
+        };
+
         const wireLoginEvents = () => {
           const authApi = window;
-          if (
-            typeof authApi.loginWithGoogle !== 'function'
-            || typeof authApi.loginWithDiscord !== 'function'
-            || typeof authApi.signInWithEmailPassword !== 'function'
-            || typeof authApi.createAccountWithEmailPassword !== 'function'
-            || typeof authApi.finishLogin !== 'function'
-          ) {
-            setStatus('Auth services did not load correctly. Refresh the page and try again.');
+          const missing = getMissingAuthApis();
+          if (missing.length) {
+            setStatus(`Auth services did not load correctly. Missing: ${missing.join(', ')}.`);
             return;
           }
 
@@ -230,10 +268,18 @@
         window.showLoginOptions?.();
 
         try {
-          await syncSessionFromSupabase();
+          const readiness = await ensureAuthApisReady();
+          if (!readiness.ok) {
+            const missingLabel = readiness.missing?.length ? readiness.missing.join(', ') : 'unknown APIs';
+            const reloadLabel = readiness.reloadError ? ` Reload error: ${readiness.reloadError}` : '';
+            setStatus(`Auth services did not load correctly. Missing: ${missingLabel}.${reloadLabel}`);
+            return;
+          }
+
+          await window.syncSessionFromSupabase();
 
           // Already logged in — send straight home
-          if (getSession()) {
+          if (window.getSession()) {
             location.replace('index.html');
             return;
           }
