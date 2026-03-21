@@ -130,12 +130,14 @@ $$;
 -- Policies: staff_files
 -- ---------------------------------------------------------------------------
 -- Management can do anything
+DROP POLICY IF EXISTS "management_all_on_staff_files" ON public.staff_files;
 CREATE POLICY "management_all_on_staff_files"
   ON public.staff_files FOR ALL
   USING (public.is_management_user())
   WITH CHECK (public.is_management_user());
 
 -- Staff member can read their own file
+DROP POLICY IF EXISTS "staff_read_own_file" ON public.staff_files;
 CREATE POLICY "staff_read_own_file"
   ON public.staff_files FOR SELECT
   USING (user_id = auth.uid());
@@ -143,11 +145,13 @@ CREATE POLICY "staff_read_own_file"
 -- ---------------------------------------------------------------------------
 -- Policies: staff_feedback
 -- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS "management_all_on_staff_feedback" ON public.staff_feedback;
 CREATE POLICY "management_all_on_staff_feedback"
   ON public.staff_feedback FOR ALL
   USING (public.is_management_user())
   WITH CHECK (public.is_management_user());
 
+DROP POLICY IF EXISTS "staff_read_own_feedback" ON public.staff_feedback;
 CREATE POLICY "staff_read_own_feedback"
   ON public.staff_feedback FOR SELECT
   USING (
@@ -160,11 +164,13 @@ CREATE POLICY "staff_read_own_feedback"
 -- ---------------------------------------------------------------------------
 -- Policies: staff_disciplinary
 -- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS "management_all_on_staff_disciplinary" ON public.staff_disciplinary;
 CREATE POLICY "management_all_on_staff_disciplinary"
   ON public.staff_disciplinary FOR ALL
   USING (public.is_management_user())
   WITH CHECK (public.is_management_user());
 
+DROP POLICY IF EXISTS "staff_read_own_disciplinary" ON public.staff_disciplinary;
 CREATE POLICY "staff_read_own_disciplinary"
   ON public.staff_disciplinary FOR SELECT
   USING (
@@ -177,11 +183,13 @@ CREATE POLICY "staff_read_own_disciplinary"
 -- ---------------------------------------------------------------------------
 -- Policies: staff_activity
 -- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS "management_all_on_staff_activity" ON public.staff_activity;
 CREATE POLICY "management_all_on_staff_activity"
   ON public.staff_activity FOR ALL
   USING (public.is_management_user())
   WITH CHECK (public.is_management_user());
 
+DROP POLICY IF EXISTS "staff_read_own_activity" ON public.staff_activity;
 CREATE POLICY "staff_read_own_activity"
   ON public.staff_activity FOR SELECT
   USING (
@@ -195,11 +203,13 @@ CREATE POLICY "staff_read_own_activity"
 -- Policies: application_lockouts
 -- ---------------------------------------------------------------------------
 -- Anyone can read (needed by the public apply page to check lockouts)
+DROP POLICY IF EXISTS "public_read_lockouts" ON public.application_lockouts;
 CREATE POLICY "public_read_lockouts"
   ON public.application_lockouts FOR SELECT
   USING (true);
 
 -- Management can insert/update/delete lockouts
+DROP POLICY IF EXISTS "management_write_lockouts" ON public.application_lockouts;
 CREATE POLICY "management_write_lockouts"
   ON public.application_lockouts FOR ALL
   USING (public.is_management_user())
@@ -208,11 +218,13 @@ CREATE POLICY "management_write_lockouts"
 -- ---------------------------------------------------------------------------
 -- Policies: staff_loa_requests
 -- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS "management_all_on_staff_loa_requests" ON public.staff_loa_requests;
 CREATE POLICY "management_all_on_staff_loa_requests"
   ON public.staff_loa_requests FOR ALL
   USING (public.is_management_user())
   WITH CHECK (public.is_management_user());
 
+DROP POLICY IF EXISTS "staff_read_own_loa_requests" ON public.staff_loa_requests;
 CREATE POLICY "staff_read_own_loa_requests"
   ON public.staff_loa_requests FOR SELECT
   USING (
@@ -222,6 +234,7 @@ CREATE POLICY "staff_read_own_loa_requests"
     )
   );
 
+DROP POLICY IF EXISTS "staff_insert_own_loa_requests" ON public.staff_loa_requests;
 CREATE POLICY "staff_insert_own_loa_requests"
   ON public.staff_loa_requests FOR INSERT
   WITH CHECK (
