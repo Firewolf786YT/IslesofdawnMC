@@ -293,6 +293,8 @@ const upsertUserRoleByAuthUid = async (userIdOrSessionUidOrUsername, role) => {
 window.listUserRoles = listUserRoles;
 window.upsertUserRoleByAuthUid = upsertUserRoleByAuthUid;
 window.resolveUserIdentifierToAuthUid = resolveUserIdentifierToAuthUid;
+window.getSession = getSession;
+window.getUserRole = getUserRole;
 window.normalizeAuthUid = normalizeAuthUid;
 window.validateUsernameValue = validateUsernameValue;
 window.getRoleLabel = getRoleLabel;
@@ -1003,6 +1005,7 @@ const requireGeneralStaffAccess = async () => {
 
 window.requireStaffAccess = requireStaffAccess;
 window.requireGeneralStaffAccess = requireGeneralStaffAccess;
+window.syncSessionFromSupabase = syncSessionFromSupabase;
 
 // ── Nav auth widget ────────────────────────────────────────────────────────────
 const renderNavAuth = () => {

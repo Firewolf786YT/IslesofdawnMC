@@ -131,15 +131,24 @@
     <script src="script.js"></script>
     <script>
       (async () => {
-        await syncSessionFromSupabase();
-        const user = getSession();
+        try {
+          await window.syncSessionFromSupabase?.();
+        } catch (error) {
+          console.warn('Profile session sync failed:', error);
+        }
+
+        const user = window.getSession?.();
         if (!user) {
           sessionStorage.setItem('islesOfDawnLoginNext', location.href);
           location.replace('login.html');
           return;
         }
 
-        await syncCurrentUserRoleFromSupabase();
+        try {
+          await window.syncCurrentUserRoleFromSupabase?.();
+        } catch (error) {
+          console.warn('Profile role sync failed:', error);
+        }
         document.getElementById('profileContent').hidden = false;
 
         const profileCurrentUsername = document.getElementById('profileCurrentUsername');
@@ -176,8 +185,8 @@
         };
 
         const renderProfile = async () => {
-          const currentUser = getSession();
-          const currentRole = currentUser ? getUserRole(currentUser.uid) : 'player';
+          const currentUser = window.getSession?.();
+          const currentRole = currentUser ? (window.getUserRole?.(currentUser.uid) || 'player') : 'player';
           const profileResult = await window.getCurrentUserProfile?.();
           const currentUsername = profileResult?.ok && profileResult.profile?.username
             ? profileResult.profile.username
