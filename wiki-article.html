@@ -4,66 +4,80 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Wiki Article | Isles of Dawn MC</title>
+  <meta name="description" content="Read a published IslesOfDawnMC wiki article." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header>
-    <div class="header-content">
-      <div class="logo">Isles of Dawn MC</div>
-      <nav>
-        <a href="index.html">Home</a>
-        <a href="announcements.html">Announcements</a>
-        <a href="appeals.html">Appeals</a>
-        <a href="apply.html">Apply</a>
-        <a href="applications.html">Applications</a>
-        <a href="staff.html">Staff</a>
-        <a href="staff-portal.html">Staff Portal</a>
-        <a href="profile.html">Profile</a>
-      </nav>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+        <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+      </a>
+      <div class="nav-right">
+        <nav class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="announcements.html">Announcements</a>
+          <a href="applications.html">Applications</a>
+          <a href="appeals.html">Appeals</a>
+          <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+        </nav>
+        <div id="navAuth"></div>
+      </div>
     </div>
   </header>
 
-  <section class="hero" style="padding:2.8rem 1rem 1.6rem;">
-    <h1 id="article-title">Wiki Article</h1>
-    <p id="article-meta" style="max-width:850px; margin:0.7rem auto 0; color:var(--muted-text);">Loading article...</p>
-  </section>
-
-  <main class="staff-layout" style="margin-top:1rem;">
-    <aside class="staff-sidebar" style="display:flex; flex-direction:column; gap:1rem;">
-      <article class="staff-module" style="margin:0;">
-        <h3>Wiki Sections</h3>
-        <div id="wiki-sidebar" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
-      </article>
-      <article class="staff-module" style="margin:0;">
-        <h3>Navigation</h3>
-        <p style="color:var(--muted-text); margin:0 0 0.7rem;">Return to the full wiki index.</p>
-        <a class="btn btn-secondary" href="wiki.html">Back to Wiki Home</a>
-      </article>
-    </aside>
-
-    <section class="staff-main-content">
-      <article class="staff-module" id="article-card" style="display:none;">
-        <div class="hr-log-entry-header" style="margin-bottom:0.75rem;">
-          <span class="hr-status-badge hr-status-active">Published</span>
-          <span id="article-date" class="hr-log-meta"></span>
+  <main class="staff-module-page">
+    <section class="section">
+      <div class="container">
+        <div class="card staff-module-header">
+          <p class="eyebrow">Knowledge Base</p>
+          <h2 id="article-title">Wiki Article</h2>
+          <p id="article-meta" class="staff-module-subtitle">Loading article...</p>
         </div>
-        <div id="article-content" class="wiki-rendered-content"></div>
-      </article>
 
-      <article class="staff-module" id="article-error" style="display:none;">
-        <h3>Article Not Found</h3>
-        <p style="color:var(--muted-text); margin:0.5rem 0 1rem;">The article you requested could not be loaded, or it is no longer published.</p>
-        <a class="btn btn-secondary" href="wiki.html">Go to Wiki Home</a>
-      </article>
+        <div class="card" style="margin-top: 1rem;">
+          <div style="display:grid;grid-template-columns:minmax(220px,280px) 1fr;gap:1rem;align-items:start;">
+            <aside class="card" style="margin:0;">
+              <h3 style="margin:0 0 0.45rem;">Wiki Sections</h3>
+              <div id="wiki-sidebar" class="hr-log-list"></div>
+              <div class="staff-module-actions" style="margin-top:0.85rem;">
+                <a class="btn btn-secondary" href="wiki.html">Back to Wiki Home</a>
+              </div>
+            </aside>
+
+            <section class="card" style="margin:0;">
+              <article id="article-card" style="display:none;">
+                <div class="hr-log-entry-header" style="margin-bottom:0.75rem;">
+                  <span class="hr-status-badge hr-status-active">Published</span>
+                  <span id="article-date" class="hr-log-meta"></span>
+                </div>
+                <div id="article-content" class="wiki-rendered-content"></div>
+              </article>
+
+              <article id="article-error" style="display:none;">
+                <h3 style="margin-top:0;">Article Not Found</h3>
+                <p style="color:var(--muted); margin:0.5rem 0 1rem;">The article you requested could not be loaded, or it is no longer published.</p>
+                <a class="btn btn-secondary" href="wiki.html">Go to Wiki Home</a>
+              </article>
+            </section>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 
-  <footer>
-    &copy; 2025 Isles of Dawn MC. Not affiliated with Mojang or Microsoft.
+  <footer class="site-footer">
+    <div class="container">
+      <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+    </div>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="application-config.js"></script>
   <script src="auth.js"></script>
   <script src="supabase-data.js"></script>
   <script src="script.js"></script>
@@ -117,7 +131,7 @@
 
         groups.forEach((group) => {
           const slug = String(group.slug || '').trim();
-          const title = group.title || slug || 'Section';
+          const title = group.label || group.title || slug || 'Section';
           const wrapper = document.createElement('div');
           wrapper.className = 'hr-log-entry';
 
