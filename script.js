@@ -43,7 +43,7 @@ window.addEventListener('pageshow', (event) => {
 });
 
 window.renderWikiContentToHtml = (rawContent) => {
-  const value = String(rawContent || '');
+  const value = String(rawContent || '').replace(/\r\n?/g, '\n');
   const escapeHtml = (text) => String(text || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -51,49 +51,145 @@ window.renderWikiContentToHtml = (rawContent) => {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-  const imageTokenPattern = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/gi;
-  const segments = [];
-  let lastIndex = 0;
-  let match;
+  const isSafeUrl = (url) => /^https?:\/\//i.test(String(url || '').trim());
 
-  while ((match = imageTokenPattern.exec(value)) !== null) {
-    if (match.index > lastIndex) {
-      segments.push({ type: 'text', value: value.slice(lastIndex, match.index) });
-    }
-    segments.push({
-      type: 'image',
-      alt: match[1] || 'Wiki image',
-      src: match[2] || '',
+  const renderInline = (text) => {
+    let html = escapeHtml(text || '');
+
+    html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/gi, (_full, alt, src) => {
+      const cleanSrc = String(src || '').trim();
+      if (!isSafeUrl(cleanSrc)) return _full;
+      return `<img class="wiki-content-image wiki-content-image-inline" src="${escapeHtml(cleanSrc)}" alt="${escapeHtml(alt || 'Wiki image')}" loading="lazy" />`;
     });
-    lastIndex = match.index + match[0].length;
-  }
 
-  if (lastIndex < value.length) {
-    segments.push({ type: 'text', value: value.slice(lastIndex) });
-  }
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi, (_full, label, href) => {
+      const cleanHref = String(href || '').trim();
+      if (!isSafeUrl(cleanHref)) return escapeHtml(label || cleanHref || '');
+      return `<a href="${escapeHtml(cleanHref)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    });
 
-  if (!segments.length) {
-    segments.push({ type: 'text', value });
-  }
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+    html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
 
-  const textToHtml = (text) => {
-    const escaped = escapeHtml(text || '');
-    if (!escaped.trim()) return '';
-    const paragraphHtml = escaped
-      .split(/\n{2,}/)
-      .map((paragraph) => `<p>${paragraph.replace(/\n/g, '<br>')}</p>`)
-      .join('');
-    return paragraphHtml;
+    return html;
   };
 
-  return segments.map((segment) => {
-    if (segment.type === 'image') {
-      const safeSrc = escapeHtml(segment.src);
-      const safeAlt = escapeHtml(segment.alt || 'Wiki image');
-      return `<figure class="wiki-content-image-wrap"><img class="wiki-content-image" src="${safeSrc}" alt="${safeAlt}" loading="lazy" /></figure>`;
+  const lines = value.split('\n');
+  const out = [];
+  let paragraphBuffer = [];
+  let inCodeBlock = false;
+  let codeBuffer = [];
+  let listType = null;
+
+  const flushParagraph = () => {
+    if (!paragraphBuffer.length) return;
+    const text = paragraphBuffer.join('<br>');
+    out.push(`<p>${renderInline(text)}</p>`);
+    paragraphBuffer = [];
+  };
+
+  const closeList = () => {
+    if (!listType) return;
+    out.push(`</${listType}>`);
+    listType = null;
+  };
+
+  const flushCodeBlock = () => {
+    if (!inCodeBlock) return;
+    out.push(`<pre><code>${escapeHtml(codeBuffer.join('\n'))}</code></pre>`);
+    codeBuffer = [];
+    inCodeBlock = false;
+  };
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+
+    if (/^```/.test(trimmed)) {
+      flushParagraph();
+      closeList();
+      if (inCodeBlock) {
+        flushCodeBlock();
+      } else {
+        inCodeBlock = true;
+        codeBuffer = [];
+      }
+      return;
     }
-    return textToHtml(segment.value);
-  }).join('');
+
+    if (inCodeBlock) {
+      codeBuffer.push(line);
+      return;
+    }
+
+    if (!trimmed) {
+      flushParagraph();
+      closeList();
+      return;
+    }
+
+    if (/^(?:---|\*\*\*|___)$/.test(trimmed)) {
+      flushParagraph();
+      closeList();
+      out.push('<hr>');
+      return;
+    }
+
+    const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      flushParagraph();
+      closeList();
+      const level = headingMatch[1].length;
+      out.push(`<h${level}>${renderInline(headingMatch[2])}</h${level}>`);
+      return;
+    }
+
+    const blockquoteMatch = trimmed.match(/^>\s?(.*)$/);
+    if (blockquoteMatch) {
+      flushParagraph();
+      closeList();
+      out.push(`<blockquote>${renderInline(blockquoteMatch[1] || '')}</blockquote>`);
+      return;
+    }
+
+    const orderedMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+    if (orderedMatch) {
+      flushParagraph();
+      if (listType !== 'ol') {
+        closeList();
+        out.push('<ol>');
+        listType = 'ol';
+      }
+      out.push(`<li>${renderInline(orderedMatch[2])}</li>`);
+      return;
+    }
+
+    const unorderedMatch = trimmed.match(/^[-*]\s+(.+)$/);
+    if (unorderedMatch) {
+      flushParagraph();
+      if (listType !== 'ul') {
+        closeList();
+        out.push('<ul>');
+        listType = 'ul';
+      }
+      out.push(`<li>${renderInline(unorderedMatch[1])}</li>`);
+      return;
+    }
+
+    closeList();
+    paragraphBuffer.push(line);
+  });
+
+  flushParagraph();
+  closeList();
+  if (inCodeBlock) {
+    flushCodeBlock();
+  }
+
+  return out.join('');
 };
 
 const copyButton = document.getElementById('copyIpButton');
