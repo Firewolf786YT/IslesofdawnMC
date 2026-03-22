@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Staff Wiki Drafts — IslesOfDawnMC</title>
+    <meta name="description" content="Submit wiki drafts for manager approval." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="staffWikiContent" class="staff-module-page" hidden>
+      <section class="section">
+        <div class="container">
+          <div class="card staff-module-header">
+            <p class="eyebrow">Staff Area</p>
+            <h2>Wiki Draft Submission</h2>
+            <p class="staff-module-subtitle">Submit articles for management approval. Only approved pages appear publicly.</p>
+          </div>
+
+          <div class="staff-module-actions">
+            <a class="btn btn-secondary" href="staff-portal.html">← Back to Staff Portal</a>
+            <a class="btn btn-secondary" href="wiki.html">View Public Wiki</a>
+          </div>
+
+          <div class="card" style="margin-top: 1rem;">
+            <h3 style="margin: 0 0 0.4rem;">Create Wiki Article</h3>
+            <p class="copy-message" id="wikiEditModeStatus" aria-live="polite"></p>
+            <form id="wikiCreateForm" novalidate style="margin-top: 0.8rem;">
+              <div class="app-form-grid">
+                <label>
+                  Title <em>*</em>
+                  <input id="wikiTitle" type="text" placeholder="How to Submit an Appeal" required />
+                </label>
+                <label>
+                  Slug <em>*</em>
+                  <input id="wikiSlug" type="text" placeholder="how-to-submit-an-appeal" required />
+                </label>
+              </div>
+
+              <div class="app-form-grid" style="margin-top: 0.8rem;">
+                <label style="display:block;font-weight:600;">
+                  Short Description
+                  <textarea id="wikiExcerpt" rows="3" placeholder="One-sentence summary shown in wiki listings."></textarea>
+                </label>
+              </div>
+
+              <div class="app-form-grid" style="margin-top: 0.8rem;">
+                <label style="display:block;font-weight:600;">
+                  Article Content <em>*</em>
+                  <textarea id="wikiContent" rows="12" placeholder="Write the article content here..." required></textarea>
+                </label>
+              </div>
+
+              <div class="staff-module-actions" style="margin-top:0.8rem;">
+                <button id="wikiSubmitBtn" type="submit" class="btn btn-primary">Submit For Approval</button>
+                <button id="wikiCancelEditBtn" type="button" class="btn btn-secondary is-hidden">Cancel Edit</button>
+              </div>
+              <p class="copy-message" id="wikiCreateStatus" aria-live="polite"></p>
+            </form>
+          </div>
+
+          <div class="card" style="margin-top: 1rem;">
+            <h3 style="margin: 0 0 0.4rem;">My Wiki Submissions</h3>
+            <p class="copy-message" id="wikiMyStatus" aria-live="polite"></p>
+            <div id="wikiMyList" class="hr-log-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="supabase-data.js"></script>
+    <script src="script.js"></script>
+    <script>
+      (async () => {
+        const allowed = await requireGeneralStaffAccess();
+        if (!allowed) return;
+
+        document.getElementById('staffWikiContent').hidden = false;
+
+        const escHtml = (str) => String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+
+        const formatDate = (isoStr) => {
+          if (!isoStr) return '—';
+          const d = new Date(isoStr);
+          return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+        };
+
+        const slugify = (value) => String(value || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9-]/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+
+        const setStatus = (id, message, isError = false) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.textContent = message;
+          el.style.color = isError ? '#e75f5f' : '';
+        };
+
+        let editingArticleId = null;
+
+        const resetEditorMode = () => {
+          editingArticleId = null;
+          const form = document.getElementById('wikiCreateForm');
+          if (form) form.reset();
+          const slugInput = document.getElementById('wikiSlug');
+          if (slugInput) slugInput.dataset.touched = '0';
+          const submitBtn = document.getElementById('wikiSubmitBtn');
+          if (submitBtn) submitBtn.textContent = 'Submit For Approval';
+          document.getElementById('wikiCancelEditBtn')?.classList.add('is-hidden');
+          setStatus('wikiEditModeStatus', '');
+        };
+
+        const loadArticleIntoEditor = (article) => {
+          editingArticleId = article.id;
+          const titleEl = document.getElementById('wikiTitle');
+          const slugEl = document.getElementById('wikiSlug');
+          const excerptEl = document.getElementById('wikiExcerpt');
+          const contentEl = document.getElementById('wikiContent');
+          if (titleEl) titleEl.value = article.title || '';
+          if (slugEl) {
+            slugEl.value = article.slug || '';
+            slugEl.dataset.touched = '1';
+          }
+          if (excerptEl) excerptEl.value = article.excerpt || '';
+          if (contentEl) contentEl.value = article.content || '';
+
+          const submitBtn = document.getElementById('wikiSubmitBtn');
+          if (submitBtn) submitBtn.textContent = 'Save Edit & Resubmit';
+          document.getElementById('wikiCancelEditBtn')?.classList.remove('is-hidden');
+          setStatus('wikiEditModeStatus', 'Edit mode enabled. Saving will re-submit this article for manager approval.');
+          document.getElementById('wikiTitle')?.focus();
+        };
+
+        const renderMyArticles = (articles = []) => {
+          const list = document.getElementById('wikiMyList');
+          if (!list) return;
+          list.innerHTML = '';
+
+          if (!articles.length) {
+            list.innerHTML = '<p class="announcement-empty">No submissions yet.</p>';
+            return;
+          }
+
+          articles.forEach((article) => {
+            const status = String(article.status || 'pending');
+            const statusClass = status === 'approved'
+              ? 'hr-status-active'
+              : status === 'denied'
+                ? 'hr-status-denied'
+                : 'hr-status-onboarding';
+            const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+
+            const item = document.createElement('div');
+            item.className = 'hr-log-entry';
+            item.innerHTML = `
+              <div class="hr-log-entry-header">
+                <span class="hr-status-badge ${escHtml(statusClass)}">${escHtml(statusLabel)}</span>
+                <span class="hr-log-meta">${escHtml(formatDate(article.createdAt))}</span>
+              </div>
+              <p class="hr-log-body"><strong>${escHtml(article.title || 'Untitled')}</strong> (${escHtml(article.slug || '')})</p>
+              ${article.excerpt ? `<p class="hr-log-body">${escHtml(article.excerpt)}</p>` : ''}
+              ${article.reviewNote ? `<p class="hr-log-body"><strong>Manager Note:</strong> ${escHtml(article.reviewNote)}</p>` : ''}
+              ${(status === 'pending' || status === 'denied')
+                ? `<div class="staff-module-actions" style="margin-top:0.7rem;"><button class="btn btn-secondary" type="button" data-wiki-edit-id="${escHtml(article.id)}">Edit & Resubmit</button></div>`
+                : ''}
+            `;
+            list.appendChild(item);
+          });
+
+          list.querySelectorAll('button[data-wiki-edit-id]').forEach((button) => {
+            button.addEventListener('click', () => {
+              const articleId = button.getAttribute('data-wiki-edit-id');
+              const selected = articles.find((article) => String(article.id) === String(articleId));
+              if (!selected) return;
+              loadArticleIntoEditor(selected);
+            });
+          });
+        };
+
+        const loadMyArticles = async () => {
+          const authUid = window.getCurrentAuthUid?.();
+          if (!authUid) {
+            setStatus('wikiMyStatus', 'Could not detect your account UUID.', true);
+            renderMyArticles([]);
+            return;
+          }
+
+          setStatus('wikiMyStatus', 'Loading your submissions...');
+          const result = await window.getMyWikiArticles?.(authUid);
+          if (!result?.ok) {
+            setStatus('wikiMyStatus', result?.message || 'Could not load submissions.', true);
+            renderMyArticles([]);
+            return;
+          }
+
+          setStatus('wikiMyStatus', `${result.articles.length} submission${result.articles.length === 1 ? '' : 's'} loaded.`);
+          renderMyArticles(result.articles || []);
+        };
+
+        document.getElementById('wikiTitle')?.addEventListener('input', (event) => {
+          const slugInput = document.getElementById('wikiSlug');
+          if (!slugInput) return;
+          if (slugInput.dataset.touched === '1') return;
+          slugInput.value = slugify(event.target.value || '');
+        });
+
+        document.getElementById('wikiSlug')?.addEventListener('input', (event) => {
+          event.target.dataset.touched = '1';
+          event.target.value = slugify(event.target.value || '');
+        });
+
+        document.getElementById('wikiCancelEditBtn')?.addEventListener('click', () => {
+          resetEditorMode();
+          setStatus('wikiCreateStatus', 'Edit cancelled.');
+        });
+
+        document.getElementById('wikiCreateForm')?.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const authUid = window.getCurrentAuthUid?.();
+          const session = getSession();
+          const title = (document.getElementById('wikiTitle')?.value || '').trim();
+          const slug = slugify(document.getElementById('wikiSlug')?.value || '');
+          const excerpt = (document.getElementById('wikiExcerpt')?.value || '').trim();
+          const content = (document.getElementById('wikiContent')?.value || '').trim();
+
+          if (!authUid) {
+            setStatus('wikiCreateStatus', 'Could not detect your account UUID.', true);
+            return;
+          }
+          if (!title || !slug || !content) {
+            setStatus('wikiCreateStatus', 'Title, slug, and content are required.', true);
+            return;
+          }
+
+          const isEditing = Boolean(editingArticleId);
+          setStatus('wikiCreateStatus', isEditing ? 'Saving edit and re-submitting...' : 'Submitting for approval...');
+          const result = isEditing
+            ? await window.updateMyWikiArticle?.({
+              articleId: editingArticleId,
+              title,
+              slug,
+              excerpt,
+              content,
+              authorUserId: authUid,
+            })
+            : await window.createWikiArticle?.({
+              title,
+              slug,
+              excerpt,
+              content,
+              authorUserId: authUid,
+              authorName: session?.name || session?.email || 'Staff',
+            });
+
+          if (!result?.ok) {
+            setStatus('wikiCreateStatus', result?.message || 'Could not submit article.', true);
+            return;
+          }
+
+          resetEditorMode();
+          setStatus('wikiCreateStatus', isEditing
+            ? 'Article updated and re-submitted for manager approval.'
+            : 'Article submitted. It is now pending manager approval.');
+          await loadMyArticles();
+        });
+
+        await loadMyArticles();
+      })();
+    </script>
+  </body>
+</html>

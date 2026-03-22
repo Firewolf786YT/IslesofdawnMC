@@ -385,6 +385,7 @@
         let statusLabel = 'Onboarding';
         let statusCls   = 'hr-status-onboarding';
         if (ob.archived === true)                    { statusLabel = 'Archived';            statusCls = 'hr-status-denied';    }
+        else if (ob.onboardingComplete === true)     { statusLabel = 'Active Staff';        statusCls = 'hr-status-active';    }
         else if (ob.interviewStatus === 'approved') { statusLabel = 'Active Staff';        statusCls = 'hr-status-active';    }
         else if (ob.interviewStatus === 'denied')   { statusLabel = 'Interview Denied'; statusCls = 'hr-status-denied';    }
         else if (ob.interviewComplete)              { statusLabel = 'Awaiting Decision'; statusCls = 'hr-status-waiting';   }
@@ -549,11 +550,16 @@
           onboarding.onboardingComplete = true;
         }
 
+        if (onboarding.onboardingComplete && interviewStatus !== 'approved') {
+          setStatus('checklistStatus', 'Set Interview Status to Approved before marking onboarding complete.', true);
+          return;
+        }
+
         // Stamp timestamps on first status change
         if (interviewStatus === 'approved' && !onboarding.approvedAt) onboarding.approvedAt = nowIso;
         if (interviewStatus === 'denied'   && !onboarding.deniedAt)   onboarding.deniedAt   = nowIso;
 
-        const isActive = interviewStatus === 'approved';
+        const isActive = onboarding.onboardingComplete === true || interviewStatus === 'approved';
         const result   = await window.updateStaffFile?.(currentFileId, { onboarding, isActive });
 
         if (!result?.ok) {

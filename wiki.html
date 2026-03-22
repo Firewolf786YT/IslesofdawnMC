@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wiki — IslesOfDawnMC</title>
+    <meta name="description" content="Official IslesOfDawnMC wiki pages reviewed by management." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="staff-module-page">
+      <section class="section">
+        <div class="container">
+          <div class="card staff-module-header">
+            <p class="eyebrow">Knowledge Base</p>
+            <h2>IslesOfDawnMC Wiki</h2>
+            <p class="staff-module-subtitle">Only manager-approved pages are published here.</p>
+          </div>
+
+          <div class="card" style="margin-top: 1rem;">
+            <p class="copy-message" id="wikiPublicStatus" aria-live="polite"></p>
+            <div id="wikiPublicList" class="hr-log-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="supabase-data.js"></script>
+    <script src="script.js"></script>
+    <script>
+      (async () => {
+        const escHtml = (str) => String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+
+        const formatDate = (isoStr) => {
+          if (!isoStr) return '—';
+          const d = new Date(isoStr);
+          return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+        };
+
+        const setStatus = (message, isError = false) => {
+          const el = document.getElementById('wikiPublicStatus');
+          if (!el) return;
+          el.textContent = message;
+          el.style.color = isError ? '#e75f5f' : '';
+        };
+
+        const renderArticles = (articles = []) => {
+          const list = document.getElementById('wikiPublicList');
+          if (!list) return;
+          list.innerHTML = '';
+
+          if (!articles.length) {
+            list.innerHTML = '<p class="announcement-empty">No wiki pages are published yet.</p>';
+            return;
+          }
+
+          articles.forEach((article) => {
+            const item = document.createElement('article');
+            item.className = 'hr-log-entry';
+            item.innerHTML = `
+              <div class="hr-log-entry-header">
+                <span class="hr-status-badge hr-status-active">Published</span>
+                <span class="hr-log-meta">${escHtml(formatDate(article.publishedAt || article.createdAt))}</span>
+              </div>
+              <p class="hr-log-body"><strong>${escHtml(article.title || 'Untitled')}</strong></p>
+              ${article.excerpt ? `<p class="hr-log-body">${escHtml(article.excerpt)}</p>` : ''}
+              <details style="margin-top:0.6rem;">
+                <summary style="cursor:pointer;">Read Article</summary>
+                <div style="margin-top:0.6rem;white-space:pre-wrap;">${escHtml(article.content || '')}</div>
+              </details>
+            `;
+            list.appendChild(item);
+          });
+        };
+
+        setStatus('Loading wiki pages...');
+        const result = await window.getPublishedWikiArticles?.();
+        if (!result?.ok) {
+          setStatus(result?.message || 'Could not load wiki pages.', true);
+          renderArticles([]);
+          return;
+        }
+
+        setStatus(`${result.articles.length} published page${result.articles.length === 1 ? '' : 's'} loaded.`);
+        renderArticles(result.articles || []);
+      })();
+    </script>
+  </body>
+</html>

@@ -162,6 +162,7 @@
       const getOnboardingStatusInfo = (file) => {
         const ob = file.onboarding || {};
         if (ob.archived === true)               return { label: 'Archived', cls: 'hr-status-denied' };
+        if (ob.onboardingComplete === true)     return { label: 'Active Staff', cls: 'hr-status-active' };
         if (ob.interviewStatus === 'approved') return { label: 'Active Staff', cls: 'hr-status-active' };
         if (ob.interviewStatus === 'denied')   return { label: 'Interview Denied', cls: 'hr-status-denied' };
         if (ob.interviewComplete)              return { label: 'Awaiting Decision', cls: 'hr-status-waiting' };
@@ -185,8 +186,11 @@
         if (statusFilter !== 'all') {
           visible = visible.filter((f) => {
             const ob = f.onboarding || {};
-            if (statusFilter === 'active')     return ob.interviewStatus === 'approved';
-            if (statusFilter === 'onboarding') return ob.interviewStatus !== 'approved' && ob.interviewStatus !== 'denied';
+            const isArchived = ob.archived === true;
+            const isActiveStaff = ob.onboardingComplete === true || ob.interviewStatus === 'approved';
+            const isDenied = ob.interviewStatus === 'denied';
+            if (statusFilter === 'active')     return !isArchived && isActiveStaff;
+            if (statusFilter === 'onboarding') return !isArchived && !isActiveStaff && !isDenied;
             if (statusFilter === 'denied')     return ob.interviewStatus === 'denied';
             if (statusFilter === 'archived')   return ob.archived === true;
             return true;

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wiki Review — IslesOfDawnMC Management</title>
+    <meta name="description" content="Approve or deny pending wiki article submissions." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="wikiReviewContent" class="staff-module-page" hidden>
+      <section class="section">
+        <div class="container">
+          <div class="card staff-module-header">
+            <p class="eyebrow">Management Module</p>
+            <h2>Wiki Approval Queue</h2>
+            <p class="staff-module-subtitle">Review and approve or deny staff-submitted wiki pages.</p>
+          </div>
+
+          <div class="staff-module-actions">
+            <a class="btn btn-secondary" href="staff.html">← Back to Management Portal</a>
+            <a class="btn btn-secondary" href="wiki.html">View Public Wiki</a>
+          </div>
+
+          <div class="card" style="margin-top: 1rem;">
+            <p class="copy-message" id="wikiReviewStatus" aria-live="polite"></p>
+            <div id="wikiPendingList" class="hr-log-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="supabase-data.js"></script>
+    <script src="script.js"></script>
+    <script>
+      (async () => {
+        const allowed = await requireStaffAccess();
+        if (!allowed) return;
+
+        document.getElementById('wikiReviewContent').hidden = false;
+
+        const escHtml = (str) => String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+
+        const formatDate = (isoStr) => {
+          if (!isoStr) return '—';
+          const d = new Date(isoStr);
+          return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+        };
+
+        const setStatus = (message, isError = false) => {
+          const el = document.getElementById('wikiReviewStatus');
+          if (!el) return;
+          el.textContent = message;
+          el.style.color = isError ? '#e75f5f' : '';
+        };
+
+        const renderPending = (articles = []) => {
+          const list = document.getElementById('wikiPendingList');
+          if (!list) return;
+          list.innerHTML = '';
+
+          if (!articles.length) {
+            list.innerHTML = '<p class="announcement-empty">No pending wiki pages right now.</p>';
+            return;
+          }
+
+          articles.forEach((article) => {
+            const item = document.createElement('div');
+            item.className = 'hr-log-entry';
+            item.innerHTML = `
+              <div class="hr-log-entry-header">
+                <span class="hr-status-badge hr-status-onboarding">Pending</span>
+                <span class="hr-log-meta">${escHtml(formatDate(article.createdAt))}</span>
+              </div>
+              <p class="hr-log-body"><strong>${escHtml(article.title || 'Untitled')}</strong> (${escHtml(article.slug || '')})</p>
+              ${article.authorName ? `<p class="hr-log-body"><strong>Author:</strong> ${escHtml(article.authorName)}</p>` : ''}
+              ${article.excerpt ? `<p class="hr-log-body">${escHtml(article.excerpt)}</p>` : ''}
+              <div class="app-form-grid" style="margin-top: 0.75rem;">
+                <label>
+                  Manager Note (optional)
+                  <input type="text" id="wiki-review-note-${escHtml(article.id)}" placeholder="Reason for approval/denial" />
+                </label>
+              </div>
+              <div class="staff-module-actions" style="margin-top:0.75rem;">
+                <button class="btn btn-primary" type="button" data-wiki-action="approve" data-wiki-id="${escHtml(article.id)}">Approve</button>
+                <button class="btn btn-secondary" type="button" data-wiki-action="deny" data-wiki-id="${escHtml(article.id)}">Deny</button>
+              </div>
+              <details style="margin-top:0.75rem;">
+                <summary style="cursor:pointer;">Preview Content</summary>
+                <pre style="white-space:pre-wrap;margin-top:0.6rem;">${escHtml(article.content || '')}</pre>
+              </details>
+            `;
+            list.appendChild(item);
+          });
+
+          list.querySelectorAll('button[data-wiki-action]').forEach((button) => {
+            button.addEventListener('click', async () => {
+              const action = button.getAttribute('data-wiki-action');
+              const articleId = button.getAttribute('data-wiki-id');
+              if (!action || !articleId) return;
+
+              const nextStatus = action === 'approve' ? 'approved' : 'denied';
+              const note = (document.getElementById(`wiki-review-note-${articleId}`)?.value || '').trim();
+              const session = getSession();
+
+              setStatus('Updating wiki article...');
+              const result = await window.reviewWikiArticle?.(articleId, {
+                status: nextStatus,
+                reviewerUserId: window.getCurrentAuthUid?.() || null,
+                reviewerName: session?.name || session?.email || 'Management',
+                reviewNote: note,
+              });
+
+              if (!result?.ok) {
+                setStatus(result?.message || 'Could not update wiki article.', true);
+                return;
+              }
+
+              setStatus(`Article ${nextStatus}.`);
+              await loadQueue();
+            });
+          });
+        };
+
+        const loadQueue = async () => {
+          setStatus('Loading pending wiki pages...');
+          const result = await window.getPendingWikiArticles?.();
+          if (!result?.ok) {
+            setStatus(result?.message || 'Could not load pending queue.', true);
+            renderPending([]);
+            return;
+          }
+
+          setStatus(`${result.articles.length} pending article${result.articles.length === 1 ? '' : 's'} loaded.`);
+          renderPending(result.articles || []);
+        };
+
+        await loadQueue();
+      })();
+    </script>
+  </body>
+</html>
