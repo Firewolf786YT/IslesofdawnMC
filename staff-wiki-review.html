@@ -198,8 +198,47 @@
               if (!confirmed) return;
 
               setGroupStatus('Deleting folder...');
-              const result = await window.deleteWikiGroup?.(groupId);
+              const result = await window.deleteWikiGroupSafe?.(groupId);
               if (!result?.ok) {
+                if (result?.blockedByApprovedArticles) {
+                  const remainingGroups = wikiGroups.filter((entry) => String(entry.id) !== String(groupId));
+                  if (!remainingGroups.length) {
+                    setGroupStatus('Cannot delete this folder because there is no destination folder available for approved pages.', true);
+                    return;
+                  }
+
+                  const optionsText = remainingGroups
+                    .map((entry) => `${entry.slug} (${entry.label})`)
+                    .join(', ');
+                  const targetInput = window.prompt(
+                    `${result.message}\n\nEnter destination folder slug to move approved pages before deleting:\n${optionsText}`,
+                    remainingGroups[0]?.slug || ''
+                  );
+
+                  const targetSlug = slugify(targetInput || '');
+                  const targetGroup = remainingGroups.find((entry) => entry.slug === targetSlug);
+                  if (!targetGroup) {
+                    setGroupStatus('Folder delete cancelled. Destination slug was not recognized.', true);
+                    return;
+                  }
+
+                  setGroupStatus('Moving approved pages and deleting folder...');
+                  const moveResult = await window.moveApprovedWikiArticlesAndDeleteGroup?.({
+                    fromGroupId: groupId,
+                    toGroupId: targetGroup.id,
+                  });
+
+                  if (!moveResult?.ok) {
+                    setGroupStatus(moveResult?.message || 'Could not move pages and delete folder.', true);
+                    return;
+                  }
+
+                  await loadGroups();
+                  await loadQueue();
+                  setGroupStatus(moveResult.message || 'Folder deleted after moving approved pages.');
+                  return;
+                }
+
                 setGroupStatus(result?.message || 'Could not delete folder.', true);
                 return;
               }
@@ -256,7 +295,7 @@
               </div>
               <details style="margin-top:0.75rem;">
                 <summary style="cursor:pointer;">Preview Content</summary>
-                <pre style="white-space:pre-wrap;margin-top:0.6rem;">${escHtml(article.content || '')}</pre>
+                <div style="margin-top:0.6rem;" class="wiki-rendered-content">${window.renderWikiContentToHtml?.(article.content || '') || escHtml(article.content || '')}</div>
               </details>
             `;
             list.appendChild(item);

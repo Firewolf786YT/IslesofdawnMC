@@ -1,3 +1,29 @@
+// Ensure Wiki link appears in top nav across pages
+(function () {
+  document.querySelectorAll('.nav-links').forEach((nav) => {
+    const hasWiki = Array.from(nav.querySelectorAll('a')).some((link) => {
+      const href = String(link.getAttribute('href') || '').split('#')[0].split('?')[0];
+      return href === 'wiki.html';
+    });
+    if (hasWiki) return;
+
+    const wikiLink = document.createElement('a');
+    wikiLink.href = 'wiki.html';
+    wikiLink.textContent = 'Wiki';
+
+    const storeLink = Array.from(nav.querySelectorAll('a')).find((link) => {
+      const href = String(link.getAttribute('href') || '');
+      return href.includes('tebex.io');
+    });
+
+    if (storeLink) {
+      nav.insertBefore(wikiLink, storeLink);
+    } else {
+      nav.appendChild(wikiLink);
+    }
+  });
+})();
+
 // Highlight the nav link matching the current page
 (function () {
   const currentFile = location.pathname.split('/').pop() || 'index.html';
@@ -15,6 +41,60 @@ window.addEventListener('pageshow', (event) => {
   if (!event.persisted) return;
   window.location.reload();
 });
+
+window.renderWikiContentToHtml = (rawContent) => {
+  const value = String(rawContent || '');
+  const escapeHtml = (text) => String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const imageTokenPattern = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/gi;
+  const segments = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = imageTokenPattern.exec(value)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: 'text', value: value.slice(lastIndex, match.index) });
+    }
+    segments.push({
+      type: 'image',
+      alt: match[1] || 'Wiki image',
+      src: match[2] || '',
+    });
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < value.length) {
+    segments.push({ type: 'text', value: value.slice(lastIndex) });
+  }
+
+  if (!segments.length) {
+    segments.push({ type: 'text', value });
+  }
+
+  const textToHtml = (text) => {
+    const escaped = escapeHtml(text || '');
+    if (!escaped.trim()) return '';
+    const paragraphHtml = escaped
+      .split(/\n{2,}/)
+      .map((paragraph) => `<p>${paragraph.replace(/\n/g, '<br>')}</p>`)
+      .join('');
+    return paragraphHtml;
+  };
+
+  return segments.map((segment) => {
+    if (segment.type === 'image') {
+      const safeSrc = escapeHtml(segment.src);
+      const safeAlt = escapeHtml(segment.alt || 'Wiki image');
+      return `<figure class="wiki-content-image-wrap"><img class="wiki-content-image" src="${safeSrc}" alt="${safeAlt}" loading="lazy" /></figure>`;
+    }
+    return textToHtml(segment.value);
+  }).join('');
+};
 
 const copyButton = document.getElementById('copyIpButton');
 const serverIp = document.getElementById('serverIp');

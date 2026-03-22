@@ -152,8 +152,9 @@
           articles.forEach((article) => {
             const row = document.createElement('div');
             row.className = 'hr-log-entry';
+            const articleHref = `wiki-article.html?slug=${encodeURIComponent(article.slug || '')}`;
             row.innerHTML = `
-              <p class="hr-log-body"><strong>${escHtml(article.title || 'Untitled')}</strong></p>
+              <p class="hr-log-body"><strong><a href="${escHtml(articleHref)}">${escHtml(article.title || 'Untitled')}</a></strong></p>
               <p class="hr-log-meta">${escHtml(formatDate(article.publishedAt || article.createdAt))}</p>
             `;
             container.appendChild(row);
@@ -180,6 +181,7 @@
           scopedArticles.forEach((article) => {
             const item = document.createElement('article');
             item.className = 'hr-log-entry';
+            const articleHref = `wiki-article.html?slug=${encodeURIComponent(article.slug || '')}`;
             item.innerHTML = `
               <div class="hr-log-entry-header">
                 <span class="hr-status-badge hr-status-active">Published</span>
@@ -187,10 +189,9 @@
               </div>
               <p class="hr-log-body"><strong>${escHtml(article.title || 'Untitled')}</strong></p>
               ${article.excerpt ? `<p class="hr-log-body">${escHtml(article.excerpt)}</p>` : ''}
-              <details style="margin-top:0.6rem;">
-                <summary style="cursor:pointer;">Read Article</summary>
-                <div style="margin-top:0.6rem;white-space:pre-wrap;">${escHtml(article.content || '')}</div>
-              </details>
+              <div class="staff-module-actions" style="margin-top:0.65rem;">
+                <a class="btn btn-secondary" href="${escHtml(articleHref)}">Open Page</a>
+              </div>
             `;
             list.appendChild(item);
           });

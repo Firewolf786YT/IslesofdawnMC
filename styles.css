@@ -2901,6 +2901,81 @@ body {
   margin-top: 1rem;
 }
 
+.hr-log-form input[type='text'],
+.hr-log-form input[type='email'],
+.hr-log-form input[type='date'],
+.hr-log-form textarea,
+#editOverviewForm textarea,
+#editOverviewForm input[type='text'],
+#editOverviewForm input[type='email'],
+#editOverviewForm input[type='date'],
+#onboardingCard input[type='date'],
+#onboardingCard input[type='text'],
+#onboardingCard textarea {
+  width: 100%;
+  background: var(--bg-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.68rem 0.78rem;
+  font: inherit;
+}
+
+.hr-log-form textarea,
+#editOverviewForm textarea,
+#onboardingCard textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.hr-log-form input[type='text']::placeholder,
+.hr-log-form input[type='email']::placeholder,
+.hr-log-form textarea::placeholder,
+#editOverviewForm input[type='text']::placeholder,
+#editOverviewForm input[type='email']::placeholder,
+#editOverviewForm textarea::placeholder,
+#onboardingCard input[type='text']::placeholder,
+#onboardingCard textarea::placeholder {
+  color: var(--muted);
+}
+
+.hr-log-form input[type='text']:focus,
+.hr-log-form input[type='email']:focus,
+.hr-log-form input[type='date']:focus,
+.hr-log-form textarea:focus,
+#editOverviewForm textarea:focus,
+#editOverviewForm input[type='text']:focus,
+#editOverviewForm input[type='email']:focus,
+#editOverviewForm input[type='date']:focus,
+#onboardingCard input[type='date']:focus,
+#onboardingCard input[type='text']:focus,
+#onboardingCard textarea:focus {
+  outline: none;
+  border-color: rgba(122, 162, 255, 0.8);
+  box-shadow: 0 0 0 3px rgba(122, 162, 255, 0.2);
+}
+
+.wiki-rendered-content {
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.wiki-rendered-content p {
+  margin: 0.6rem 0;
+}
+
+.wiki-content-image-wrap {
+  margin: 0.75rem 0;
+}
+
+.wiki-content-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+
 /* Staff file sections in profile page */
 .hr-profile-section {
   margin-top: 1.5rem;

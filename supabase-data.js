@@ -1014,6 +1014,104 @@
     return { ok: true };
   };
 
+  window.deleteWikiGroupSafe = async (groupId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const { data: groupRow, error: groupError } = await client
+      .from(WIKI_GROUPS_TABLE)
+      .select('id, slug, label')
+      .eq('id', groupId)
+      .maybeSingle();
+
+    if (groupError) {
+      console.warn('Could not load wiki group for guarded delete:', groupError.message);
+      return { ok: false, message: groupError.message };
+    }
+
+    if (!groupRow?.id || !groupRow?.slug) {
+      return { ok: false, message: 'Wiki folder was not found.' };
+    }
+
+    const { data: approvedRows, error: approvedError } = await client
+      .from(WIKI_TABLE)
+      .select('id', { count: 'exact' })
+      .eq('group_slug', groupRow.slug)
+      .eq('status', 'approved');
+
+    if (approvedError) {
+      console.warn('Could not check approved wiki usage for folder delete:', approvedError.message);
+      return { ok: false, message: approvedError.message };
+    }
+
+    const approvedCount = (approvedRows || []).length;
+    if (approvedCount > 0) {
+      return {
+        ok: false,
+        message: `Cannot delete folder "${groupRow.label || groupRow.slug}" because ${approvedCount} approved page${approvedCount === 1 ? '' : 's'} are still using it.`,
+        blockedByApprovedArticles: true,
+        approvedCount,
+      };
+    }
+
+    return window.deleteWikiGroup(groupId);
+  };
+
+  window.moveApprovedWikiArticlesAndDeleteGroup = async ({ fromGroupId, toGroupId }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    if (!fromGroupId || !toGroupId) {
+      return { ok: false, message: 'Both source and destination folders are required.' };
+    }
+    if (String(fromGroupId) === String(toGroupId)) {
+      return { ok: false, message: 'Choose a different destination folder.' };
+    }
+
+    const { data: groups, error: groupError } = await client
+      .from(WIKI_GROUPS_TABLE)
+      .select('id, slug, label')
+      .in('id', [fromGroupId, toGroupId]);
+
+    if (groupError) {
+      console.warn('Could not resolve folders for move/delete:', groupError.message);
+      return { ok: false, message: groupError.message };
+    }
+
+    const fromGroup = (groups || []).find((group) => String(group.id) === String(fromGroupId));
+    const toGroup = (groups || []).find((group) => String(group.id) === String(toGroupId));
+
+    if (!fromGroup?.id || !toGroup?.id) {
+      return { ok: false, message: 'Could not resolve selected folders.' };
+    }
+
+    const { data: movedRows, error: moveError } = await client
+      .from(WIKI_TABLE)
+      .update({
+        group_slug: toGroup.slug,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('group_slug', fromGroup.slug)
+      .eq('status', 'approved')
+      .select('id');
+
+    if (moveError) {
+      console.warn('Could not move approved wiki pages:', moveError.message);
+      return { ok: false, message: moveError.message };
+    }
+
+    const deleteResult = await window.deleteWikiGroupSafe(fromGroupId);
+    if (!deleteResult?.ok) {
+      return deleteResult;
+    }
+
+    return {
+      ok: true,
+      movedCount: (movedRows || []).length,
+      message: `Moved ${(movedRows || []).length} approved page${(movedRows || []).length === 1 ? '' : 's'} to "${toGroup.label || toGroup.slug}" and deleted the folder.`,
+    };
+  };
+
   const fromDbWikiArticle = (row) => ({
     id: row.id,
     title: row.title || '',
@@ -1219,5 +1317,29 @@
     }
 
     return { ok: true, articles: (data || []).map(fromDbWikiArticle) };
+  };
+
+  window.getPublishedWikiArticleBySlug = async (slug) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', article: null };
+
+    const normalizedSlug = String(slug || '').trim().toLowerCase();
+    if (!normalizedSlug) {
+      return { ok: false, message: 'Article slug is required.', article: null };
+    }
+
+    const { data, error } = await client
+      .from(WIKI_TABLE)
+      .select('*')
+      .eq('status', 'approved')
+      .eq('slug', normalizedSlug)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Could not fetch published wiki article by slug:', error.message);
+      return { ok: false, message: error.message, article: null };
+    }
+
+    return { ok: true, article: data ? fromDbWikiArticle(data) : null };
   };
 })();

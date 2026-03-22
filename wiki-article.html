@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wiki Article | Isles of Dawn MC</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">Isles of Dawn MC</div>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="announcements.html">Announcements</a>
+        <a href="appeals.html">Appeals</a>
+        <a href="apply.html">Apply</a>
+        <a href="applications.html">Applications</a>
+        <a href="staff.html">Staff</a>
+        <a href="staff-portal.html">Staff Portal</a>
+        <a href="profile.html">Profile</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero" style="padding:2.8rem 1rem 1.6rem;">
+    <h1 id="article-title">Wiki Article</h1>
+    <p id="article-meta" style="max-width:850px; margin:0.7rem auto 0; color:var(--muted-text);">Loading article...</p>
+  </section>
+
+  <main class="staff-layout" style="margin-top:1rem;">
+    <aside class="staff-sidebar" style="display:flex; flex-direction:column; gap:1rem;">
+      <article class="staff-module" style="margin:0;">
+        <h3>Wiki Sections</h3>
+        <div id="wiki-sidebar" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
+      </article>
+      <article class="staff-module" style="margin:0;">
+        <h3>Navigation</h3>
+        <p style="color:var(--muted-text); margin:0 0 0.7rem;">Return to the full wiki index.</p>
+        <a class="btn btn-secondary" href="wiki.html">Back to Wiki Home</a>
+      </article>
+    </aside>
+
+    <section class="staff-main-content">
+      <article class="staff-module" id="article-card" style="display:none;">
+        <div class="hr-log-entry-header" style="margin-bottom:0.75rem;">
+          <span class="hr-status-badge hr-status-active">Published</span>
+          <span id="article-date" class="hr-log-meta"></span>
+        </div>
+        <div id="article-content" class="wiki-rendered-content"></div>
+      </article>
+
+      <article class="staff-module" id="article-error" style="display:none;">
+        <h3>Article Not Found</h3>
+        <p style="color:var(--muted-text); margin:0.5rem 0 1rem;">The article you requested could not be loaded, or it is no longer published.</p>
+        <a class="btn btn-secondary" href="wiki.html">Go to Wiki Home</a>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    &copy; 2025 Isles of Dawn MC. Not affiliated with Mojang or Microsoft.
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="application-config.js"></script>
+  <script src="auth.js"></script>
+  <script src="supabase-data.js"></script>
+  <script src="script.js"></script>
+  <script>
+    (function () {
+      const sidebarEl = document.getElementById('wiki-sidebar');
+      const articleCardEl = document.getElementById('article-card');
+      const articleErrorEl = document.getElementById('article-error');
+      const articleTitleEl = document.getElementById('article-title');
+      const articleMetaEl = document.getElementById('article-meta');
+      const articleDateEl = document.getElementById('article-date');
+      const articleContentEl = document.getElementById('article-content');
+
+      function escHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function formatDate(value) {
+        if (!value) return 'Unknown';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return 'Unknown';
+        return date.toLocaleString();
+      }
+
+      function parseQuerySlug() {
+        const params = new URLSearchParams(window.location.search || '');
+        const slug = (params.get('slug') || '').trim();
+        return slug;
+      }
+
+      function buildSidebar(groups, articles, activeSlug) {
+        if (!sidebarEl) return;
+        sidebarEl.innerHTML = '';
+
+        if (!Array.isArray(groups) || !groups.length) {
+          sidebarEl.innerHTML = '<p style="color:var(--muted-text); margin:0;">No wiki sections yet.</p>';
+          return;
+        }
+
+        const grouped = new Map();
+        (Array.isArray(articles) ? articles : []).forEach((article) => {
+          const key = (article.groupSlug || article.group_slug || 'guides').trim() || 'guides';
+          if (!grouped.has(key)) grouped.set(key, []);
+          grouped.get(key).push(article);
+        });
+
+        groups.forEach((group) => {
+          const slug = String(group.slug || '').trim();
+          const title = group.title || slug || 'Section';
+          const wrapper = document.createElement('div');
+          wrapper.className = 'hr-log-entry';
+
+          const sectionArticles = grouped.get(slug) || [];
+          const entriesHtml = sectionArticles.length
+            ? sectionArticles.map((article) => {
+                const articleSlug = String(article.slug || '').trim();
+                const href = `wiki-article.html?slug=${encodeURIComponent(articleSlug)}`;
+                const activeStyle = articleSlug === activeSlug
+                  ? ' style="font-weight:700; text-decoration:underline;"'
+                  : '';
+                return `<li><a href="${escHtml(href)}"${activeStyle}>${escHtml(article.title || 'Untitled')}</a></li>`;
+              }).join('')
+            : '<li style="color:var(--muted-text);">No published pages</li>';
+
+          wrapper.innerHTML = `
+            <p class="hr-log-body" style="margin-bottom:0.35rem;"><strong>${escHtml(title)}</strong></p>
+            <ul style="margin:0; padding-left:1.1rem; display:flex; flex-direction:column; gap:0.2rem;">${entriesHtml}</ul>
+          `;
+
+          sidebarEl.appendChild(wrapper);
+        });
+      }
+
+      async function loadArticlePage() {
+        const slug = parseQuerySlug();
+        if (!slug) {
+          articleMetaEl.textContent = 'Missing article link.';
+          articleErrorEl.style.display = 'block';
+          return;
+        }
+
+        const [groupsRes, allRes, articleRes] = await Promise.all([
+          window.getWikiGroups?.(),
+          window.getPublishedWikiArticles?.(),
+          window.getPublishedWikiArticleBySlug?.(slug)
+        ]);
+
+        const groups = groupsRes?.ok ? (groupsRes.groups || []) : [];
+        const allArticles = allRes?.ok ? (allRes.articles || []) : [];
+        buildSidebar(groups, allArticles, slug);
+
+        if (!articleRes?.ok || !articleRes.article) {
+          articleMetaEl.textContent = 'This article is unavailable.';
+          articleErrorEl.style.display = 'block';
+          return;
+        }
+
+        const article = articleRes.article;
+        articleTitleEl.textContent = article.title || 'Untitled';
+        articleMetaEl.textContent = article.excerpt || 'Published wiki article';
+        articleDateEl.textContent = formatDate(article.publishedAt || article.createdAt);
+        articleContentEl.innerHTML = window.renderWikiContentToHtml?.(article.content || '') || escHtml(article.content || '');
+        articleCardEl.style.display = 'block';
+      }
+
+      loadArticlePage().catch((error) => {
+        console.error('Failed to load wiki article page:', error);
+        if (articleMetaEl) articleMetaEl.textContent = 'Could not load this article right now.';
+        if (articleErrorEl) articleErrorEl.style.display = 'block';
+      });
+    })();
+  </script>
+</body>
+</html>
