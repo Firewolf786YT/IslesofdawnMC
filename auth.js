@@ -290,8 +290,46 @@ const upsertUserRoleByAuthUid = async (userIdOrSessionUidOrUsername, role) => {
   };
 };
 
+const removeUserRoleByAuthUid = async (userIdOrSessionUidOrUsername) => {
+  const resolvedIdentity = await resolveUserIdentifierToAuthUid(userIdOrSessionUidOrUsername);
+  if (!resolvedIdentity.ok) {
+    return { ok: false, message: resolvedIdentity.message || 'Enter a valid auth UUID, session UID, or username.' };
+  }
+
+  const authUid = resolvedIdentity.authUid;
+
+  const client = await getSupabaseClient();
+  if (!client) {
+    return { ok: false, message: 'Supabase is not configured yet. Add URL and anon key in auth.js.' };
+  }
+
+  const { error } = await client
+    .from(USER_ROLES_TABLE)
+    .delete()
+    .eq('user_id', authUid);
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  const currentUser = getSession();
+  const currentAuthUid = currentUser ? extractAuthUidFromSessionUid(currentUser.uid) : '';
+  if (currentUser && currentAuthUid === authUid) {
+    cacheUserRole(currentUser.uid, 'player');
+    setVerifiedCurrentRole('player');
+    renderNavAuth();
+  }
+
+  return {
+    ok: true,
+    userId: authUid,
+    message: 'Role entry removed. User now defaults to Player access.',
+  };
+};
+
 window.listUserRoles = listUserRoles;
 window.upsertUserRoleByAuthUid = upsertUserRoleByAuthUid;
+window.removeUserRoleByAuthUid = removeUserRoleByAuthUid;
 window.getSession = getSession;
 window.getUserRole = getUserRole;
 window.normalizeAuthUid = normalizeAuthUid;

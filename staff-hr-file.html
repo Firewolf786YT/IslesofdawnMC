@@ -45,7 +45,9 @@
 
           <div class="staff-module-actions">
             <a href="staff-hr.html" class="btn btn-secondary">← Back to HR Portal</a>
+            <button id="archiveStaffFileBtn" class="btn btn-secondary" type="button">Archive Staff File</button>
           </div>
+          <p class="copy-message" id="archiveStaffFileStatus" aria-live="polite"></p>
 
           <!-- ── Onboarding Checklist ─────────────────────────────────────── -->
           <div id="onboardingCard" class="card hr-onboarding-card">
@@ -382,7 +384,8 @@
         const ob = file.onboarding || {};
         let statusLabel = 'Onboarding';
         let statusCls   = 'hr-status-onboarding';
-        if (ob.interviewStatus === 'approved') { statusLabel = 'Active Staff';        statusCls = 'hr-status-active';    }
+        if (ob.archived === true)                    { statusLabel = 'Archived';            statusCls = 'hr-status-denied';    }
+        else if (ob.interviewStatus === 'approved') { statusLabel = 'Active Staff';        statusCls = 'hr-status-active';    }
         else if (ob.interviewStatus === 'denied')   { statusLabel = 'Interview Denied'; statusCls = 'hr-status-denied';    }
         else if (ob.interviewComplete)              { statusLabel = 'Awaiting Decision'; statusCls = 'hr-status-waiting';   }
         else if (ob.interviewScheduled)             { statusLabel = 'Interview Scheduled'; statusCls = 'hr-status-interview'; }
@@ -392,8 +395,12 @@
         }
         if (subtitleEl) {
           const roleTitle = window.getApplicationById?.(file.appliedRoleId)?.title || file.appliedRoleId || '';
-          subtitleEl.textContent = `Staff file${roleTitle ? ` — Applied for ${roleTitle}` : ''} · Created ${formatDate(file.createdAt)}`;
+          const archivedText = ob.archivedAt ? ` · Archived ${formatDate(ob.archivedAt)}` : '';
+          subtitleEl.textContent = `Staff file${roleTitle ? ` — Applied for ${roleTitle}` : ''} · Created ${formatDate(file.createdAt)}${archivedText}`;
         }
+
+        const archiveBtn = document.getElementById('archiveStaffFileBtn');
+        if (archiveBtn) archiveBtn.textContent = ob.archived === true ? 'Unarchive Staff File' : 'Archive Staff File';
       };
 
       const isOnboardingCompleted = (file) => {
@@ -607,6 +614,40 @@
         renderOnboarding(currentFile);
       });
 
+      document.getElementById('archiveStaffFileBtn')?.addEventListener('click', async () => {
+        if (!currentFileId || !currentFile) return;
+        const statusEl = 'archiveStaffFileStatus';
+        const onboarding = { ...(currentFile.onboarding || {}) };
+        const isArchived = onboarding.archived === true;
+        const confirmed = window.confirm(isArchived
+          ? 'Unarchive this staff file and return it to active/onboarding workflows?'
+          : 'Archive this staff file? This marks the member as no longer active.');
+        if (!confirmed) return;
+
+        setStatus(statusEl, isArchived ? 'Unarchiving…' : 'Archiving…');
+        const nextOnboarding = {
+          ...onboarding,
+          archived: !isArchived,
+          archivedAt: isArchived ? null : new Date().toISOString(),
+        };
+
+        const result = await window.updateStaffFile?.(currentFileId, {
+          onboarding: nextOnboarding,
+          isActive: isArchived ? ((currentFile.onboarding?.interviewStatus || '') === 'approved') : false,
+        });
+
+        if (!result?.ok) {
+          setStatus(statusEl, result?.message || 'Could not update archive status.', true);
+          return;
+        }
+
+        currentFile = result.file;
+        updateFileHeader(currentFile);
+        renderOverview(currentFile);
+        renderOnboarding(currentFile);
+        setStatus(statusEl, isArchived ? 'Staff file unarchived.' : 'Staff file archived.');
+      });
+
       // ── Overview Tab ────────────────────────────────────────────────────────
       const renderOverview = (file) => {
         const grid = document.getElementById('overviewInfoGrid');
@@ -625,6 +666,7 @@
           ['Assigned Role',      assignedRoleLabel],
           ['Linked Account UUID', file.userId || 'Not linked'],
           ['File Status',        file.isActive ? '✔ Active Staff Member' : 'Onboarding / Inactive'],
+          ['Archived',           file.onboarding?.archived === true ? 'Yes' : 'No'],
           ['File Created',       formatDate(file.createdAt)],
         ];
 
@@ -741,8 +783,54 @@
               <span class="hr-log-meta">${byField ? `by ${escHtml(byField)} · ` : ''}${escHtml(formatDate(entry.created_at))}</span>
             </div>
             <p class="hr-log-body">${escHtml(body)}</p>
+            <div class="staff-module-actions" style="margin-top:0.65rem;">
+              <button class="btn btn-secondary" type="button" data-log-list="${escHtml(listId)}" data-log-id="${escHtml(entry.id || '')}">Delete Entry</button>
+            </div>
           `;
           list.appendChild(item);
+        });
+
+        list.querySelectorAll('button[data-log-id]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            if (!currentFileId) return;
+            const entryId = button.getAttribute('data-log-id');
+            const entryListId = button.getAttribute('data-log-list');
+            if (!entryId || !entryListId) return;
+
+            const confirmed = window.confirm('Delete this entry? This cannot be undone.');
+            if (!confirmed) return;
+
+            let deleteFn = null;
+            let reloadFn = null;
+            let statusId = null;
+            if (entryListId === 'feedbackList') {
+              deleteFn = window.deleteStaffFeedback;
+              reloadFn = loadFeedback;
+              statusId = 'feedbackStatus';
+            } else if (entryListId === 'disciplinaryList') {
+              deleteFn = window.deleteStaffDisciplinary;
+              reloadFn = loadDisciplinary;
+              statusId = 'disciplinaryStatus';
+            } else if (entryListId === 'activityList') {
+              deleteFn = window.deleteStaffActivity;
+              reloadFn = loadActivity;
+              statusId = 'activityStatus';
+            }
+
+            if (typeof deleteFn !== 'function' || typeof reloadFn !== 'function' || !statusId) {
+              return;
+            }
+
+            setStatus(statusId, 'Deleting entry…');
+            const result = await deleteFn(entryId);
+            if (!result?.ok) {
+              setStatus(statusId, result?.message || 'Could not delete entry.', true);
+              return;
+            }
+
+            setStatus(statusId, 'Entry deleted.');
+            await reloadFn();
+          });
         });
       };
 

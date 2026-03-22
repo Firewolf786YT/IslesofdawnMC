@@ -279,6 +279,14 @@
     loaRequests: 'staff_loa_requests',
   };
 
+  const STAFF_FILE_SYNC_ROLES = new Set(['builder', 'event_team', 'media', 'qa_tester', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner']);
+
+  const normalizeRoleForSync = (role) => {
+    const normalized = String(role || '').trim().toLowerCase();
+    if (normalized === 'staff') return 'developer';
+    return normalized;
+  };
+
   const DEFAULT_ONBOARDING = {
     interviewScheduled: false,
     interviewDate: '',
@@ -326,7 +334,7 @@
       application_id: data.applicationId || null,
       onboarding: { ...DEFAULT_ONBOARDING },
       notes: data.notes || '',
-      is_active: false,
+      is_active: data.isActive === true,
     };
 
     const { data: result, error } = await client
@@ -341,6 +349,166 @@
     }
 
     return { ok: true, file: fromDbStaffFile(result) };
+  };
+
+  window.syncStaffFilesFromRoleAssignments = async () => {
+    const client = await getClient();
+    if (!client) {
+      return {
+        ok: false,
+        message: 'Supabase not configured.',
+        summary: { created: 0, linked: 0, updated: 0, skipped: 0, totalStaffUsers: 0 },
+      };
+    }
+
+    const { data: roleRows, error: roleError } = await client
+      .from('user_roles')
+      .select('user_id, role');
+
+    if (roleError) {
+      console.warn('Could not fetch user roles for staff file sync:', roleError.message);
+      return {
+        ok: false,
+        message: roleError.message,
+        summary: { created: 0, linked: 0, updated: 0, skipped: 0, totalStaffUsers: 0 },
+      };
+    }
+
+    const staffRoleRows = (roleRows || [])
+      .map((row) => ({
+        userId: row.user_id,
+        role: normalizeRoleForSync(row.role),
+      }))
+      .filter((row) => row.userId && STAFF_FILE_SYNC_ROLES.has(row.role));
+
+    const uniqueStaffUsers = Array.from(new Map(staffRoleRows.map((row) => [row.userId, row])).values());
+    const userIds = uniqueStaffUsers.map((row) => row.userId);
+
+    if (!userIds.length) {
+      return {
+        ok: true,
+        message: 'No staff-role users found in role assignments.',
+        summary: { created: 0, linked: 0, updated: 0, skipped: 0, totalStaffUsers: 0 },
+      };
+    }
+
+    const { data: profileRows, error: profileError } = await client
+      .from('user_profiles')
+      .select('user_id, username')
+      .in('user_id', userIds);
+
+    if (profileError) {
+      console.warn('Could not fetch usernames for staff file sync:', profileError.message);
+      return {
+        ok: false,
+        message: profileError.message,
+        summary: { created: 0, linked: 0, updated: 0, skipped: 0, totalStaffUsers: userIds.length },
+      };
+    }
+
+    const usernamesById = new Map((profileRows || []).map((row) => [row.user_id, String(row.username || '').trim()]));
+
+    const existing = await window.getStaffFiles?.();
+    if (!existing?.ok) {
+      return {
+        ok: false,
+        message: existing?.message || 'Could not load existing staff files.',
+        summary: { created: 0, linked: 0, updated: 0, skipped: 0, totalStaffUsers: userIds.length },
+      };
+    }
+
+    const existingFiles = existing.files || [];
+    const byUserId = new Map();
+    const byUsername = new Map();
+
+    existingFiles.forEach((file) => {
+      if (file.userId) {
+        byUserId.set(String(file.userId), file);
+      }
+      const usernameKey = String(file.minecraftUsername || '').trim().toLowerCase();
+      if (usernameKey && !byUsername.has(usernameKey)) {
+        byUsername.set(usernameKey, file);
+      }
+    });
+
+    let created = 0;
+    let linked = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    for (const person of uniqueStaffUsers) {
+      const userId = String(person.userId);
+      const role = person.role;
+      const profileUsername = String(usernamesById.get(userId) || '').trim();
+      const fallbackName = `staff-${userId.slice(0, 8)}`;
+      const minecraftUsername = profileUsername || fallbackName;
+      const usernameKey = minecraftUsername.toLowerCase();
+
+      const matchedByUser = byUserId.get(userId);
+      if (matchedByUser) {
+        const needsAssignedRole = !matchedByUser.assignedRole || matchedByUser.assignedRole !== role;
+        const needsActive = matchedByUser.isActive !== true;
+
+        if (needsAssignedRole || needsActive) {
+          const patch = {};
+          if (needsAssignedRole) patch.assignedRole = role;
+          if (needsActive) patch.isActive = true;
+          const updateResult = await window.updateStaffFile?.(matchedByUser.id, patch);
+          if (updateResult?.ok) {
+            updated += 1;
+          } else {
+            skipped += 1;
+          }
+        } else {
+          skipped += 1;
+        }
+        continue;
+      }
+
+      const matchedByUsername = byUsername.get(usernameKey);
+      if (matchedByUsername && !matchedByUsername.userId) {
+        const linkResult = await window.updateStaffFile?.(matchedByUsername.id, {
+          userId,
+          assignedRole: role,
+          isActive: true,
+        });
+
+        if (linkResult?.ok) {
+          linked += 1;
+          const linkedFile = linkResult.file;
+          if (linkedFile?.userId) byUserId.set(String(linkedFile.userId), linkedFile);
+          byUsername.set(usernameKey, linkedFile || matchedByUsername);
+        } else {
+          skipped += 1;
+        }
+        continue;
+      }
+
+      const createResult = await window.createStaffFile?.({
+        minecraftUsername,
+        userId,
+        assignedRole: role,
+        isActive: true,
+      });
+
+      if (createResult?.ok && createResult.file) {
+        created += 1;
+        const file = createResult.file;
+        if (file.userId) byUserId.set(String(file.userId), file);
+        byUsername.set(String(file.minecraftUsername || '').trim().toLowerCase(), file);
+      } else {
+        skipped += 1;
+      }
+    }
+
+    const totalTouched = created + linked + updated;
+    return {
+      ok: true,
+      message: totalTouched
+        ? `Staff file sync complete. Created ${created}, linked ${linked}, updated ${updated}, skipped ${skipped}.`
+        : `Staff file sync complete. No changes needed (${skipped} skipped).`,
+      summary: { created, linked, updated, skipped, totalStaffUsers: uniqueStaffUsers.length },
+    };
   };
 
   window.getStaffFiles = async () => {
@@ -485,12 +653,32 @@
     return { ok: true, entries: data || [] };
   };
 
+  const deleteStaffLog = async (table, entryId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const { error } = await client
+      .from(table)
+      .delete()
+      .eq('id', entryId);
+
+    if (error) {
+      console.warn(`Could not delete from ${table}:`, error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true };
+  };
+
   window.addStaffFeedback    = (fileId, entry) => insertStaffLog(HR_TABLES.staffFeedback, fileId, entry);
   window.getStaffFeedback    = (fileId) => fetchStaffLog(HR_TABLES.staffFeedback, fileId);
+  window.deleteStaffFeedback = (entryId) => deleteStaffLog(HR_TABLES.staffFeedback, entryId);
   window.addStaffDisciplinary = (fileId, entry) => insertStaffLog(HR_TABLES.staffDisciplinary, fileId, entry);
   window.getStaffDisciplinary = (fileId) => fetchStaffLog(HR_TABLES.staffDisciplinary, fileId);
+  window.deleteStaffDisciplinary = (entryId) => deleteStaffLog(HR_TABLES.staffDisciplinary, entryId);
   window.addStaffActivity    = (fileId, entry) => insertStaffLog(HR_TABLES.staffActivity, fileId, entry);
   window.getStaffActivity    = (fileId) => fetchStaffLog(HR_TABLES.staffActivity, fileId);
+  window.deleteStaffActivity = (entryId) => deleteStaffLog(HR_TABLES.staffActivity, entryId);
 
   // ── Application lockouts ──────────────────────────────────────────────────
 
@@ -654,5 +842,22 @@
     }
 
     return { ok: true, request: fromDbLoaRequest(data) };
+  };
+
+  window.deleteLoaRequest = async (requestId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const { error } = await client
+      .from(HR_TABLES.loaRequests)
+      .delete()
+      .eq('id', requestId);
+
+    if (error) {
+      console.warn('Could not delete LOA request:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true };
   };
 })();

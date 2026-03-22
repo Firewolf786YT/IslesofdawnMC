@@ -222,9 +222,32 @@
                   <span>${row.username ? row.user_id : 'No username set yet'}</span>
                   <span>Updated ${updatedAt}</span>
                 </div>
-                <span class="${window.getRolePillClass?.(row.role) || 'role-pill role-pill-player'}">${window.getRoleLabel?.(row.role) || row.role}</span>
+                <div class="staff-module-actions" style="justify-content:flex-end;">
+                  <span class="${window.getRolePillClass?.(row.role) || 'role-pill role-pill-player'}">${window.getRoleLabel?.(row.role) || row.role}</span>
+                  <button class="btn btn-secondary" type="button" data-remove-role="${row.user_id}">Remove</button>
+                </div>
               </div>`;
           }).join('');
+
+          roleList.querySelectorAll('button[data-remove-role]').forEach((button) => {
+            button.addEventListener('click', async () => {
+              const userId = button.getAttribute('data-remove-role');
+              if (!userId) return;
+              const confirmed = window.confirm('Remove this role entry? The user will default to Player access.');
+              if (!confirmed) return;
+
+              setRoleStatus('Removing role entry...');
+              const result = await window.removeUserRoleByAuthUid?.(userId);
+              if (!result?.ok) {
+                setRoleStatus(result?.message || 'Could not remove role entry.', true);
+                return;
+              }
+
+              setRoleStatus(result.message || 'Role entry removed.');
+              await refreshRoleList();
+              await runDiagnostics();
+            });
+          });
         };
 
         const setRoleStatus = (message, isError = false) => {

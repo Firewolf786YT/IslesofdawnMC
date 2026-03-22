@@ -11,6 +11,11 @@
   });
 })();
 
+window.addEventListener('pageshow', (event) => {
+  if (!event.persisted) return;
+  window.location.reload();
+});
+
 const copyButton = document.getElementById('copyIpButton');
 const serverIp = document.getElementById('serverIp');
 const copyMessage = document.getElementById('copyMessage');

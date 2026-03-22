@@ -45,7 +45,9 @@
           <div class="staff-module-actions">
             <a class="btn btn-secondary" href="staff.html">← Back to Portal</a>
             <button id="toggleCreatePanel" class="btn btn-primary" type="button">+ Create Staff File</button>
+            <button id="syncStaffFilesBtn" class="btn btn-secondary" type="button">Sync Staff Files From Roles</button>
           </div>
+          <p class="copy-message" id="hrSyncStatus" aria-live="polite"></p>
 
           <!-- Manual create panel -->
           <div id="hrCreatePanel" class="card is-hidden" style="margin-top: 1rem;">
@@ -97,6 +99,7 @@
                   <option value="active">Active Staff</option>
                   <option value="onboarding">In Onboarding</option>
                   <option value="denied">Interview Denied</option>
+                  <option value="archived">Archived</option>
                 </select>
               </div>
               <div>
@@ -158,6 +161,7 @@
 
       const getOnboardingStatusInfo = (file) => {
         const ob = file.onboarding || {};
+        if (ob.archived === true)               return { label: 'Archived', cls: 'hr-status-denied' };
         if (ob.interviewStatus === 'approved') return { label: 'Active Staff', cls: 'hr-status-active' };
         if (ob.interviewStatus === 'denied')   return { label: 'Interview Denied', cls: 'hr-status-denied' };
         if (ob.interviewComplete)              return { label: 'Awaiting Decision', cls: 'hr-status-waiting' };
@@ -184,6 +188,7 @@
             if (statusFilter === 'active')     return ob.interviewStatus === 'approved';
             if (statusFilter === 'onboarding') return ob.interviewStatus !== 'approved' && ob.interviewStatus !== 'denied';
             if (statusFilter === 'denied')     return ob.interviewStatus === 'denied';
+            if (statusFilter === 'archived')   return ob.archived === true;
             return true;
           });
         }
@@ -197,6 +202,7 @@
 
         visible.forEach((file) => {
           const { label: statusLabel, cls: statusCls } = getOnboardingStatusInfo(file);
+          const isArchived = file.onboarding?.archived === true;
           const initial          = (file.minecraftUsername[0] || '?').toUpperCase();
           const appliedRoleTitle = window.getApplicationById?.(file.appliedRoleId)?.title || file.appliedRoleId || '—';
           const assignedRole     = file.assignedRole;
@@ -221,6 +227,7 @@
             </div>
             <div class="hr-file-right">
               <span class="hr-status-badge ${escHtml(statusCls)}">${escHtml(statusLabel)}</span>
+              ${isArchived ? '<span class="hr-status-badge hr-status-denied">Archived</span>' : ''}
               ${dateText ? `<span class="hr-file-date">${escHtml(dateText)}</span>` : ''}
             </div>
           `;
@@ -306,6 +313,9 @@
                 <button class="btn btn-secondary" type="button" data-loa-action="deny" data-loa-id="${escHtml(request.id)}">Deny</button>
               </div>
             ` : ''}
+            <div class="staff-module-actions" style="margin-top:0.7rem;">
+              <button class="btn btn-secondary" type="button" data-loa-delete-id="${escHtml(request.id)}">Delete Request</button>
+            </div>
           `;
           list.appendChild(row);
         });
@@ -314,17 +324,25 @@
           button.addEventListener('click', async () => {
             const requestId = button.getAttribute('data-loa-id');
             const action = button.getAttribute('data-loa-action');
-            if (!requestId || !action) return;
+            const statusEl = document.getElementById('hrLoaStatus');
+            if (!requestId || !action) {
+              if (statusEl) { statusEl.textContent = 'Invalid LOA action payload.'; statusEl.style.color = '#e75f5f'; }
+              return;
+            }
 
-            const selected = allLoaRequests.find((request) => request.id === requestId);
-            if (!selected) return;
+            const selected = allLoaRequests.find((request) => String(request.id) === String(requestId));
 
             const noteInput = document.getElementById(`loa-note-${requestId}`);
             const managerNote = (noteInput?.value || '').trim();
-            const statusEl = document.getElementById('hrLoaStatus');
             if (statusEl) { statusEl.textContent = `Updating LOA request…`; statusEl.style.color = ''; }
 
-            const updateResult = await window.updateLoaRequestStatus?.(requestId, {
+            const updateFn = window.updateLoaRequestStatus;
+            if (typeof updateFn !== 'function') {
+              if (statusEl) { statusEl.textContent = 'LOA update service is unavailable on this page.'; statusEl.style.color = '#e75f5f'; }
+              return;
+            }
+
+            const updateResult = await updateFn(selected?.id || requestId, {
               status: action === 'approve' ? 'approved' : 'denied',
               managerNote,
               reviewedBy: window.getCurrentAuthUid?.() || null,
@@ -336,7 +354,7 @@
             }
 
             const nextStatusText = action === 'approve' ? 'Approved' : 'Denied';
-            if (selected.staffFileId) {
+            if (selected?.staffFileId) {
               await window.addStaffActivity?.(selected.staffFileId, {
                 type: 'absence',
                 content: `Requested LOA: ${nextStatusText}`,
@@ -345,6 +363,26 @@
             }
 
             if (statusEl) { statusEl.textContent = `LOA request ${nextStatusText.toLowerCase()}.`; statusEl.style.color = ''; }
+            await loadLoaRequests();
+          });
+        });
+
+        list.querySelectorAll('button[data-loa-delete-id]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            const requestId = button.getAttribute('data-loa-delete-id');
+            const statusEl = document.getElementById('hrLoaStatus');
+            if (!requestId) return;
+            const confirmed = window.confirm('Delete this LOA request? This cannot be undone.');
+            if (!confirmed) return;
+
+            if (statusEl) { statusEl.textContent = 'Deleting LOA request…'; statusEl.style.color = ''; }
+            const result = await window.deleteLoaRequest?.(requestId);
+            if (!result?.ok) {
+              if (statusEl) { statusEl.textContent = result?.message || 'Could not delete LOA request.'; statusEl.style.color = '#e75f5f'; }
+              return;
+            }
+
+            if (statusEl) { statusEl.textContent = 'LOA request deleted.'; statusEl.style.color = ''; }
             await loadLoaRequests();
           });
         });
@@ -394,6 +432,29 @@
 
       document.getElementById('cancelCreatePanel')?.addEventListener('click', () => {
         document.getElementById('hrCreatePanel')?.classList.add('is-hidden');
+      });
+
+      document.getElementById('syncStaffFilesBtn')?.addEventListener('click', async () => {
+        const statusEl = document.getElementById('hrSyncStatus');
+        if (statusEl) {
+          statusEl.textContent = 'Syncing staff files from role assignments…';
+          statusEl.style.color = '';
+        }
+
+        const result = await window.syncStaffFilesFromRoleAssignments?.();
+        if (!result?.ok) {
+          if (statusEl) {
+            statusEl.textContent = result?.message || 'Could not sync staff files.';
+            statusEl.style.color = '#e75f5f';
+          }
+          return;
+        }
+
+        if (statusEl) {
+          statusEl.textContent = result.message || 'Staff file sync complete.';
+          statusEl.style.color = '';
+        }
+        await loadFiles();
       });
 
       document.getElementById('hrCreateForm')?.addEventListener('submit', async (e) => {

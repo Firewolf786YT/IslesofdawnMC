@@ -38,7 +38,7 @@
           <div class="card profile-card">
             <p class="eyebrow">Account</p>
             <h1 class="profile-title">Profile</h1>
-            <p class="profile-subtitle">Choose the username shown across the site. Roles still stay attached to your account UUID for security.</p>
+            <p class="profile-subtitle">Choose the username shown across the site.</p>
 
             <div class="profile-grid">
               <div class="profile-panel card">
@@ -55,10 +55,6 @@
                   <div class="profile-meta-row">
                     <span>Role</span>
                     <strong id="profileRole">Loading…</strong>
-                  </div>
-                  <div class="profile-meta-row">
-                    <span>Auth UUID</span>
-                    <strong id="profileAuthUid">Loading…</strong>
                   </div>
                 </div>
               </div>
@@ -105,6 +101,23 @@
             <p class="eyebrow">Staff Member</p>
             <h2 style="margin: 0.3rem 0 0;">My Staff File</h2>
             <p class="profile-subtitle">Your staff record as maintained by the IslesOfDawnMC management team. This information is visible only to you and management.</p>
+
+            <p class="copy-message" id="profileStaffStatus" aria-live="polite"></p>
+
+            <div class="profile-meta-list" id="profileStaffFileDetails" style="margin-top: 0.85rem;" hidden>
+              <div class="profile-meta-row"><span>Minecraft Username</span><strong id="staffFileMinecraftUsername">—</strong></div>
+              <div class="profile-meta-row"><span>Discord</span><strong id="staffFileDiscord">—</strong></div>
+              <div class="profile-meta-row"><span>Email</span><strong id="staffFileEmail">—</strong></div>
+              <div class="profile-meta-row"><span>Applied Role</span><strong id="staffFileAppliedRole">—</strong></div>
+              <div class="profile-meta-row"><span>Assigned Role</span><strong id="staffFileAssignedRole">—</strong></div>
+              <div class="profile-meta-row"><span>Active Staff</span><strong id="staffFileIsActive">—</strong></div>
+              <div class="profile-meta-row"><span>Interview Date</span><strong id="staffFileInterviewDate">—</strong></div>
+              <div class="profile-meta-row"><span>Interview Status</span><strong id="staffFileInterviewStatus">—</strong></div>
+              <div class="profile-meta-row"><span>Onboarding Complete</span><strong id="staffFileOnboardingComplete">—</strong></div>
+              <div class="profile-meta-row"><span>Staff File Created</span><strong id="staffFileCreatedAt">—</strong></div>
+              <div class="profile-meta-row"><span>Last Updated</span><strong id="staffFileUpdatedAt">—</strong></div>
+              <div class="profile-meta-row"><span>Notes</span><strong id="staffFileNotes">—</strong></div>
+            </div>
 
             <div class="hr-tabs" role="tablist" style="margin-top: 1.1rem;">
               <button class="hr-tab-btn active" data-profile-tab="feedback"     role="tab" aria-selected="true">Feedback</button>
@@ -154,7 +167,6 @@
         const profileCurrentUsername = document.getElementById('profileCurrentUsername');
         const profileEmail = document.getElementById('profileEmail');
         const profileRole = document.getElementById('profileRole');
-        const profileAuthUid = document.getElementById('profileAuthUid');
         const profileUsername = document.getElementById('profileUsername');
         const profileStatus = document.getElementById('profileStatus');
         const profileForm = document.getElementById('profileForm');
@@ -195,7 +207,6 @@
           profileCurrentUsername.textContent = currentUsername;
           profileEmail.textContent = currentUser?.email || 'Not available';
           profileRole.innerHTML = `<span class="${window.getRolePillClass?.(currentRole) || 'role-pill role-pill-player'}">${window.getRoleLabel?.(currentRole) || currentRole || 'Player'}</span>`;
-          profileAuthUid.textContent = window.getCurrentAuthUid?.() || 'Unavailable';
           profileUsername.value = currentUsername;
 
           const avatarUrl = profileResult?.ok ? profileResult.profile?.avatar_url || null : null;
@@ -228,6 +239,46 @@
           if (!isoStr) return '—';
           const d = new Date(isoStr);
           return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+        };
+
+        const setProfileStaffStatus = (message, isError = false) => {
+          const el = document.getElementById('profileStaffStatus');
+          if (!el) return;
+          el.textContent = message;
+          el.style.color = isError ? '#e75f5f' : '';
+        };
+
+        const setTextById = (id, value) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.textContent = value;
+        };
+
+        const yesNo = (value) => (value === true ? 'Yes' : 'No');
+
+        const renderStaffFileDetails = (file) => {
+          const detailsWrap = document.getElementById('profileStaffFileDetails');
+          if (!detailsWrap) return;
+
+          const onboarding = file?.onboarding || {};
+          const assignedRole = file?.assignedRole
+            ? (window.getRoleLabel?.(file.assignedRole) || file.assignedRole)
+            : '—';
+
+          setTextById('staffFileMinecraftUsername', file?.minecraftUsername || '—');
+          setTextById('staffFileDiscord', file?.discord || '—');
+          setTextById('staffFileEmail', file?.email || '—');
+          setTextById('staffFileAppliedRole', file?.appliedRoleId || '—');
+          setTextById('staffFileAssignedRole', assignedRole);
+          setTextById('staffFileIsActive', yesNo(file?.isActive === true));
+          setTextById('staffFileInterviewDate', onboarding.interviewDate || '—');
+          setTextById('staffFileInterviewStatus', onboarding.interviewStatus || '—');
+          setTextById('staffFileOnboardingComplete', yesNo(onboarding.onboardingComplete === true));
+          setTextById('staffFileCreatedAt', formatDate(file?.createdAt));
+          setTextById('staffFileUpdatedAt', formatDate(file?.updatedAt));
+          setTextById('staffFileNotes', file?.notes || '—');
+
+          detailsWrap.hidden = false;
         };
 
         const LOG_TYPE_LABELS = {
@@ -283,27 +334,36 @@
           });
         });
 
-        // Try to find this user's staff file
+        // Try to find this user's staff file (staff role + UUID link required)
         const tryLoadStaffFile = async () => {
+          const sessionUser = window.getSession?.();
           const authUid = window.getCurrentAuthUid?.();
-          let fileResult = null;
-
-          if (authUid) {
-            fileResult = await window.getStaffFileByUserId?.(authUid);
+          const currentRole = sessionUser ? (window.getUserRole?.(sessionUser.uid) || 'player') : 'player';
+          const isStaffRole = window.canAccessStaffMemberPortal?.(currentRole) === true;
+          if (!isStaffRole) {
+            setProfileStaffStatus('Staff file section is available for staff roles only.');
+            return;
           }
 
-          // Fall back to matching by profile username
-          if (!fileResult?.file) {
-            const usernameText = document.getElementById('profileCurrentUsername')?.textContent;
-            if (usernameText && usernameText !== 'Loading…') {
-              fileResult = await window.getStaffFileByMinecraftUsername?.(usernameText);
-            }
+          if (!authUid) {
+            setProfileStaffStatus('Could not verify your account UUID for staff file lookup.', true);
+            return;
           }
+
+          const fileResult = await window.getStaffFileByUserId?.(authUid);
 
           if (fileResult?.ok && fileResult?.file) {
+            const matchedFile = fileResult.file;
+            if (String(matchedFile.userId || '') !== String(authUid)) {
+              setProfileStaffStatus('A staff file exists, but it is not linked to this account UUID.', true);
+              return;
+            }
+
             const fileId = fileResult.file.id;
             const staffSection = document.getElementById('profileStaffSection');
             if (staffSection) staffSection.hidden = false;
+            renderStaffFileDetails(matchedFile);
+            setProfileStaffStatus('Staff file loaded via account UUID match.');
 
             const [fbResult, discResult, actResult] = await Promise.all([
               window.getStaffFeedback?.(fileId),
@@ -313,7 +373,10 @@
             renderProfileLog('profileFeedbackList',    fbResult?.entries   || [], 'feedback');
             renderProfileLog('profileDisciplinaryList', discResult?.entries || [], 'disciplinary actions');
             renderProfileLog('profileActivityList',     actResult?.entries  || [], 'activity entries');
+            return;
           }
+
+          setProfileStaffStatus(fileResult?.message || 'No staff file is linked to your account UUID yet.', true);
         };
 
         await tryLoadStaffFile();
