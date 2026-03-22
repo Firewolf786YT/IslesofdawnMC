@@ -3,10 +3,29 @@
 -- Staff can submit pages, management approves/denies, public sees approved pages.
 -- =============================================================================
 
+CREATE TABLE IF NOT EXISTS public.wiki_groups (
+  id         uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+  label      text        NOT NULL,
+  slug       text        NOT NULL UNIQUE,
+  sort_order integer     NOT NULL DEFAULT 0,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+
+INSERT INTO public.wiki_groups (label, slug, sort_order)
+VALUES
+  ('Getting Started', 'getting-started', 10),
+  ('Server Guides', 'server-guides', 20),
+  ('Staff Guides', 'staff-guides', 30),
+  ('Rules & Policies', 'rules-policies', 40),
+  ('FAQ', 'faq', 50)
+ON CONFLICT (slug) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS public.wiki_articles (
   id               uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
   title            text        NOT NULL,
   slug             text        NOT NULL UNIQUE,
+  group_slug       text        NOT NULL DEFAULT 'getting-started',
   excerpt          text        DEFAULT '',
   content          text        NOT NULL,
   status           text        NOT NULL DEFAULT 'pending', -- pending | approved | denied
@@ -21,7 +40,34 @@ CREATE TABLE IF NOT EXISTS public.wiki_articles (
   updated_at       timestamptz DEFAULT now() NOT NULL
 );
 
+ALTER TABLE public.wiki_articles
+  ADD COLUMN IF NOT EXISTS group_slug text NOT NULL DEFAULT 'getting-started';
+
 ALTER TABLE public.wiki_articles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wiki_groups ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "management_all_on_wiki_groups" ON public.wiki_groups;
+CREATE POLICY "management_all_on_wiki_groups"
+  ON public.wiki_groups FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      WHERE user_id = auth.uid()
+        AND role IN ('admin', 'manager', 'owner')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      WHERE user_id = auth.uid()
+        AND role IN ('admin', 'manager', 'owner')
+    )
+  );
+
+DROP POLICY IF EXISTS "public_read_wiki_groups" ON public.wiki_groups;
+CREATE POLICY "public_read_wiki_groups"
+  ON public.wiki_groups FOR SELECT
+  USING (true);
 
 -- ---------------------------------------------------------------------------
 -- Management full access
@@ -88,5 +134,11 @@ CREATE POLICY "public_read_approved_wiki_articles"
 CREATE INDEX IF NOT EXISTS idx_wiki_articles_status_created
   ON public.wiki_articles (status, created_at DESC);
 
+CREATE INDEX IF NOT EXISTS idx_wiki_articles_group_status_created
+  ON public.wiki_articles (group_slug, status, created_at DESC);
+
 CREATE INDEX IF NOT EXISTS idx_wiki_articles_author_created
   ON public.wiki_articles (author_user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_wiki_groups_sort_slug
+  ON public.wiki_groups (sort_order ASC, slug ASC);

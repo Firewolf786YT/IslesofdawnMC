@@ -864,11 +864,161 @@
   // ── Wiki articles ───────────────────────────────────────────────────────
 
   const WIKI_TABLE = 'wiki_articles';
+  const WIKI_GROUPS_TABLE = 'wiki_groups';
+  const DEFAULT_WIKI_GROUPS = Object.freeze([
+    { slug: 'getting-started', label: 'Getting Started' },
+    { slug: 'server-guides', label: 'Server Guides' },
+    { slug: 'staff-guides', label: 'Staff Guides' },
+    { slug: 'rules-policies', label: 'Rules & Policies' },
+    { slug: 'faq', label: 'FAQ' },
+  ]);
+
+  let wikiGroupsCache = DEFAULT_WIKI_GROUPS.slice();
+  const WIKI_GROUP_FALLBACK = DEFAULT_WIKI_GROUPS[0].slug;
+  const normalizeWikiGroupSlug = (value) => {
+    const input = String(value || '').trim().toLowerCase();
+    return wikiGroupsCache.some((group) => group.slug === input) ? input : WIKI_GROUP_FALLBACK;
+  };
+
+  const sanitizeWikiGroupSlug = (value) => String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  const sanitizeWikiGroupLabel = (value) => String(value || '').trim();
+
+  const fromDbWikiGroup = (row) => ({
+    id: row.id,
+    slug: sanitizeWikiGroupSlug(row.slug),
+    label: sanitizeWikiGroupLabel(row.label) || sanitizeWikiGroupSlug(row.slug),
+    sortOrder: Number.isFinite(Number(row.sort_order)) ? Number(row.sort_order) : 0,
+    createdAt: row.created_at || null,
+    updatedAt: row.updated_at || null,
+  });
+
+  const sortWikiGroups = (groups) => groups
+    .slice()
+    .sort((a, b) => (a.sortOrder - b.sortOrder) || a.label.localeCompare(b.label));
+
+  const ensureWikiGroupsFallback = (groups) => {
+    const next = Array.isArray(groups) ? groups.filter((group) => group.slug && group.label) : [];
+    return next.length ? sortWikiGroups(next) : DEFAULT_WIKI_GROUPS.map((group, index) => ({
+      id: null,
+      slug: group.slug,
+      label: group.label,
+      sortOrder: index,
+      createdAt: null,
+      updatedAt: null,
+    }));
+  };
+
+  window.getWikiGroups = () => wikiGroupsCache.slice();
+
+  window.loadWikiGroups = async () => {
+    const client = await getClient();
+    if (!client) {
+      wikiGroupsCache = ensureWikiGroupsFallback([]);
+      return { ok: true, groups: wikiGroupsCache, message: 'Using default wiki groups.' };
+    }
+
+    const { data, error } = await client
+      .from(WIKI_GROUPS_TABLE)
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('label', { ascending: true });
+
+    if (error) {
+      console.warn('Could not load wiki groups, falling back to defaults:', error.message);
+      wikiGroupsCache = ensureWikiGroupsFallback([]);
+      return { ok: true, groups: wikiGroupsCache, message: 'Using default wiki groups.' };
+    }
+
+    wikiGroupsCache = ensureWikiGroupsFallback((data || []).map(fromDbWikiGroup));
+    return { ok: true, groups: wikiGroupsCache };
+  };
+
+  window.createWikiGroup = async ({ label, slug, sortOrder }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const normalizedLabel = sanitizeWikiGroupLabel(label);
+    const normalizedSlug = sanitizeWikiGroupSlug(slug || label);
+    if (!normalizedLabel || !normalizedSlug) {
+      return { ok: false, message: 'Group label and slug are required.' };
+    }
+
+    const payload = {
+      label: normalizedLabel,
+      slug: normalizedSlug,
+      sort_order: Number.isFinite(Number(sortOrder)) ? Number(sortOrder) : 0,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await client
+      .from(WIKI_GROUPS_TABLE)
+      .insert([payload])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not create wiki group:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    await window.loadWikiGroups();
+    return { ok: true, group: fromDbWikiGroup(data) };
+  };
+
+  window.updateWikiGroup = async (groupId, { label, slug, sortOrder }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const patch = { updated_at: new Date().toISOString() };
+    if (label !== undefined) patch.label = sanitizeWikiGroupLabel(label);
+    if (slug !== undefined) patch.slug = sanitizeWikiGroupSlug(slug);
+    if (sortOrder !== undefined && Number.isFinite(Number(sortOrder))) patch.sort_order = Number(sortOrder);
+
+    const { data, error } = await client
+      .from(WIKI_GROUPS_TABLE)
+      .update(patch)
+      .eq('id', groupId)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not update wiki group:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    await window.loadWikiGroups();
+    return { ok: true, group: fromDbWikiGroup(data) };
+  };
+
+  window.deleteWikiGroup = async (groupId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const { error } = await client
+      .from(WIKI_GROUPS_TABLE)
+      .delete()
+      .eq('id', groupId);
+
+    if (error) {
+      console.warn('Could not delete wiki group:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    await window.loadWikiGroups();
+    return { ok: true };
+  };
 
   const fromDbWikiArticle = (row) => ({
     id: row.id,
     title: row.title || '',
     slug: row.slug || '',
+    groupSlug: normalizeWikiGroupSlug(row.group_slug),
     excerpt: row.excerpt || '',
     content: row.content || '',
     status: row.status || 'pending',
@@ -883,7 +1033,7 @@
     updatedAt: row.updated_at || null,
   });
 
-  window.createWikiArticle = async ({ title, slug, excerpt, content, authorUserId, authorName }) => {
+  window.createWikiArticle = async ({ title, slug, groupSlug, excerpt, content, authorUserId, authorName }) => {
     const client = await getClient();
     if (!client) return { ok: false, message: 'Supabase not configured.' };
 
@@ -901,6 +1051,7 @@
     const payload = {
       title: String(title || '').trim(),
       slug: normalizedSlug,
+      group_slug: normalizeWikiGroupSlug(groupSlug),
       excerpt: String(excerpt || '').trim(),
       content: String(content || '').trim(),
       status: 'pending',
@@ -932,7 +1083,7 @@
     return { ok: true, article: fromDbWikiArticle(data) };
   };
 
-  window.updateMyWikiArticle = async ({ articleId, title, slug, excerpt, content, authorUserId }) => {
+  window.updateMyWikiArticle = async ({ articleId, title, slug, groupSlug, excerpt, content, authorUserId }) => {
     const client = await getClient();
     if (!client) return { ok: false, message: 'Supabase not configured.' };
 
@@ -952,6 +1103,7 @@
     const patch = {
       title: String(title || '').trim(),
       slug: normalizedSlug,
+      group_slug: normalizeWikiGroupSlug(groupSlug),
       excerpt: String(excerpt || '').trim(),
       content: String(content || '').trim(),
       status: 'pending',

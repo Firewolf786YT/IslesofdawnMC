@@ -47,6 +47,33 @@
           </div>
 
           <div class="card" style="margin-top: 1rem;">
+            <h3 style="margin:0 0 0.45rem;">Wiki Folders</h3>
+            <p class="staff-diagnostics-subtitle">Create and manage wiki sidebar folders.</p>
+            <form id="wikiGroupForm" novalidate style="margin-top:0.7rem;">
+              <div class="app-form-grid">
+                <label>
+                  Folder Name <em>*</em>
+                  <input id="wikiGroupLabel" type="text" placeholder="Troubleshooting" required />
+                </label>
+                <label>
+                  Slug
+                  <input id="wikiGroupSlug" type="text" placeholder="troubleshooting" />
+                </label>
+                <label>
+                  Sort Order
+                  <input id="wikiGroupSortOrder" type="number" min="0" step="1" placeholder="60" />
+                </label>
+              </div>
+              <div class="staff-module-actions" style="margin-top:0.7rem;">
+                <button id="wikiGroupSubmitBtn" class="btn btn-primary" type="submit">Create Folder</button>
+                <button id="wikiGroupCancelEditBtn" class="btn btn-secondary is-hidden" type="button">Cancel Edit</button>
+              </div>
+            </form>
+            <p class="copy-message" id="wikiGroupStatus" aria-live="polite"></p>
+            <div id="wikiGroupList" class="hr-log-list"></div>
+          </div>
+
+          <div class="card" style="margin-top: 1rem;">
             <p class="copy-message" id="wikiReviewStatus" aria-live="polite"></p>
             <div id="wikiPendingList" class="hr-log-list"></div>
           </div>
@@ -88,6 +115,113 @@
           el.style.color = isError ? '#e75f5f' : '';
         };
 
+        let wikiGroups = [];
+        let editingGroupId = null;
+
+        const setGroupStatus = (message, isError = false) => {
+          const el = document.getElementById('wikiGroupStatus');
+          if (!el) return;
+          el.textContent = message;
+          el.style.color = isError ? '#e75f5f' : '';
+        };
+
+        const slugify = (value) => String(value || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9-]/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+
+        const resetGroupEditor = () => {
+          editingGroupId = null;
+          document.getElementById('wikiGroupForm')?.reset();
+          const submitBtn = document.getElementById('wikiGroupSubmitBtn');
+          if (submitBtn) submitBtn.textContent = 'Create Folder';
+          document.getElementById('wikiGroupCancelEditBtn')?.classList.add('is-hidden');
+        };
+
+        const loadGroupIntoEditor = (group) => {
+          editingGroupId = group.id;
+          const labelEl = document.getElementById('wikiGroupLabel');
+          const slugEl = document.getElementById('wikiGroupSlug');
+          const orderEl = document.getElementById('wikiGroupSortOrder');
+          if (labelEl) labelEl.value = group.label || '';
+          if (slugEl) slugEl.value = group.slug || '';
+          if (orderEl) orderEl.value = String(group.sortOrder ?? 0);
+          const submitBtn = document.getElementById('wikiGroupSubmitBtn');
+          if (submitBtn) submitBtn.textContent = 'Save Folder';
+          document.getElementById('wikiGroupCancelEditBtn')?.classList.remove('is-hidden');
+        };
+
+        const renderWikiGroups = () => {
+          const list = document.getElementById('wikiGroupList');
+          if (!list) return;
+          list.innerHTML = '';
+
+          if (!wikiGroups.length) {
+            list.innerHTML = '<p class="announcement-empty">No folders configured yet.</p>';
+            return;
+          }
+
+          wikiGroups.forEach((group) => {
+            const item = document.createElement('div');
+            item.className = 'hr-log-entry';
+            item.innerHTML = `
+              <div class="hr-log-entry-header">
+                <span class="hr-status-badge hr-status-active">${escHtml(group.sortOrder)}</span>
+                <span class="hr-log-meta">${escHtml(group.slug)}</span>
+              </div>
+              <p class="hr-log-body"><strong>${escHtml(group.label)}</strong></p>
+              <div class="staff-module-actions" style="margin-top:0.65rem;">
+                <button class="btn btn-secondary" type="button" data-group-edit="${escHtml(group.id || '')}">Edit</button>
+                <button class="btn btn-secondary" type="button" data-group-delete="${escHtml(group.id || '')}">Delete</button>
+              </div>
+            `;
+            list.appendChild(item);
+          });
+
+          list.querySelectorAll('button[data-group-edit]').forEach((button) => {
+            button.addEventListener('click', () => {
+              const groupId = button.getAttribute('data-group-edit');
+              const group = wikiGroups.find((entry) => String(entry.id) === String(groupId));
+              if (!group) return;
+              loadGroupIntoEditor(group);
+              setGroupStatus('Edit mode enabled for selected folder.');
+            });
+          });
+
+          list.querySelectorAll('button[data-group-delete]').forEach((button) => {
+            button.addEventListener('click', async () => {
+              const groupId = button.getAttribute('data-group-delete');
+              if (!groupId) return;
+              const confirmed = window.confirm('Delete this folder? Existing pages may fall back to default folder labels.');
+              if (!confirmed) return;
+
+              setGroupStatus('Deleting folder...');
+              const result = await window.deleteWikiGroup?.(groupId);
+              if (!result?.ok) {
+                setGroupStatus(result?.message || 'Could not delete folder.', true);
+                return;
+              }
+
+              await loadGroups();
+              await loadQueue();
+              setGroupStatus('Folder deleted.');
+            });
+          });
+        };
+
+        const loadGroups = async () => {
+          const result = await window.loadWikiGroups?.();
+          wikiGroups = (result?.ok ? result.groups : null) || window.getWikiGroups?.() || [];
+          renderWikiGroups();
+        };
+
+        const getGroupLabel = (slug) => {
+          const found = wikiGroups.find((group) => group.slug === slug);
+          return found?.label || slug || 'General';
+        };
+
         const renderPending = (articles = []) => {
           const list = document.getElementById('wikiPendingList');
           if (!list) return;
@@ -107,6 +241,7 @@
                 <span class="hr-log-meta">${escHtml(formatDate(article.createdAt))}</span>
               </div>
               <p class="hr-log-body"><strong>${escHtml(article.title || 'Untitled')}</strong> (${escHtml(article.slug || '')})</p>
+              <p class="hr-log-body"><strong>Folder:</strong> ${escHtml(getGroupLabel(article.groupSlug))}</p>
               ${article.authorName ? `<p class="hr-log-body"><strong>Author:</strong> ${escHtml(article.authorName)}</p>` : ''}
               ${article.excerpt ? `<p class="hr-log-body">${escHtml(article.excerpt)}</p>` : ''}
               <div class="app-form-grid" style="margin-top: 0.75rem;">
@@ -169,6 +304,52 @@
           renderPending(result.articles || []);
         };
 
+        document.getElementById('wikiGroupLabel')?.addEventListener('input', (event) => {
+          const slugEl = document.getElementById('wikiGroupSlug');
+          if (!slugEl || slugEl.dataset.touched === '1') return;
+          slugEl.value = slugify(event.target.value || '');
+        });
+
+        document.getElementById('wikiGroupSlug')?.addEventListener('input', (event) => {
+          event.target.dataset.touched = '1';
+          event.target.value = slugify(event.target.value || '');
+        });
+
+        document.getElementById('wikiGroupCancelEditBtn')?.addEventListener('click', () => {
+          resetGroupEditor();
+          setGroupStatus('Folder edit cancelled.');
+        });
+
+        document.getElementById('wikiGroupForm')?.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const label = (document.getElementById('wikiGroupLabel')?.value || '').trim();
+          const slug = slugify(document.getElementById('wikiGroupSlug')?.value || label);
+          const sortOrderRaw = document.getElementById('wikiGroupSortOrder')?.value || '0';
+          const sortOrder = Number.isFinite(Number(sortOrderRaw)) ? Number(sortOrderRaw) : 0;
+
+          if (!label || !slug) {
+            setGroupStatus('Folder name and slug are required.', true);
+            return;
+          }
+
+          setGroupStatus(editingGroupId ? 'Saving folder...' : 'Creating folder...');
+          const wasEditing = Boolean(editingGroupId);
+          const result = editingGroupId
+            ? await window.updateWikiGroup?.(editingGroupId, { label, slug, sortOrder })
+            : await window.createWikiGroup?.({ label, slug, sortOrder });
+
+          if (!result?.ok) {
+            setGroupStatus(result?.message || 'Could not save folder.', true);
+            return;
+          }
+
+          resetGroupEditor();
+          await loadGroups();
+          await loadQueue();
+          setGroupStatus(wasEditing ? 'Folder updated.' : 'Folder created.');
+        });
+
+        await loadGroups();
         await loadQueue();
       })();
     </script>

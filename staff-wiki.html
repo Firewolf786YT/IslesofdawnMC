@@ -59,6 +59,10 @@
                   Slug <em>*</em>
                   <input id="wikiSlug" type="text" placeholder="how-to-submit-an-appeal" required />
                 </label>
+                <label>
+                  Folder <em>*</em>
+                  <select id="wikiGroup" required></select>
+                </label>
               </div>
 
               <div class="app-form-grid" style="margin-top: 0.8rem;">
@@ -133,6 +137,28 @@
           el.style.color = isError ? '#e75f5f' : '';
         };
 
+        let wikiGroups = [];
+        const wikiGroupSelect = document.getElementById('wikiGroup');
+
+        const refreshWikiGroups = async () => {
+          const loadResult = await window.loadWikiGroups?.();
+          wikiGroups = (loadResult?.ok ? loadResult.groups : null) || window.getWikiGroups?.() || [];
+          if (wikiGroupSelect) {
+            wikiGroupSelect.innerHTML = wikiGroups.map((group) =>
+              `<option value="${escHtml(group.slug)}">${escHtml(group.label)}</option>`
+            ).join('');
+
+            if (!wikiGroupSelect.value && wikiGroups[0]?.slug) {
+              wikiGroupSelect.value = wikiGroups[0].slug;
+            }
+          }
+        };
+
+        const getGroupLabel = (slug) => {
+          const found = wikiGroups.find((group) => group.slug === slug);
+          return found?.label || slug || 'General';
+        };
+
         let editingArticleId = null;
 
         const resetEditorMode = () => {
@@ -141,6 +167,7 @@
           if (form) form.reset();
           const slugInput = document.getElementById('wikiSlug');
           if (slugInput) slugInput.dataset.touched = '0';
+          if (wikiGroupSelect && wikiGroups[0]?.slug) wikiGroupSelect.value = wikiGroups[0].slug;
           const submitBtn = document.getElementById('wikiSubmitBtn');
           if (submitBtn) submitBtn.textContent = 'Submit For Approval';
           document.getElementById('wikiCancelEditBtn')?.classList.add('is-hidden');
@@ -160,6 +187,8 @@
           }
           if (excerptEl) excerptEl.value = article.excerpt || '';
           if (contentEl) contentEl.value = article.content || '';
+          const groupEl = document.getElementById('wikiGroup');
+          if (groupEl) groupEl.value = article.groupSlug || (wikiGroups[0]?.slug || 'getting-started');
 
           const submitBtn = document.getElementById('wikiSubmitBtn');
           if (submitBtn) submitBtn.textContent = 'Save Edit & Resubmit';
@@ -195,6 +224,7 @@
                 <span class="hr-log-meta">${escHtml(formatDate(article.createdAt))}</span>
               </div>
               <p class="hr-log-body"><strong>${escHtml(article.title || 'Untitled')}</strong> (${escHtml(article.slug || '')})</p>
+              <p class="hr-log-body"><strong>Folder:</strong> ${escHtml(getGroupLabel(article.groupSlug))}</p>
               ${article.excerpt ? `<p class="hr-log-body">${escHtml(article.excerpt)}</p>` : ''}
               ${article.reviewNote ? `<p class="hr-log-body"><strong>Manager Note:</strong> ${escHtml(article.reviewNote)}</p>` : ''}
               ${(status === 'pending' || status === 'denied')
@@ -257,6 +287,7 @@
           const session = getSession();
           const title = (document.getElementById('wikiTitle')?.value || '').trim();
           const slug = slugify(document.getElementById('wikiSlug')?.value || '');
+          const groupSlug = document.getElementById('wikiGroup')?.value || (wikiGroups[0]?.slug || 'getting-started');
           const excerpt = (document.getElementById('wikiExcerpt')?.value || '').trim();
           const content = (document.getElementById('wikiContent')?.value || '').trim();
 
@@ -276,6 +307,7 @@
               articleId: editingArticleId,
               title,
               slug,
+              groupSlug,
               excerpt,
               content,
               authorUserId: authUid,
@@ -283,6 +315,7 @@
             : await window.createWikiArticle?.({
               title,
               slug,
+              groupSlug,
               excerpt,
               content,
               authorUserId: authUid,
@@ -301,6 +334,7 @@
           await loadMyArticles();
         });
 
+        await refreshWikiGroups();
         await loadMyArticles();
       })();
     </script>

@@ -43,7 +43,18 @@
 
           <div class="card" style="margin-top: 1rem;">
             <p class="copy-message" id="wikiPublicStatus" aria-live="polite"></p>
-            <div id="wikiPublicList" class="hr-log-list"></div>
+            <div style="display:grid;grid-template-columns:minmax(220px,280px) 1fr;gap:1rem;align-items:start;">
+              <aside class="card" style="margin:0;">
+                <h3 style="margin:0 0 0.45rem;">Folders</h3>
+                <div id="wikiSidebarGroups" class="hr-log-list"></div>
+                <h3 style="margin:1rem 0 0.45rem;">Pages</h3>
+                <div id="wikiSidebarPages" class="hr-log-list"></div>
+              </aside>
+              <section class="card" style="margin:0;">
+                <h3 id="wikiSectionTitle" style="margin:0 0 0.45rem;">Section</h3>
+                <div id="wikiPublicList" class="hr-log-list"></div>
+              </section>
+            </div>
           </div>
         </div>
       </section>
@@ -78,17 +89,95 @@
           el.style.color = isError ? '#e75f5f' : '';
         };
 
-        const renderArticles = (articles = []) => {
-          const list = document.getElementById('wikiPublicList');
-          if (!list) return;
-          list.innerHTML = '';
+        let wikiGroups = [];
+        const publishedArticles = [];
+        let activeGroupSlug = 'getting-started';
 
+        const getGroupLabel = (slug) => {
+          const found = wikiGroups.find((group) => group.slug === slug);
+          return found?.label || slug || 'General';
+        };
+
+        const getArticlesByGroup = (groupSlug) => publishedArticles.filter((article) => article.groupSlug === groupSlug);
+
+        const loadGroups = async () => {
+          const result = await window.loadWikiGroups?.();
+          wikiGroups = (result?.ok ? result.groups : null) || window.getWikiGroups?.() || [];
+          if (!wikiGroups.length) {
+            wikiGroups = [{ slug: 'getting-started', label: 'Getting Started' }];
+          }
+          if (!wikiGroups.some((group) => group.slug === activeGroupSlug)) {
+            activeGroupSlug = wikiGroups[0].slug;
+          }
+        };
+
+        const renderSidebarGroups = () => {
+          const container = document.getElementById('wikiSidebarGroups');
+          if (!container) return;
+
+          container.innerHTML = '';
+          wikiGroups.forEach((group) => {
+            const count = getArticlesByGroup(group.slug).length;
+            const row = document.createElement('div');
+            row.className = 'hr-log-entry';
+            row.style.cursor = 'pointer';
+            row.innerHTML = `
+              <div class="hr-log-entry-header">
+                <span class="hr-status-badge ${group.slug === activeGroupSlug ? 'hr-status-active' : 'hr-status-onboarding'}">${escHtml(count)}</span>
+                <span class="hr-log-meta">${escHtml(group.slug === activeGroupSlug ? 'Selected' : 'Open')}</span>
+              </div>
+              <p class="hr-log-body"><strong>${escHtml(group.label)}</strong></p>
+            `;
+            row.addEventListener('click', () => {
+              activeGroupSlug = group.slug;
+              renderSidebarGroups();
+              renderSidebarPages();
+              renderArticles();
+            });
+            container.appendChild(row);
+          });
+        };
+
+        const renderSidebarPages = () => {
+          const container = document.getElementById('wikiSidebarPages');
+          if (!container) return;
+
+          const articles = getArticlesByGroup(activeGroupSlug);
+          container.innerHTML = '';
           if (!articles.length) {
-            list.innerHTML = '<p class="announcement-empty">No wiki pages are published yet.</p>';
+            container.innerHTML = '<p class="announcement-empty">No pages in this folder yet.</p>';
             return;
           }
 
           articles.forEach((article) => {
+            const row = document.createElement('div');
+            row.className = 'hr-log-entry';
+            row.innerHTML = `
+              <p class="hr-log-body"><strong>${escHtml(article.title || 'Untitled')}</strong></p>
+              <p class="hr-log-meta">${escHtml(formatDate(article.publishedAt || article.createdAt))}</p>
+            `;
+            container.appendChild(row);
+          });
+        };
+
+        const renderArticles = (articles = []) => {
+          const list = document.getElementById('wikiPublicList');
+          if (!list) return;
+
+          const heading = document.getElementById('wikiSectionTitle');
+          if (heading) {
+            heading.textContent = `${getGroupLabel(activeGroupSlug)} Pages`;
+          }
+
+          const scopedArticles = getArticlesByGroup(activeGroupSlug);
+          list.innerHTML = '';
+
+          if (!scopedArticles.length) {
+            list.innerHTML = '<p class="announcement-empty">No approved pages in this folder yet.</p>';
+            return;
+          }
+
+          scopedArticles.forEach((article) => {
             const item = document.createElement('article');
             item.className = 'hr-log-entry';
             item.innerHTML = `
@@ -111,12 +200,20 @@
         const result = await window.getPublishedWikiArticles?.();
         if (!result?.ok) {
           setStatus(result?.message || 'Could not load wiki pages.', true);
-          renderArticles([]);
+          renderArticles();
           return;
         }
 
-        setStatus(`${result.articles.length} published page${result.articles.length === 1 ? '' : 's'} loaded.`);
-        renderArticles(result.articles || []);
+        publishedArticles.push(...(result.articles || []));
+        await loadGroups();
+        if (publishedArticles.length && !wikiGroups.some((group) => group.slug === activeGroupSlug)) {
+          activeGroupSlug = publishedArticles[0].groupSlug || wikiGroups[0]?.slug || activeGroupSlug;
+        }
+
+        setStatus(`${publishedArticles.length} published page${publishedArticles.length === 1 ? '' : 's'} loaded.`);
+        renderSidebarGroups();
+        renderSidebarPages();
+        renderArticles();
       })();
     </script>
   </body>
