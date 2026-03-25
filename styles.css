@@ -1589,6 +1589,251 @@ body {
   gap: 0.55rem;
 }
 
+/* ── Profile Page Overhaul ──────────────────────────────── */
+.profile-hero-banner {
+  padding: 2.5rem 0 2rem;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(122, 162, 255, 0.06) 0%, transparent 100%);
+}
+
+.profile-hero-title {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.6rem, 3vw, 2rem);
+}
+
+.profile-hero-sub {
+  color: var(--muted);
+  margin: 0.5rem 0 0;
+}
+
+.profile-body {
+  padding: 2rem 0 3rem;
+}
+
+.profile-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ── Overview card ──────────────────────────────────────── */
+.profile-ov-card {
+  padding: 0;
+  overflow: hidden;
+  text-align: center;
+}
+
+.profile-ov-cover {
+  height: 68px;
+  background: linear-gradient(135deg, rgba(122, 162, 255, 0.35) 0%, rgba(139, 92, 246, 0.25) 100%);
+}
+
+.profile-ov-avatar-ring {
+  display: flex;
+  justify-content: center;
+  margin-top: -36px;
+  margin-bottom: 0.75rem;
+}
+
+.profile-ov-avatar {
+  width: 72px !important;
+  height: 72px !important;
+  border: 3px solid var(--bg-alt);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+.profile-ov-avatar .meet-staff-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  font-size: 1.8rem;
+  box-shadow: none;
+}
+
+.profile-ov-identity {
+  padding: 0 1.25rem 1rem;
+}
+
+.profile-ov-name {
+  font-size: 1.1rem;
+  margin: 0 0 0.45rem;
+}
+
+.profile-ov-role-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.profile-ov-meta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+  text-align: left;
+}
+
+.profile-ov-meta li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-ov-meta li:last-child {
+  border-bottom: none;
+}
+
+.profile-ov-meta-label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  flex-shrink: 0;
+}
+
+.profile-ov-meta-value {
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: right;
+  word-break: break-all;
+}
+
+.profile-discord-badge-linked {
+  color: #4ade80;
+}
+
+.profile-discord-badge-unlinked {
+  color: var(--muted);
+}
+
+/* ── Settings card ──────────────────────────────────────── */
+.profile-settings-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Tab navigation */
+.profile-stabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  gap: 0.25rem;
+}
+
+.profile-stab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 1rem 0.6rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: 600 0.875rem/1 inherit;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.profile-stab:hover {
+  color: var(--text);
+}
+
+.profile-stab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+/* Tab panels */
+.profile-stab-panel {
+  padding: 1.75rem 1.5rem;
+}
+
+/* Setting blocks within a tab */
+.profile-setting-block + .profile-setting-block {
+  margin-top: 0;
+}
+
+.profile-setting-hd {
+  margin-bottom: 1rem;
+}
+
+.profile-setting-hd h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.975rem;
+}
+
+.profile-setting-hd p {
+  color: var(--muted);
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.profile-setting-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 1.5rem 0;
+}
+
+/* Discord guide box */
+.profile-discord-guide {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+  margin-top: 1.1rem;
+}
+
+.profile-discord-guide-title {
+  font-weight: 700;
+  font-size: 0.875rem;
+  margin: 0 0 0.55rem;
+}
+
+.profile-discord-guide-steps {
+  margin: 0;
+  padding-left: 1.4rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.75;
+}
+
+.profile-discord-guide-steps code {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  font-size: 0.83em;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+/* Responsive */
+@media (max-width: 860px) {
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-overview {
+    max-width: 340px;
+  }
+}
+
+@media (max-width: 540px) {
+  .profile-overview {
+    max-width: 100%;
+  }
+
+  .profile-stabs {
+    padding: 0 1rem;
+  }
+
+  .profile-stab-panel {
+    padding: 1.25rem 1rem;
+  }
+}
+
 /* ── Staff page ─────────────────────────────────────────── */
 .staff-permissions-card {
   margin-top: 1.5rem;

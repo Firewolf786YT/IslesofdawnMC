@@ -33,88 +33,147 @@
     </header>
 
     <main id="profileContent" class="profile-main" hidden>
-      <section class="section">
+
+      <!-- ── Page Banner ────────────────────────────────────────── -->
+      <div class="profile-hero-banner">
         <div class="container">
-          <div class="card profile-card">
-            <p class="eyebrow">Account</p>
-            <h1 class="profile-title">Profile</h1>
-            <p class="profile-subtitle">Choose the username shown across the site.</p>
-
-            <div class="profile-grid">
-              <div class="profile-panel card">
-                <h2>Profile Details</h2>
-                <div class="profile-meta-list">
-                  <div class="profile-meta-row">
-                    <span>Current Username</span>
-                    <strong id="profileCurrentUsername">Loading…</strong>
-                  </div>
-                  <div class="profile-meta-row">
-                    <span>Email</span>
-                    <strong id="profileEmail">Loading…</strong>
-                  </div>
-                  <div class="profile-meta-row">
-                    <span>Role</span>
-                    <strong id="profileRole">Loading…</strong>
-                  </div>
-                </div>
-              </div>
-
-              <div class="profile-panel card">
-                <h2>Discord Link</h2>
-                <p class="profile-panel-copy">Link your Discord through the bot before submitting applications.</p>
-                <div class="profile-meta-list">
-                  <div class="profile-meta-row">
-                    <span>Link Status</span>
-                    <strong id="discordLinkStatus">Checking…</strong>
-                  </div>
-                  <div class="profile-meta-row">
-                    <span>Linked Discord</span>
-                    <strong id="discordLinkAccount">Not linked</strong>
-                  </div>
-                </div>
-                <div class="profile-actions" style="margin-top: 0.8rem;">
-                  <button class="btn btn-primary" type="button" id="generateDiscordLinkCodeBtn">Generate Link Code</button>
-                </div>
-                <p class="copy-message" id="discordLinkCodeStatus" aria-live="polite"></p>
-                <p class="copy-message" id="discordLinkCodeValue" aria-live="polite"></p>
-              </div>
-
-              <div class="profile-panel card">
-                <h2>Change Username</h2>
-                <p class="profile-panel-copy">Use 3-24 characters. Letters, numbers, dots, hyphens, and underscores are allowed.</p>
-
-                <form id="profileForm" class="profile-form" novalidate>
-                  <label>
-                    Username
-                    <input id="profileUsername" type="text" name="username" autocomplete="username" placeholder="Firewolf" required />
-                  </label>
-                  <div class="profile-actions">
-                    <button class="btn btn-primary" type="submit">Save Username</button>
-                  </div>
-                </form>
-
-                <p class="copy-message" id="profileStatus" aria-live="polite"></p>
-              </div>
-
-              <div class="profile-panel card">
-                <h2>Profile Picture</h2>
-                <p class="profile-panel-copy">Shown on the staff roster. Max 2 MB — JPEG, PNG, GIF, or WebP.</p>
-                <div class="avatar-upload-wrap">
-                  <div class="avatar-upload-preview" id="avatarPreview" aria-label="Current avatar"></div>
-                  <div class="avatar-upload-actions">
-                    <label class="btn btn-primary" for="avatarFileInput">Upload Picture</label>
-                    <input id="avatarFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
-                    <button class="btn btn-outline" type="button" id="avatarRemoveBtn" hidden>Remove</button>
-                  </div>
-                </div>
-                <p class="copy-message" id="avatarStatus" aria-live="polite"></p>
-              </div>
-            </div>
-          </div>
+          <p class="eyebrow">Account</p>
+          <h1 class="profile-hero-title">My Profile</h1>
+          <p class="profile-hero-sub">Manage your account details, appearance, and Discord connection.</p>
         </div>
-      </section>
+      </div>
 
-      <!-- Staff File Section — only shown to users who have a staff file -->
+      <!-- ── Overview + Settings ────────────────────────────────── -->
+      <div class="profile-body">
+        <div class="container">
+          <div class="profile-layout">
+
+            <!-- LEFT: Overview Card -->
+            <aside class="profile-overview">
+              <div class="card profile-ov-card">
+                <div class="profile-ov-cover" aria-hidden="true"></div>
+                <div class="profile-ov-avatar-ring">
+                  <div class="avatar-upload-preview profile-ov-avatar" id="avatarPreview" aria-label="Your avatar"></div>
+                </div>
+                <div class="profile-ov-identity">
+                  <h2 class="profile-ov-name" id="profileCurrentUsername">Loading…</h2>
+                  <div class="profile-ov-role-wrap" id="profileRole"></div>
+                </div>
+                <ul class="profile-ov-meta">
+                  <li>
+                    <span class="profile-ov-meta-label">Email</span>
+                    <span class="profile-ov-meta-value" id="profileEmail">Loading…</span>
+                  </li>
+                  <li>
+                    <span class="profile-ov-meta-label">Discord</span>
+                    <span class="profile-ov-meta-value" id="profileOverviewDiscordBadge">Checking…</span>
+                  </li>
+                </ul>
+              </div>
+            </aside>
+
+            <!-- RIGHT: Settings Card -->
+            <div class="profile-settings-wrap">
+              <div class="card profile-settings-card">
+
+                <!-- Tab Nav -->
+                <nav class="profile-stabs" role="tablist" aria-label="Profile settings">
+                  <button class="profile-stab active" data-stab="account" role="tab" aria-selected="true" aria-controls="stab-account">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                    Account
+                  </button>
+                  <button class="profile-stab" data-stab="discord" role="tab" aria-selected="false" aria-controls="stab-discord">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+                    Discord Link
+                  </button>
+                </nav>
+
+                <!-- ── Account Tab ── -->
+                <div class="profile-stab-panel" id="stab-account" role="tabpanel">
+
+                  <div class="profile-setting-block">
+                    <div class="profile-setting-hd">
+                      <h3>Username</h3>
+                      <p>Use 3–24 characters. Letters, numbers, dots, hyphens, and underscores are allowed.</p>
+                    </div>
+                    <form id="profileForm" class="profile-form" novalidate>
+                      <label>
+                        Username
+                        <input id="profileUsername" type="text" name="username" autocomplete="username" placeholder="Firewolf" required />
+                      </label>
+                      <div class="profile-actions">
+                        <button class="btn btn-primary" type="submit">Save Username</button>
+                      </div>
+                    </form>
+                    <p class="copy-message" id="profileStatus" aria-live="polite"></p>
+                  </div>
+
+                  <div class="profile-setting-divider"></div>
+
+                  <div class="profile-setting-block">
+                    <div class="profile-setting-hd">
+                      <h3>Profile Picture</h3>
+                      <p>Shown on the staff roster. Max 2 MB — JPEG, PNG, GIF, or WebP.</p>
+                    </div>
+                    <div class="avatar-upload-wrap">
+                      <div class="avatar-upload-preview" id="avatarPreviewSm" aria-label="Avatar preview"></div>
+                      <div class="avatar-upload-actions">
+                        <label class="btn btn-primary" for="avatarFileInput">Upload Photo</label>
+                        <input id="avatarFileInput" type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
+                        <button class="btn btn-outline" type="button" id="avatarRemoveBtn" hidden>Remove Photo</button>
+                      </div>
+                    </div>
+                    <p class="copy-message" id="avatarStatus" aria-live="polite"></p>
+                  </div>
+
+                </div>
+
+                <!-- ── Discord Tab ── -->
+                <div class="profile-stab-panel" id="stab-discord" role="tabpanel" hidden>
+
+                  <div class="profile-setting-block">
+                    <div class="profile-setting-hd">
+                      <h3>Discord Link</h3>
+                      <p>Linking your Discord account is required before submitting an application.</p>
+                    </div>
+
+                    <div class="profile-meta-list">
+                      <div class="profile-meta-row">
+                        <span>Link Status</span>
+                        <strong id="discordLinkStatus">Checking…</strong>
+                      </div>
+                      <div class="profile-meta-row">
+                        <span>Linked Account</span>
+                        <strong id="discordLinkAccount">Not linked</strong>
+                      </div>
+                    </div>
+
+                    <div class="profile-discord-guide">
+                      <p class="profile-discord-guide-title">How to link your Discord</p>
+                      <ol class="profile-discord-guide-steps">
+                        <li>Click <strong>Generate Code</strong> below.</li>
+                        <li>Open the IslesOfDawnMC Discord server.</li>
+                        <li>Run <code>/linkwebsite code:YOUR_CODE</code> in any bot channel.</li>
+                        <li>Refresh this page to confirm the link.</li>
+                      </ol>
+                    </div>
+
+                    <div class="profile-actions" style="margin-top: 1.25rem;">
+                      <button class="btn btn-primary" type="button" id="generateDiscordLinkCodeBtn">Generate Link Code</button>
+                    </div>
+                    <p class="copy-message" id="discordLinkCodeStatus" aria-live="polite"></p>
+                    <p class="copy-message" id="discordLinkCodeValue" aria-live="polite"></p>
+                  </div>
+
+                </div>
+              </div><!-- /.profile-settings-card -->
+            </div><!-- /.profile-settings-wrap -->
+
+          </div><!-- /.profile-layout -->
+        </div>
+      </div><!-- /.profile-body -->
+
+      <!-- ── Staff File Section ─────────────────────────────────── -->
       <section class="section" id="profileStaffSection" hidden>
         <div class="container">
           <div class="card">
@@ -191,6 +250,7 @@
         const profileStatus = document.getElementById('profileStatus');
         const profileForm = document.getElementById('profileForm');
         const avatarPreview = document.getElementById('avatarPreview');
+        const avatarPreviewSm = document.getElementById('avatarPreviewSm');
         const avatarFileInput = document.getElementById('avatarFileInput');
         const avatarRemoveBtn = document.getElementById('avatarRemoveBtn');
         const avatarStatus = document.getElementById('avatarStatus');
@@ -199,6 +259,22 @@
         const discordLinkCodeStatus = document.getElementById('discordLinkCodeStatus');
         const discordLinkCodeValue = document.getElementById('discordLinkCodeValue');
         const generateDiscordLinkCodeBtn = document.getElementById('generateDiscordLinkCodeBtn');
+        const profileOverviewDiscordBadge = document.getElementById('profileOverviewDiscordBadge');
+
+        // ── Settings tab switching ─────────────────────────────────
+        document.querySelectorAll('.profile-stab').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.profile-stab').forEach((b) => {
+              b.classList.remove('active');
+              b.setAttribute('aria-selected', 'false');
+            });
+            document.querySelectorAll('.profile-stab-panel').forEach((p) => { p.hidden = true; });
+            btn.classList.add('active');
+            btn.setAttribute('aria-selected', 'true');
+            const panel = document.getElementById(`stab-${btn.dataset.stab}`);
+            if (panel) panel.hidden = false;
+          });
+        });
 
         const setStatus = (message, isError = false) => {
           profileStatus.textContent = message;
@@ -223,28 +299,45 @@
           if (!result?.ok) {
             discordLinkStatus.textContent = 'Unavailable';
             discordLinkAccount.textContent = 'Could not load link status';
+            if (profileOverviewDiscordBadge) {
+              profileOverviewDiscordBadge.textContent = 'Unavailable';
+              profileOverviewDiscordBadge.className = 'profile-ov-meta-value profile-discord-badge-unlinked';
+            }
             return;
           }
 
           if (!result.linked || !result.link) {
             discordLinkStatus.textContent = 'Not linked';
             discordLinkAccount.textContent = 'Not linked';
+            if (profileOverviewDiscordBadge) {
+              profileOverviewDiscordBadge.textContent = 'Not linked';
+              profileOverviewDiscordBadge.className = 'profile-ov-meta-value profile-discord-badge-unlinked';
+            }
             return;
           }
 
+          const tag = result.link.discordTag || `Discord ID ${result.link.discordUserId}`;
           discordLinkStatus.textContent = 'Linked';
-          discordLinkAccount.textContent = result.link.discordTag || `Discord ID ${result.link.discordUserId}`;
+          discordLinkAccount.textContent = tag;
+          if (profileOverviewDiscordBadge) {
+            profileOverviewDiscordBadge.textContent = tag;
+            profileOverviewDiscordBadge.className = 'profile-ov-meta-value profile-discord-badge-linked';
+          }
         };
 
         const renderAvatarPreview = (avatarUrl, username, role) => {
-          if (avatarUrl) {
-            avatarPreview.innerHTML = `<img src="${avatarUrl}?t=${Date.now()}" alt="${username || 'Your avatar'}" class="avatar-upload-img" />`;
-            avatarRemoveBtn.hidden = false;
-          } else {
-            const initial = (username?.[0] || '?').toUpperCase();
-            avatarPreview.innerHTML = `<div class="meet-staff-avatar meet-staff-avatar-${role || 'player'}" aria-hidden="true">${initial}</div>`;
-            avatarRemoveBtn.hidden = true;
-          }
+          const fill = (el) => {
+            if (!el) return;
+            if (avatarUrl) {
+              el.innerHTML = `<img src="${avatarUrl}?t=${Date.now()}" alt="${username || 'Your avatar'}" class="avatar-upload-img" />`;
+            } else {
+              const initial = (username?.[0] || '?').toUpperCase();
+              el.innerHTML = `<div class="meet-staff-avatar meet-staff-avatar-${role || 'player'}" aria-hidden="true">${initial}</div>`;
+            }
+          };
+          fill(avatarPreview);
+          fill(avatarPreviewSm);
+          avatarRemoveBtn.hidden = !avatarUrl;
         };
 
         const renderProfile = async () => {
