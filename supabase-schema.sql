@@ -255,8 +255,14 @@ drop policy if exists application_statuses_write on public.application_statuses;
 drop policy if exists application_statuses_write_staff on public.application_statuses;
 drop policy if exists application_submissions_read on public.application_submissions;
 drop policy if exists application_submissions_write on public.application_submissions;
+drop policy if exists application_submissions_insert_public on public.application_submissions;
+drop policy if exists application_submissions_read_staff on public.application_submissions;
+drop policy if exists application_submissions_update_staff on public.application_submissions;
 drop policy if exists appeal_submissions_read on public.appeal_submissions;
 drop policy if exists appeal_submissions_write on public.appeal_submissions;
+drop policy if exists appeal_submissions_insert_public on public.appeal_submissions;
+drop policy if exists appeal_submissions_read_staff on public.appeal_submissions;
+drop policy if exists appeal_submissions_update_staff on public.appeal_submissions;
 
 drop policy if exists user_roles_select_self on public.user_roles;
 drop policy if exists user_roles_select_staff on public.user_roles;
