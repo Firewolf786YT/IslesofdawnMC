@@ -69,16 +69,34 @@ create index if not exists idx_appeal_submissions_created_at
 
 create table if not exists public.user_roles (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  role text not null check (role in ('player', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner')),
+  role text not null check (role in ('player', 'builder', 'event_team', 'media', 'qa_tester', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner')),
   updated_at timestamptz not null default now()
 );
 
 alter table public.user_roles
   drop constraint if exists user_roles_role_check;
 
+update public.user_roles
+set role = case lower(trim(role))
+  when 'user' then 'player'
+  when 'staff' then 'developer'
+  when 'event team' then 'event_team'
+  when 'event-team' then 'event_team'
+  when 'qatester' then 'qa_tester'
+  when 'qa tester' then 'qa_tester'
+  when 'qa-tester' then 'qa_tester'
+  else lower(trim(role))
+end,
+updated_at = now();
+
+update public.user_roles
+set role = 'player',
+updated_at = now()
+where role not in ('player', 'builder', 'event_team', 'media', 'qa_tester', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner');
+
 alter table public.user_roles
   add constraint user_roles_role_check
-  check (role in ('player', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner'));
+  check (role in ('player', 'builder', 'event_team', 'media', 'qa_tester', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner'));
 
 update public.user_roles
 set role = case role
@@ -186,6 +204,8 @@ as $$
       and ur.role in ('admin', 'manager', 'owner')
   );
 $$;
+
+drop function if exists public.list_public_staff_members();
 
 create or replace function public.list_public_staff_members()
 returns table (
