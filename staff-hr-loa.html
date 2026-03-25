@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HR LOA Requests — IslesOfDawnMC Management</title>
+    <meta name="description" content="Review and manage staff LOA requests for IslesOfDawnMC." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="hrLoaContent" class="staff-module-page" hidden>
+      <section class="section">
+        <div class="container">
+          <div class="card staff-module-header">
+            <p class="eyebrow">HR Module</p>
+            <h2>🗓️ LOA Requests</h2>
+            <p id="hrLoaWelcome" class="hero-text staff-module-subtitle"></p>
+          </div>
+
+          <div class="staff-module-actions">
+            <a class="btn btn-secondary" href="staff-hr.html">← Back to HR Modules</a>
+          </div>
+
+          <div class="card staff-app-review-card" style="margin-top: 1rem;">
+            <div class="staff-app-review-filter">
+              <div>
+                <label for="hrLoaStatusFilter">Status</label>
+                <select id="hrLoaStatusFilter">
+                  <option value="all">All Requests</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="denied">Denied</option>
+                </select>
+              </div>
+              <div>
+                <label for="hrLoaSearch">Username</label>
+                <input id="hrLoaSearch" type="text" placeholder="Search by Minecraft username" />
+              </div>
+            </div>
+            <p class="copy-message" id="hrLoaStatus" aria-live="polite"></p>
+            <div id="hrLoaList" class="hr-log-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="supabase-data.js"></script>
+    <script src="script.js"></script>
+    <script>
+      let allLoaRequests = [];
+
+      const escHtmlLocal = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+      const renderLoaList = () => {
+        const list = document.getElementById('hrLoaList');
+        if (!list) return;
+
+        const statusFilter = document.getElementById('hrLoaStatusFilter')?.value || 'all';
+        const search = (document.getElementById('hrLoaSearch')?.value || '').trim().toLowerCase();
+
+        let visible = allLoaRequests;
+        if (statusFilter !== 'all') {
+          visible = visible.filter((request) => String(request.status || '') === statusFilter);
+        }
+        if (search) {
+          visible = visible.filter((request) => String(request.staffFile?.minecraftUsername || '').toLowerCase().includes(search));
+        }
+
+        list.innerHTML = '';
+        if (!visible.length) {
+          list.innerHTML = '<p class="announcement-empty">No LOA requests found for this filter.</p>';
+          return;
+        }
+
+        visible.forEach((request) => {
+          const status = String(request.status || 'pending');
+          const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+          const statusClass = status === 'approved'
+            ? 'hr-status-active'
+            : status === 'denied'
+              ? 'hr-status-denied'
+              : 'hr-status-onboarding';
+          const username = request.staffFile?.minecraftUsername || 'Unknown';
+          const dateRange = [request.startDate, request.endDate].filter(Boolean).join(' to ') || 'No date range provided';
+
+          const row = document.createElement('div');
+          row.className = 'hr-log-entry';
+          row.innerHTML = `
+            <div class="hr-log-entry-header">
+              <span class="hr-status-badge ${escHtmlLocal(statusClass)}">${escHtmlLocal(statusLabel)}</span>
+              <span class="hr-log-meta">${escHtmlLocal(new Date(request.createdAt).toLocaleString())}</span>
+            </div>
+            <p class="hr-log-body"><strong>${escHtmlLocal(username)}</strong> requested LOA</p>
+            <p class="hr-log-body"><strong>Dates:</strong> ${escHtmlLocal(dateRange)}</p>
+            <p class="hr-log-body">${escHtmlLocal(request.reason || '')}</p>
+            ${request.managerNote ? `<p class="hr-log-body"><strong>Management Note:</strong> ${escHtmlLocal(request.managerNote)}</p>` : ''}
+            ${status === 'pending' ? `
+              <div class="app-form-grid" style="margin-top: 0.6rem;">
+                <label>
+                  Decision Note (optional)
+                  <input type="text" id="loa-note-${escHtmlLocal(request.id)}" placeholder="Add context for this decision" />
+                </label>
+              </div>
+              <div class="staff-module-actions" style="margin-top:0.7rem;">
+                <button class="btn btn-primary" type="button" data-loa-action="approve" data-loa-id="${escHtmlLocal(request.id)}">Approve</button>
+                <button class="btn btn-secondary" type="button" data-loa-action="deny" data-loa-id="${escHtmlLocal(request.id)}">Deny</button>
+              </div>
+            ` : ''}
+            <div class="staff-module-actions" style="margin-top:0.7rem;">
+              <button class="btn btn-secondary" type="button" data-loa-delete-id="${escHtmlLocal(request.id)}">Delete Request</button>
+            </div>
+          `;
+          list.appendChild(row);
+        });
+
+        list.querySelectorAll('button[data-loa-action]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            const requestId = button.getAttribute('data-loa-id');
+            const action = button.getAttribute('data-loa-action');
+            const statusEl = document.getElementById('hrLoaStatus');
+            if (!requestId || !action) {
+              if (statusEl) { statusEl.textContent = 'Invalid LOA action payload.'; statusEl.style.color = '#e75f5f'; }
+              return;
+            }
+
+            const selected = allLoaRequests.find((request) => String(request.id) === String(requestId));
+            const noteInput = document.getElementById(`loa-note-${requestId}`);
+            const managerNote = (noteInput?.value || '').trim();
+            if (statusEl) { statusEl.textContent = 'Updating LOA request…'; statusEl.style.color = ''; }
+
+            const updateResult = await window.updateLoaRequestStatus?.(selected?.id || requestId, {
+              status: action === 'approve' ? 'approved' : 'denied',
+              managerNote,
+              reviewedBy: window.getCurrentAuthUid?.() || null,
+            });
+
+            if (!updateResult?.ok) {
+              if (statusEl) { statusEl.textContent = updateResult?.message || 'Could not update LOA request.'; statusEl.style.color = '#e75f5f'; }
+              return;
+            }
+
+            const nextStatusText = action === 'approve' ? 'Approved' : 'Denied';
+            if (selected?.staffFileId) {
+              await window.addStaffActivity?.(selected.staffFileId, {
+                type: 'absence',
+                content: `Requested LOA: ${nextStatusText}`,
+                logged_by: getSession()?.name || getSession()?.email || 'Management',
+              });
+            }
+
+            if (statusEl) { statusEl.textContent = `LOA request ${nextStatusText.toLowerCase()}.`; statusEl.style.color = ''; }
+            await loadLoaRequests();
+          });
+        });
+
+        list.querySelectorAll('button[data-loa-delete-id]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            const requestId = button.getAttribute('data-loa-delete-id');
+            const statusEl = document.getElementById('hrLoaStatus');
+            if (!requestId) return;
+            const confirmed = window.confirm('Delete this LOA request? This cannot be undone.');
+            if (!confirmed) return;
+
+            if (statusEl) { statusEl.textContent = 'Deleting LOA request…'; statusEl.style.color = ''; }
+            const result = await window.deleteLoaRequest?.(requestId);
+            if (!result?.ok) {
+              if (statusEl) { statusEl.textContent = result?.message || 'Could not delete LOA request.'; statusEl.style.color = '#e75f5f'; }
+              return;
+            }
+
+            if (statusEl) { statusEl.textContent = 'LOA request deleted.'; statusEl.style.color = ''; }
+            await loadLoaRequests();
+          });
+        });
+      };
+
+      const loadLoaRequests = async () => {
+        const statusEl = document.getElementById('hrLoaStatus');
+        if (statusEl) { statusEl.textContent = 'Loading LOA requests…'; statusEl.style.color = ''; }
+        const result = await window.getAllLoaRequests?.();
+        if (!result?.ok) {
+          allLoaRequests = [];
+          if (statusEl) { statusEl.textContent = result?.message || 'Could not load LOA requests.'; statusEl.style.color = '#e75f5f'; }
+          renderLoaList();
+          return;
+        }
+
+        allLoaRequests = result.requests || [];
+        if (statusEl) { statusEl.textContent = `${allLoaRequests.length} LOA request${allLoaRequests.length === 1 ? '' : 's'} loaded.`; statusEl.style.color = ''; }
+        renderLoaList();
+      };
+
+      document.getElementById('hrLoaStatusFilter')?.addEventListener('change', renderLoaList);
+      document.getElementById('hrLoaSearch')?.addEventListener('input', renderLoaList);
+
+      (async () => {
+        const allowed = await requireStaffAccess();
+        if (!allowed) return;
+
+        document.getElementById('hrLoaContent').hidden = false;
+
+        const user = getSession();
+        if (user) {
+          const role = getUserRole(user.uid);
+          const label = window.getRoleLabel?.(role) || role;
+          const pillClass = window.getRolePillClass?.(role) || 'role-pill role-pill-player';
+          const el = document.getElementById('hrLoaWelcome');
+          if (el) {
+            el.innerHTML = `Manage leave requests. Signed in as <span class="${pillClass}">${label}</span>.`;
+          }
+        }
+
+        await loadLoaRequests();
+      })();
+    </script>
+  </body>
+</html>

@@ -19,6 +19,34 @@
     }
   };
 
+  const invokeDiscordNotify = async (eventType, payload) => {
+    const client = await getClient();
+    if (!client || !client.functions?.invoke) {
+      return { ok: false, skipped: true, message: 'Supabase Functions client is unavailable.' };
+    }
+
+    const eventPayload = {
+      eventType: String(eventType || '').trim() || 'unknown',
+      submittedAt: new Date().toISOString(),
+      source: 'website',
+      payload: payload || {},
+    };
+
+    try {
+      const { error } = await client.functions.invoke('discord-notify', {
+        body: eventPayload,
+      });
+
+      if (error) {
+        return { ok: false, message: error.message || 'Discord notification failed.' };
+      }
+
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : 'Discord notification failed.' };
+    }
+  };
+
   const fromDbAppSubmission = (row) => ({
     acknowledgements: row.acknowledgements || {},
     id: row.id,
@@ -188,6 +216,20 @@
       return false;
     }
 
+    const notifyResult = await invokeDiscordNotify('application.submitted', {
+      id: submission.id,
+      roleId: submission.roleId || '',
+      roleTitle: submission.roleTitle || '',
+      minecraftUsername: submission.minecraftUsername || '',
+      discord: submission.discord || '',
+      email: submission.email || '',
+      createdAt: submission.createdAt || new Date().toISOString(),
+    });
+
+    if (!notifyResult.ok && !notifyResult.skipped) {
+      console.warn('Application saved, but Discord notify failed:', notifyResult.message || 'Unknown error');
+    }
+
     return true;
   };
 
@@ -240,6 +282,20 @@
     if (error) {
       console.warn('Could not save appeal to Supabase:', error.message);
       return false;
+    }
+
+    const notifyResult = await invokeDiscordNotify('appeal.submitted', {
+      id: submission.id,
+      minecraftName: submission.minecraftName || '',
+      discord: submission.discord || '',
+      email: submission.email || '',
+      punishmentType: submission.punishmentType || '',
+      punishmentLocation: submission.punishmentLocation || '',
+      createdAt: submission.createdAt || new Date().toISOString(),
+    });
+
+    if (!notifyResult.ok && !notifyResult.skipped) {
+      console.warn('Appeal saved, but Discord notify failed:', notifyResult.message || 'Unknown error');
     }
 
     return true;

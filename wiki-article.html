@@ -41,19 +41,19 @@
           <p id="article-meta" class="staff-module-subtitle">Loading article...</p>
         </div>
 
-        <div class="card" style="margin-top: 1rem;">
-          <div style="display:grid;grid-template-columns:minmax(220px,280px) 1fr;gap:1rem;align-items:start;">
-            <aside class="card" style="margin:0;">
-              <h3 style="margin:0 0 0.45rem;">Wiki Sections</h3>
+        <div class="card wiki-shell">
+          <div class="wiki-layout wiki-layout-article">
+            <aside class="card wiki-sidebar-card wiki-article-sidebar">
+              <h3 class="wiki-block-title">Wiki Sections</h3>
               <div id="wiki-sidebar" class="hr-log-list"></div>
-              <div class="staff-module-actions" style="margin-top:0.85rem;">
+              <div class="staff-module-actions wiki-sidebar-actions">
                 <a class="btn btn-secondary" href="wiki.html">Back to Wiki Home</a>
               </div>
             </aside>
 
-            <section class="card" style="margin:0;">
+            <section class="card wiki-content-card wiki-article-content">
               <article id="article-card" style="display:none;">
-                <div class="hr-log-entry-header" style="margin-bottom:0.75rem;">
+                <div class="hr-log-entry-header wiki-article-meta-row">
                   <span class="hr-status-badge hr-status-active">Published</span>
                   <span id="article-date" class="hr-log-meta"></span>
                 </div>
@@ -61,8 +61,8 @@
               </article>
 
               <article id="article-error" style="display:none;">
-                <h3 style="margin-top:0;">Article Not Found</h3>
-                <p style="color:var(--muted); margin:0.5rem 0 1rem;">The article you requested could not be loaded, or it is no longer published.</p>
+                <h3 class="wiki-block-title">Article Not Found</h3>
+                <p class="wiki-error-copy">The article you requested could not be loaded, or it is no longer published.</p>
                 <a class="btn btn-secondary" href="wiki.html">Go to Wiki Home</a>
               </article>
             </section>
@@ -140,16 +140,14 @@
             ? sectionArticles.map((article) => {
                 const articleSlug = String(article.slug || '').trim();
                 const href = `wiki-article.html?slug=${encodeURIComponent(articleSlug)}`;
-                const activeStyle = articleSlug === activeSlug
-                  ? ' style="font-weight:700; text-decoration:underline;"'
-                  : '';
-                return `<li><a href="${escHtml(href)}"${activeStyle}>${escHtml(article.title || 'Untitled')}</a></li>`;
+                const activeClass = articleSlug === activeSlug ? 'wiki-sidebar-link is-active' : 'wiki-sidebar-link';
+                return `<li><a href="${escHtml(href)}" class="${activeClass}">${escHtml(article.title || 'Untitled')}</a></li>`;
               }).join('')
-            : '<li style="color:var(--muted-text);">No published pages</li>';
+            : '<li class="wiki-sidebar-empty">No published pages</li>';
 
           wrapper.innerHTML = `
-            <p class="hr-log-body" style="margin-bottom:0.35rem;"><strong>${escHtml(title)}</strong></p>
-            <ul style="margin:0; padding-left:1.1rem; display:flex; flex-direction:column; gap:0.2rem;">${entriesHtml}</ul>
+            <p class="hr-log-body wiki-sidebar-group-title"><strong>${escHtml(title)}</strong></p>
+            <ul class="wiki-sidebar-list">${entriesHtml}</ul>
           `;
 
           sidebarEl.appendChild(wrapper);

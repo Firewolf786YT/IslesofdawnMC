@@ -19,8 +19,14 @@ const SUPABASE_CONFIG = {
   url: 'https://kigfliiiyeunzexapcgk.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZ2ZsaWlpeWV1bnpleGFwY2drIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NTQyMjQsImV4cCI6MjA4OTUzMDIyNH0.sjf4DAdpINtk4SaksxaXk0IJmF1JNbgc5lLMNs5kARs',
   get redirectTo() {
-    const base = location.href.replace(/[^/]*(\?.*|#.*)?$/, '');
-    return `${base}login.html`;
+    try {
+      const current = new URL(location.href);
+      const loginPath = current.pathname.replace(/[^/]*$/, 'login.html');
+      return `${current.origin}${loginPath}`;
+    } catch {
+      const base = location.href.replace(/[^/]*(\?.*|#.*)?$/, '');
+      return `${base}login.html`;
+    }
   },
 };
 
@@ -940,11 +946,26 @@ const logout = async () => {
 };
 
 // ── OAuth callback handler (runs on login.html after provider redirects back) ─
-const handleOAuthCallback = async () => {
-  const queryParams = Object.fromEntries(new URLSearchParams(location.search));
+const getOAuthCallbackParams = () => {
+  const queryParams = Object.fromEntries(new URLSearchParams(location.search || ''));
+  const hashParams = Object.fromEntries(new URLSearchParams((location.hash || '').replace(/^#/, '')));
+  return {
+    ...hashParams,
+    ...queryParams,
+  };
+};
 
-  if (queryParams.error || queryParams.error_description) {
-    const msg = queryParams.error_description || queryParams.error;
+const clearOAuthCallbackUrl = () => {
+  if (!window.history?.replaceState) return;
+  const cleanPath = location.pathname || 'login.html';
+  history.replaceState({}, '', cleanPath);
+};
+
+const handleOAuthCallback = async () => {
+  const callbackParams = getOAuthCallbackParams();
+
+  if (callbackParams.error || callbackParams.error_description) {
+    const msg = callbackParams.error_description || callbackParams.error;
     showLoginError(`Sign-in was cancelled or denied: ${msg}`);
     showLoginOptions();
     return;
@@ -957,8 +978,8 @@ const handleOAuthCallback = async () => {
     return;
   }
 
-  if (queryParams.code) {
-    const { error: exchangeError } = await client.auth.exchangeCodeForSession(queryParams.code);
+  if (callbackParams.code) {
+    const { error: exchangeError } = await client.auth.exchangeCodeForSession(callbackParams.code);
     if (exchangeError) {
       showLoginError(`Could not complete sign-in callback: ${exchangeError.message}`);
       showLoginOptions();
@@ -970,7 +991,7 @@ const handleOAuthCallback = async () => {
 
   if (user) {
     await syncCurrentUserRoleFromSupabase();
-    history.replaceState({}, '', 'login.html');
+    clearOAuthCallbackUrl();
     finishLogin();
     return;
   }
@@ -981,7 +1002,7 @@ const handleOAuthCallback = async () => {
     if (fallbackSession) {
       setSession(fallbackSession);
       await syncCurrentUserRoleFromSupabase();
-      history.replaceState({}, '', 'login.html');
+      clearOAuthCallbackUrl();
       finishLogin();
       return;
     }

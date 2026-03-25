@@ -41,17 +41,17 @@
             <p class="staff-module-subtitle">Only manager-approved pages are published here.</p>
           </div>
 
-          <div class="card" style="margin-top: 1rem;">
+          <div class="card wiki-shell">
             <p class="copy-message" id="wikiPublicStatus" aria-live="polite"></p>
-            <div style="display:grid;grid-template-columns:minmax(220px,280px) 1fr;gap:1rem;align-items:start;">
-              <aside class="card" style="margin:0;">
-                <h3 style="margin:0 0 0.45rem;">Folders</h3>
+            <div class="wiki-layout wiki-layout-home">
+              <aside class="card wiki-sidebar-card">
+                <h3 class="wiki-block-title">Folders</h3>
                 <div id="wikiSidebarGroups" class="hr-log-list"></div>
-                <h3 style="margin:1rem 0 0.45rem;">Pages</h3>
+                <h3 class="wiki-block-title wiki-secondary-title">Pages</h3>
                 <div id="wikiSidebarPages" class="hr-log-list"></div>
               </aside>
-              <section class="card" style="margin:0;">
-                <h3 id="wikiSectionTitle" style="margin:0 0 0.45rem;">Section</h3>
+              <section class="card wiki-content-card">
+                <h3 id="wikiSectionTitle" class="wiki-block-title">Section</h3>
                 <div id="wikiPublicList" class="hr-log-list"></div>
               </section>
             </div>
@@ -119,8 +119,7 @@
           wikiGroups.forEach((group) => {
             const count = getArticlesByGroup(group.slug).length;
             const row = document.createElement('div');
-            row.className = 'hr-log-entry';
-            row.style.cursor = 'pointer';
+            row.className = 'hr-log-entry wiki-group-entry';
             row.innerHTML = `
               <div class="hr-log-entry-header">
                 <span class="hr-status-badge ${group.slug === activeGroupSlug ? 'hr-status-active' : 'hr-status-onboarding'}">${escHtml(count)}</span>
@@ -189,7 +188,7 @@
               </div>
               <p class="hr-log-body"><strong>${escHtml(article.title || 'Untitled')}</strong></p>
               ${article.excerpt ? `<p class="hr-log-body">${escHtml(article.excerpt)}</p>` : ''}
-              <div class="staff-module-actions" style="margin-top:0.65rem;">
+              <div class="staff-module-actions wiki-card-actions">
                 <a class="btn btn-secondary" href="${escHtml(articleHref)}">Open Page</a>
               </div>
             `;
