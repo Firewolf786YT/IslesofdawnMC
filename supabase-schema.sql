@@ -252,6 +252,7 @@ grant execute on function public.list_public_staff_members() to anon, authentica
 
 drop policy if exists application_statuses_read on public.application_statuses;
 drop policy if exists application_statuses_write on public.application_statuses;
+drop policy if exists application_statuses_write_staff on public.application_statuses;
 drop policy if exists application_submissions_read on public.application_submissions;
 drop policy if exists application_submissions_write on public.application_submissions;
 drop policy if exists appeal_submissions_read on public.appeal_submissions;
