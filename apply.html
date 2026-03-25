@@ -172,6 +172,8 @@
       let accessRedirectInterval = null;
       let renderedQuestionPrompts = [...DEFAULT_QUESTION_PROMPTS];
       let renderedExtraQuestions = [];
+      let linkedAuthUserId = '';
+      let linkedDiscordUserId = '';
 
       const getRoleQuestionPrompts = (role) => {
         if (!role || !Array.isArray(role.questions) || role.questions.length !== 4) {
@@ -416,6 +418,11 @@
           const emailValue = String(document.getElementById('appEmail')?.value || '').trim();
           const minecraftUsernameValue = String(appMinecraftUsername?.value || '').trim();
 
+          if (!linkedAuthUserId || !linkedDiscordUserId) {
+            setApplicationStatus('Your website account must be linked to Discord before applying. Open profile.html to link.');
+            return;
+          }
+
           if (!ageValue || !discordValue || !emailValue) {
             setApplicationStatus('Please complete all required fields in Section 1.');
             return;
@@ -488,6 +495,8 @@
             status: 'pending',
             roleId: role.id,
             roleTitle: role.title,
+            userId: linkedAuthUserId,
+            discordUserId: linkedDiscordUserId,
             minecraftUsername: minecraftUsernameValue,
             age: String(formData.get('age') || '').trim(),
             discord: String(formData.get('discord') || '').trim(),
@@ -517,6 +526,29 @@
       };
 
       (async () => {
+        try {
+          await window.syncSessionFromSupabase?.();
+        } catch (error) {
+          console.warn('Could not sync session before apply:', error);
+        }
+
+        const user = window.getSession?.();
+        if (!user) {
+          applicationForm?.classList.add('is-hidden');
+          showAccessNotice('You must sign in and link Discord before you can submit an application.');
+          return;
+        }
+
+        linkedAuthUserId = String(window.getCurrentAuthUid?.() || '').trim();
+        const linkResult = await window.getMyDiscordLinkFromSupabase?.();
+        if (!linkResult?.ok || !linkResult?.linked || !linkResult?.link?.discordUserId) {
+          applicationForm?.classList.add('is-hidden');
+          showAccessNotice('Your account is not linked to Discord yet. Open profile.html and use the bot link code flow first.');
+          return;
+        }
+
+        linkedDiscordUserId = String(linkResult.link.discordUserId || '').trim();
+
         const statuses = await window.syncApplicationStatusesFromSupabase?.();
         if (!statuses) {
           setApplicationStatus('Applications are currently unavailable while backend connection is being configured.');

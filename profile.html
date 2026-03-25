@@ -60,6 +60,26 @@
               </div>
 
               <div class="profile-panel card">
+                <h2>Discord Link</h2>
+                <p class="profile-panel-copy">Link your Discord through the bot before submitting applications.</p>
+                <div class="profile-meta-list">
+                  <div class="profile-meta-row">
+                    <span>Link Status</span>
+                    <strong id="discordLinkStatus">Checking…</strong>
+                  </div>
+                  <div class="profile-meta-row">
+                    <span>Linked Discord</span>
+                    <strong id="discordLinkAccount">Not linked</strong>
+                  </div>
+                </div>
+                <div class="profile-actions" style="margin-top: 0.8rem;">
+                  <button class="btn btn-primary" type="button" id="generateDiscordLinkCodeBtn">Generate Link Code</button>
+                </div>
+                <p class="copy-message" id="discordLinkCodeStatus" aria-live="polite"></p>
+                <p class="copy-message" id="discordLinkCodeValue" aria-live="polite"></p>
+              </div>
+
+              <div class="profile-panel card">
                 <h2>Change Username</h2>
                 <p class="profile-panel-copy">Use 3-24 characters. Letters, numbers, dots, hyphens, and underscores are allowed.</p>
 
@@ -174,6 +194,11 @@
         const avatarFileInput = document.getElementById('avatarFileInput');
         const avatarRemoveBtn = document.getElementById('avatarRemoveBtn');
         const avatarStatus = document.getElementById('avatarStatus');
+        const discordLinkStatus = document.getElementById('discordLinkStatus');
+        const discordLinkAccount = document.getElementById('discordLinkAccount');
+        const discordLinkCodeStatus = document.getElementById('discordLinkCodeStatus');
+        const discordLinkCodeValue = document.getElementById('discordLinkCodeValue');
+        const generateDiscordLinkCodeBtn = document.getElementById('generateDiscordLinkCodeBtn');
 
         const setStatus = (message, isError = false) => {
           profileStatus.textContent = message;
@@ -183,6 +208,32 @@
         const setAvatarStatus = (message, isError = false) => {
           avatarStatus.textContent = message;
           avatarStatus.style.color = isError ? '#e75f5f' : '';
+        };
+
+        const setDiscordLinkCodeStatus = (message, isError = false) => {
+          if (!discordLinkCodeStatus) return;
+          discordLinkCodeStatus.textContent = message;
+          discordLinkCodeStatus.style.color = isError ? '#e75f5f' : '';
+        };
+
+        const renderDiscordLinkPanel = async () => {
+          if (!discordLinkStatus || !discordLinkAccount) return;
+
+          const result = await window.getMyDiscordLinkFromSupabase?.();
+          if (!result?.ok) {
+            discordLinkStatus.textContent = 'Unavailable';
+            discordLinkAccount.textContent = 'Could not load link status';
+            return;
+          }
+
+          if (!result.linked || !result.link) {
+            discordLinkStatus.textContent = 'Not linked';
+            discordLinkAccount.textContent = 'Not linked';
+            return;
+          }
+
+          discordLinkStatus.textContent = 'Linked';
+          discordLinkAccount.textContent = result.link.discordTag || `Discord ID ${result.link.discordUserId}`;
         };
 
         const renderAvatarPreview = (avatarUrl, username, role) => {
@@ -211,6 +262,7 @@
 
           const avatarUrl = profileResult?.ok ? profileResult.profile?.avatar_url || null : null;
           renderAvatarPreview(avatarUrl, currentUsername, currentRole);
+          await renderDiscordLinkPanel();
 
           if (!profileResult?.ok && profileResult?.message) {
             setStatus(profileResult.message, true);
@@ -229,6 +281,25 @@
 
           await renderProfile();
           setStatus(result.message || 'Username updated.');
+        });
+
+        generateDiscordLinkCodeBtn?.addEventListener('click', async () => {
+          setDiscordLinkCodeStatus('Generating Discord link code...');
+          if (discordLinkCodeValue) {
+            discordLinkCodeValue.textContent = '';
+          }
+
+          const generated = await window.createDiscordLinkCodeInSupabase?.();
+          if (!generated?.ok || !generated.code) {
+            setDiscordLinkCodeStatus(generated?.message || 'Could not generate code.', true);
+            return;
+          }
+
+          const expires = generated.expiresAt ? new Date(generated.expiresAt).toLocaleTimeString() : 'soon';
+          setDiscordLinkCodeStatus(`Use this in Discord: /linkwebsite code:${generated.code} (expires around ${expires}).`);
+          if (discordLinkCodeValue) {
+            discordLinkCodeValue.textContent = `Code: ${generated.code}`;
+          }
         });
 
         // ── Staff file sections ────────────────────────────────────────────

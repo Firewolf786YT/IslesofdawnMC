@@ -14,6 +14,8 @@ create table if not exists public.application_submissions (
   status text not null default 'pending' check (status in ('pending', 'approved', 'denied')),
   role_id text not null,
   role_title text not null,
+  user_id uuid references auth.users(id) on delete set null,
+  discord_user_id text,
   minecraft_username text,
   age text,
   discord text,
@@ -28,8 +30,20 @@ create table if not exists public.application_submissions (
   created_at timestamptz not null default now()
 );
 
+alter table public.application_submissions
+  add column if not exists user_id uuid references auth.users(id) on delete set null;
+
+alter table public.application_submissions
+  add column if not exists discord_user_id text;
+
 create index if not exists idx_application_submissions_created_at
   on public.application_submissions (created_at desc);
+
+create index if not exists idx_application_submissions_reviewed_status
+  on public.application_submissions (status, reviewed_at desc);
+
+create index if not exists idx_application_submissions_discord_user_id
+  on public.application_submissions (discord_user_id);
 
 create table if not exists public.appeal_submissions (
   id text primary key,
@@ -82,8 +96,31 @@ create table if not exists public.user_profiles (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.user_discord_links (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  discord_user_id text not null unique,
+  discord_tag text,
+  linked_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.discord_link_codes (
+  code text primary key,
+  user_id uuid not null unique references auth.users(id) on delete cascade,
+  expires_at timestamptz not null,
+  used_at timestamptz,
+  used_by_discord_user_id text,
+  created_at timestamptz not null default now()
+);
+
 create unique index if not exists idx_user_profiles_username_lower
   on public.user_profiles (lower(username));
+
+create unique index if not exists idx_user_discord_links_discord_user_id
+  on public.user_discord_links (discord_user_id);
+
+create unique index if not exists idx_discord_link_codes_user_id
+  on public.discord_link_codes (user_id);
 
 create table if not exists public.announcements (
   id text primary key,
@@ -101,6 +138,8 @@ alter table public.application_submissions enable row level security;
 alter table public.appeal_submissions enable row level security;
 alter table public.user_roles enable row level security;
 alter table public.user_profiles enable row level security;
+alter table public.user_discord_links enable row level security;
+alter table public.discord_link_codes enable row level security;
 alter table public.announcements enable row level security;
 
 create or replace function public.is_staff_or_admin()
@@ -205,6 +244,15 @@ drop policy if exists user_profiles_select_self on public.user_profiles;
 drop policy if exists user_profiles_select_staff on public.user_profiles;
 drop policy if exists user_profiles_insert_self on public.user_profiles;
 drop policy if exists user_profiles_update_self on public.user_profiles;
+drop policy if exists user_discord_links_select_self on public.user_discord_links;
+drop policy if exists user_discord_links_select_staff on public.user_discord_links;
+drop policy if exists user_discord_links_insert_self on public.user_discord_links;
+drop policy if exists user_discord_links_update_self on public.user_discord_links;
+drop policy if exists user_discord_links_delete_self on public.user_discord_links;
+drop policy if exists discord_link_codes_select_self on public.discord_link_codes;
+drop policy if exists discord_link_codes_insert_self on public.discord_link_codes;
+drop policy if exists discord_link_codes_update_self on public.discord_link_codes;
+drop policy if exists discord_link_codes_delete_self on public.discord_link_codes;
 drop policy if exists announcements_read_public on public.announcements;
 drop policy if exists announcements_write_staff on public.announcements;
 
@@ -222,7 +270,7 @@ create policy application_statuses_write_staff
 create policy application_submissions_insert_public
   on public.application_submissions
   for insert
-  with check (true);
+  with check (auth.uid() is not null and user_id = auth.uid());
 
 create policy application_submissions_read_staff
   on public.application_submissions
@@ -287,6 +335,53 @@ create policy user_profiles_update_self
   for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+create policy user_discord_links_select_self
+  on public.user_discord_links
+  for select
+  using (auth.uid() = user_id);
+
+create policy user_discord_links_select_staff
+  on public.user_discord_links
+  for select
+  using (public.is_staff_or_admin());
+
+create policy user_discord_links_insert_self
+  on public.user_discord_links
+  for insert
+  with check (auth.uid() = user_id);
+
+create policy user_discord_links_update_self
+  on public.user_discord_links
+  for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy user_discord_links_delete_self
+  on public.user_discord_links
+  for delete
+  using (auth.uid() = user_id);
+
+create policy discord_link_codes_select_self
+  on public.discord_link_codes
+  for select
+  using (auth.uid() = user_id);
+
+create policy discord_link_codes_insert_self
+  on public.discord_link_codes
+  for insert
+  with check (auth.uid() = user_id);
+
+create policy discord_link_codes_update_self
+  on public.discord_link_codes
+  for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy discord_link_codes_delete_self
+  on public.discord_link_codes
+  for delete
+  using (auth.uid() = user_id);
 
 create policy announcements_read_public
   on public.announcements

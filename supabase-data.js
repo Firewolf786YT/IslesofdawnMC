@@ -8,6 +8,16 @@
     applicationStatuses: 'application_statuses',
     applicationSubmissions: 'application_submissions',
     appealSubmissions: 'appeal_submissions',
+    userDiscordLinks: 'user_discord_links',
+    discordLinkCodes: 'discord_link_codes',
+  };
+
+  const DISCORD_LINK_CODE_TTL_MINUTES = 10;
+
+  const makeDiscordLinkCode = () => {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const randomValues = crypto.getRandomValues(new Uint32Array(8));
+    return Array.from(randomValues, (value) => alphabet[value % alphabet.length]).join('');
   };
 
   const getClient = async () => {
@@ -25,6 +35,8 @@
     status: row.status,
     roleId: row.role_id,
     roleTitle: row.role_title,
+    userId: row.user_id || null,
+    discordUserId: row.discord_user_id || null,
     minecraftUsername: row.minecraft_username || '',
     age: row.age || '',
     discord: row.discord || '',
@@ -49,6 +61,8 @@
     status: submission.status || 'pending',
     role_id: submission.roleId || '',
     role_title: submission.roleTitle || '',
+    user_id: submission.userId || null,
+    discord_user_id: submission.discordUserId || null,
     minecraft_username: submission.minecraftUsername || null,
     age: submission.age || null,
     discord: submission.discord || null,
@@ -189,6 +203,80 @@
     }
 
     return true;
+  };
+
+  window.getMyDiscordLinkFromSupabase = async () => {
+    const client = await getClient();
+    if (!client) {
+      return { ok: false, linked: false, message: 'Supabase not configured.', link: null };
+    }
+
+    const authUid = window.getCurrentAuthUid?.() || '';
+    if (!authUid) {
+      return { ok: false, linked: false, message: 'Sign in required.', link: null };
+    }
+
+    const { data, error } = await client
+      .from(TABLES.userDiscordLinks)
+      .select('user_id, discord_user_id, discord_tag, linked_at, updated_at')
+      .eq('user_id', authUid)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Could not fetch Discord link for current user:', error.message);
+      return { ok: false, linked: false, message: error.message, link: null };
+    }
+
+    if (!data?.discord_user_id) {
+      return { ok: true, linked: false, link: null };
+    }
+
+    return {
+      ok: true,
+      linked: true,
+      link: {
+        userId: data.user_id,
+        discordUserId: String(data.discord_user_id),
+        discordTag: data.discord_tag || null,
+        linkedAt: data.linked_at || null,
+        updatedAt: data.updated_at || null,
+      },
+    };
+  };
+
+  window.createDiscordLinkCodeInSupabase = async () => {
+    const client = await getClient();
+    if (!client) {
+      return { ok: false, message: 'Supabase not configured.', code: null, expiresAt: null };
+    }
+
+    const authUid = window.getCurrentAuthUid?.() || '';
+    if (!authUid) {
+      return { ok: false, message: 'You must sign in first.', code: null, expiresAt: null };
+    }
+
+    const code = makeDiscordLinkCode();
+    const expiresAt = new Date(Date.now() + DISCORD_LINK_CODE_TTL_MINUTES * 60 * 1000).toISOString();
+
+    const { error } = await client
+      .from(TABLES.discordLinkCodes)
+      .upsert([
+        {
+          code,
+          user_id: authUid,
+          expires_at: expiresAt,
+          used_at: null,
+          used_by_discord_user_id: null,
+          created_at: new Date().toISOString(),
+        },
+      ], { onConflict: 'user_id' });
+
+    if (error) {
+      console.warn('Could not create Discord link code:', error.message);
+      return { ok: false, message: error.message, code: null, expiresAt: null };
+    }
+
+    return { ok: true, code, expiresAt };
   };
 
   window.updateApplicationReviewInSupabase = async (submissionId, nextStatus, reviewedBy) => {
