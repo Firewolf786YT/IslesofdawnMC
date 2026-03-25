@@ -1139,6 +1139,7 @@ const renderNavAuth = () => {
       </button>
       <div class="nav-auth-menu is-hidden" id="navAuthMenu" role="menu">
         <a class="nav-auth-menu-item" href="${PROFILE_PAGE}" role="menuitem">Profile</a>
+        <a class="nav-auth-menu-item" href="notifications.html" role="menuitem">Notifications</a>
         ${staffPortalLink}
         ${managementLink}
         <button class="nav-auth-menu-item nav-auth-menu-logout" id="navLogoutBtn" type="button" role="menuitem">Log out</button>
@@ -1226,6 +1227,7 @@ window.devLogout = async () => {
   const pagesRequiringFreshAuth = new Set([
     'login.html',
     'profile.html',
+    'notifications.html',
     'staff.html',
     'staff-portal.html',
     'staff-announcements.html',

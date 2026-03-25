@@ -1,25 +1,42 @@
 // Ensure Wiki link appears in top nav across pages
 (function () {
   document.querySelectorAll('.nav-links').forEach((nav) => {
-    const hasWiki = Array.from(nav.querySelectorAll('a')).some((link) => {
+    const links = Array.from(nav.querySelectorAll('a'));
+    const hasWiki = links.some((link) => {
       const href = String(link.getAttribute('href') || '').split('#')[0].split('?')[0];
       return href === 'wiki.html';
     });
-    if (hasWiki) return;
+    const hasNotifications = links.some((link) => {
+      const href = String(link.getAttribute('href') || '').split('#')[0].split('?')[0];
+      return href === 'notifications.html';
+    });
+    if (hasWiki && hasNotifications) return;
 
-    const wikiLink = document.createElement('a');
-    wikiLink.href = 'wiki.html';
-    wikiLink.textContent = 'Wiki';
+    const buildNavLink = (href, text) => {
+      const anchor = document.createElement('a');
+      anchor.href = href;
+      anchor.textContent = text;
+      return anchor;
+    };
+
+    const wikiLink = hasWiki ? null : buildNavLink('wiki.html', 'Wiki');
+    const notificationsLink = hasNotifications ? null : buildNavLink('notifications.html', 'Notifications');
 
     const storeLink = Array.from(nav.querySelectorAll('a')).find((link) => {
       const href = String(link.getAttribute('href') || '');
       return href.includes('tebex.io');
     });
 
+    const addLinks = (parent) => {
+      if (wikiLink) parent.insertBefore(wikiLink, storeLink || null);
+      if (notificationsLink) parent.insertBefore(notificationsLink, storeLink || null);
+    };
+
     if (storeLink) {
-      nav.insertBefore(wikiLink, storeLink);
+      addLinks(nav);
     } else {
-      nav.appendChild(wikiLink);
+      if (wikiLink) nav.appendChild(wikiLink);
+      if (notificationsLink) nav.appendChild(notificationsLink);
     }
   });
 })();

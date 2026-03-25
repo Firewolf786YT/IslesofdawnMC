@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notifications — IslesOfDawnMC</title>
+    <meta name="description" content="View your IslesOfDawnMC account notifications." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="announcements.html">Announcements</a>
+            <a href="applications.html">Applications</a>
+            <a href="appeals.html">Appeals</a>
+            <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+
+    <main id="notificationsContent" class="staff-module-page" hidden>
+      <section class="section">
+        <div class="container">
+          <div class="card staff-module-header">
+            <p class="eyebrow">Account</p>
+            <h2>Notifications</h2>
+            <p id="notificationsSubtitle" class="staff-module-subtitle">Loading notifications…</p>
+          </div>
+
+          <div class="card" style="margin-top: 1rem;">
+            <div class="staff-module-actions" style="justify-content: space-between;">
+              <div class="staff-module-actions" style="gap:0.4rem;">
+                <button class="btn btn-primary" id="notificationFilterAll" type="button">All</button>
+                <button class="btn btn-secondary" id="notificationFilterUnread" type="button">Unread</button>
+              </div>
+              <button class="btn btn-secondary" id="notificationMarkAll" type="button">Mark all as read</button>
+            </div>
+
+            <p class="copy-message" id="notificationsStatus" aria-live="polite"></p>
+            <div id="notificationList" class="hr-log-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="supabase-data.js"></script>
+    <script src="script.js"></script>
+    <script>
+      (() => {
+        const READ_STORAGE_KEY = 'islesOfDawnNotificationsRead';
+        let notifications = [];
+        let filterMode = 'all';
+
+        const escHtml = (value) => String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+
+        const formatDate = (value) => {
+          const date = new Date(value || '');
+          if (Number.isNaN(date.getTime())) return '—';
+          return date.toLocaleString();
+        };
+
+        const getReadMap = () => {
+          try {
+            return JSON.parse(localStorage.getItem(READ_STORAGE_KEY) || '{}') || {};
+          } catch {
+            return {};
+          }
+        };
+
+        const saveReadMap = (map) => {
+          localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(map || {}));
+        };
+
+        const setStatus = (message, isError = false) => {
+          const el = document.getElementById('notificationsStatus');
+          if (!el) return;
+          el.textContent = message;
+          el.style.color = isError ? '#e75f5f' : '';
+        };
+
+        const updateFilterButtons = () => {
+          const allBtn = document.getElementById('notificationFilterAll');
+          const unreadBtn = document.getElementById('notificationFilterUnread');
+          if (allBtn) allBtn.className = filterMode === 'all' ? 'btn btn-primary' : 'btn btn-secondary';
+          if (unreadBtn) unreadBtn.className = filterMode === 'unread' ? 'btn btn-primary' : 'btn btn-secondary';
+        };
+
+        const renderList = () => {
+          const readMap = getReadMap();
+          const listEl = document.getElementById('notificationList');
+          const subtitleEl = document.getElementById('notificationsSubtitle');
+          if (!listEl || !subtitleEl) return;
+
+          const unreadCount = notifications.filter((item) => !readMap[item.id]).length;
+          subtitleEl.textContent = unreadCount
+            ? `You have ${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}.`
+            : 'You are all caught up.';
+
+          const visible = filterMode === 'unread'
+            ? notifications.filter((item) => !readMap[item.id])
+            : notifications;
+
+          listEl.innerHTML = '';
+          if (!visible.length) {
+            listEl.innerHTML = '<p class="announcement-empty">No notifications found for this filter.</p>';
+            return;
+          }
+
+          visible.forEach((item) => {
+            const isRead = Boolean(readMap[item.id]);
+            const row = document.createElement('article');
+            row.className = 'hr-log-entry';
+            row.innerHTML = `
+              <div class="hr-log-entry-header">
+                <span class="hr-status-badge ${isRead ? 'hr-status-onboarding' : 'hr-status-active'}">${isRead ? 'Read' : 'Unread'}</span>
+                <span class="hr-log-meta">${escHtml(formatDate(item.createdAt))}</span>
+              </div>
+              <p class="hr-log-body"><strong>${escHtml(item.title)}</strong></p>
+              <p class="hr-log-body">${escHtml(item.message)}</p>
+              ${item.link ? `<div class="staff-module-actions" style="margin-top:0.55rem;"><a class="btn btn-secondary" href="${escHtml(item.link)}">Open</a></div>` : ''}
+              ${!isRead ? `<div class="staff-module-actions" style="margin-top:0.55rem;"><button class="btn btn-secondary" type="button" data-read-id="${escHtml(item.id)}">Mark as read</button></div>` : ''}
+            `;
+            listEl.appendChild(row);
+          });
+
+          listEl.querySelectorAll('button[data-read-id]').forEach((button) => {
+            button.addEventListener('click', () => {
+              const id = button.getAttribute('data-read-id');
+              if (!id) return;
+              const next = getReadMap();
+              next[id] = new Date().toISOString();
+              saveReadMap(next);
+              renderList();
+            });
+          });
+        };
+
+        const createNotification = ({ id, type, createdAt, title, message, link }) => ({
+          id,
+          type,
+          createdAt,
+          title,
+          message,
+          link: link || '',
+        });
+
+        const mapSubmissionStatus = (status) => {
+          const value = String(status || 'pending').toLowerCase();
+          if (value === 'approved') return 'approved';
+          if (value === 'denied') return 'denied';
+          return 'pending';
+        };
+
+        const loadNotifications = async () => {
+          setStatus('Loading notifications…');
+
+          await window.syncSessionFromSupabase?.();
+          const user = window.getSession?.();
+          if (!user) {
+            sessionStorage.setItem('islesOfDawnLoginNext', location.href);
+            location.replace('login.html');
+            return;
+          }
+
+          const userEmail = String(user.email || '').trim().toLowerCase();
+          const profileResult = await window.getCurrentUserProfile?.();
+          const profileUsername = String(profileResult?.ok ? profileResult.profile?.username || '' : '').trim().toLowerCase();
+          const all = [];
+
+          const appRows = await window.syncApplicationSubmissionsFromSupabase?.();
+          if (Array.isArray(appRows)) {
+            appRows
+              .filter((row) => {
+                const email = String(row.email || '').trim().toLowerCase();
+                const minecraft = String(row.minecraftUsername || '').trim().toLowerCase();
+                return (email && email === userEmail) || (profileUsername && minecraft === profileUsername);
+              })
+              .forEach((row) => {
+                const state = mapSubmissionStatus(row.status);
+                if (state === 'pending') return;
+                all.push(createNotification({
+                  id: `application:${row.id}:${state}`,
+                  type: 'application',
+                  createdAt: row.reviewedAt || row.createdAt,
+                  title: `Application ${state === 'approved' ? 'Approved' : 'Denied'}`,
+                  message: `Your ${row.roleTitle || row.roleId || 'staff'} application was ${state}.`,
+                  link: 'applications.html',
+                }));
+              });
+          }
+
+          const appealRows = await window.syncAppealSubmissionsFromSupabase?.();
+          if (Array.isArray(appealRows)) {
+            appealRows
+              .filter((row) => {
+                const email = String(row.email || '').trim().toLowerCase();
+                const minecraft = String(row.minecraftName || '').trim().toLowerCase();
+                return (email && email === userEmail) || (profileUsername && minecraft === profileUsername);
+              })
+              .forEach((row) => {
+                const state = mapSubmissionStatus(row.status);
+                if (state === 'pending') return;
+                all.push(createNotification({
+                  id: `appeal:${row.id}:${state}`,
+                  type: 'appeal',
+                  createdAt: row.reviewedAt || row.createdAt,
+                  title: `Appeal ${state === 'approved' ? 'Approved' : 'Denied'}`,
+                  message: `Your punishment appeal was ${state}.`,
+                  link: 'appeals.html',
+                }));
+              });
+          }
+
+          const authUid = window.getCurrentAuthUid?.() || '';
+          const staffFileResult = authUid ? await window.getStaffFileByUserId?.(authUid) : null;
+          const staffFile = staffFileResult?.ok ? staffFileResult.file : null;
+
+          if (staffFile?.id) {
+            const loaRows = await window.getLoaRequestsByStaffFile?.(staffFile.id);
+            if (loaRows?.ok) {
+              (loaRows.requests || []).forEach((request) => {
+                const state = mapSubmissionStatus(request.status);
+                if (state === 'pending') return;
+                all.push(createNotification({
+                  id: `loa:${request.id}:${state}`,
+                  type: 'loa',
+                  createdAt: request.reviewedAt || request.createdAt,
+                  title: `LOA Request ${state === 'approved' ? 'Approved' : 'Denied'}`,
+                  message: request.managerNote
+                    ? `Decision note: ${request.managerNote}`
+                    : `Your LOA request was ${state}.`,
+                  link: 'staff-portal.html',
+                }));
+              });
+            }
+
+            const activityRows = await window.getStaffActivity?.(staffFile.id);
+            if (activityRows?.ok) {
+              (activityRows.entries || [])
+                .filter((entry) => ['promotion', 'demotion', 'role_change'].includes(String(entry.type || '').toLowerCase()))
+                .forEach((entry) => {
+                  all.push(createNotification({
+                    id: `staff-activity:${entry.id}`,
+                    type: 'staff_activity',
+                    createdAt: entry.created_at,
+                    title: 'Staff Role Update',
+                    message: String(entry.content || 'Your staff role was updated.'),
+                    link: `staff-hr-file.html?id=${encodeURIComponent(staffFile.id)}`,
+                  }));
+                });
+            }
+          }
+
+          notifications = all
+            .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+          setStatus(`${notifications.length} notification${notifications.length === 1 ? '' : 's'} loaded.`);
+          renderList();
+        };
+
+        document.getElementById('notificationFilterAll')?.addEventListener('click', () => {
+          filterMode = 'all';
+          updateFilterButtons();
+          renderList();
+        });
+
+        document.getElementById('notificationFilterUnread')?.addEventListener('click', () => {
+          filterMode = 'unread';
+          updateFilterButtons();
+          renderList();
+        });
+
+        document.getElementById('notificationMarkAll')?.addEventListener('click', () => {
+          if (!notifications.length) return;
+          const next = getReadMap();
+          const now = new Date().toISOString();
+          notifications.forEach((item) => {
+            next[item.id] = now;
+          });
+          saveReadMap(next);
+          renderList();
+          setStatus('All notifications marked as read.');
+        });
+
+        (async () => {
+          document.getElementById('notificationsContent').hidden = false;
+          updateFilterButtons();
+          try {
+            await loadNotifications();
+          } catch (error) {
+            console.error('Notifications load failed:', error);
+            setStatus('Could not load notifications right now.', true);
+          }
+        })();
+      })();
+    </script>
+  </body>
+</html>

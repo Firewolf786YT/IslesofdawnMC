@@ -2840,6 +2840,43 @@ body {
   margin-top: 0.5rem;
 }
 
+.hr-overview-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.7rem;
+}
+
+.hr-overview-stat {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.7rem 0.8rem;
+}
+
+.hr-overview-grid {
+  margin-top: 0.75rem;
+}
+
+.hr-linked-application {
+  margin-top: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.8rem;
+}
+
+.hr-linked-application-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.hr-linked-application-header h4 {
+  margin: 0;
+}
+
 /* Log entries */
 .hr-log-list {
   display: flex;

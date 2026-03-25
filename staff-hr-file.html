@@ -178,7 +178,17 @@
 
           <!-- ── Overview Tab ──────────────────────────────────────────────── -->
           <div id="tab-overview" class="hr-tab-panel card" role="tabpanel">
-            <div id="overviewInfoGrid" class="staff-app-info-grid"></div>
+            <div id="overviewHighlights" class="hr-overview-highlights"></div>
+            <div id="overviewInfoGrid" class="staff-app-info-grid hr-overview-grid"></div>
+
+            <article id="linkedApplicationCard" class="hr-linked-application is-hidden">
+              <div class="hr-linked-application-header">
+                <h4>Linked Application</h4>
+                <span id="linkedApplicationStatus" class="app-review-status app-review-status-pending">Pending</span>
+              </div>
+              <div id="linkedApplicationGrid" class="staff-app-info-grid"></div>
+              <div id="linkedApplicationAnswers" class="staff-app-answer-list"></div>
+            </article>
 
             <div class="staff-module-actions" style="margin-top: 1rem;">
               <button id="toggleEditOverview" class="btn btn-secondary" type="button">Edit Overview</button>
@@ -229,8 +239,10 @@
                     Type
                     <select id="feedbackType">
                       <option value="positive">Positive</option>
-                      <option value="neutral">Neutral</option>
-                      <option value="negative">Negative</option>
+                      <option value="coaching">Coaching</option>
+                      <option value="concern">Concern</option>
+                      <option value="promotion">Promotion</option>
+                      <option value="demotion">Demotion</option>
                     </select>
                   </label>
                 </div>
@@ -259,9 +271,29 @@
                     <select id="disciplinaryType">
                       <option value="verbal_warning">Verbal Warning</option>
                       <option value="written_warning">Written Warning</option>
+                      <option value="final_warning">Final Warning</option>
+                      <option value="probation">Probation</option>
                       <option value="suspension">Suspension</option>
                       <option value="demotion">Demotion</option>
+                      <option value="role_removal">Role Removal</option>
+                      <option value="termination">Termination</option>
                       <option value="other">Other</option>
+                    </select>
+                  </label>
+                  <label>
+                    Apply Role Change (optional)
+                    <select id="disciplinaryApplyRole">
+                      <option value="">— No role change —</option>
+                      <option value="helper">Helper</option>
+                      <option value="moderator">Moderator</option>
+                      <option value="developer">Developer</option>
+                      <option value="admin">Admin</option>
+                      <option value="manager">Manager</option>
+                      <option value="owner">Owner</option>
+                      <option value="qa_tester">QA Tester</option>
+                      <option value="media">Media</option>
+                      <option value="event_team">Event Team</option>
+                      <option value="builder">Builder</option>
                     </select>
                   </label>
                   <label>
@@ -295,8 +327,28 @@
                       <option value="note">Note</option>
                       <option value="absence">Absence</option>
                       <option value="meeting">Meeting</option>
-                      <option value="promotion">Promotion / Role Change</option>
+                      <option value="training">Training</option>
+                      <option value="milestone">Milestone</option>
+                      <option value="role_change">Role Change</option>
+                      <option value="promotion">Promotion</option>
+                      <option value="demotion">Demotion</option>
                       <option value="other">Other</option>
+                    </select>
+                  </label>
+                  <label>
+                    Apply Role Change (optional)
+                    <select id="activityApplyRole">
+                      <option value="">— No role change —</option>
+                      <option value="helper">Helper</option>
+                      <option value="moderator">Moderator</option>
+                      <option value="developer">Developer</option>
+                      <option value="admin">Admin</option>
+                      <option value="manager">Manager</option>
+                      <option value="owner">Owner</option>
+                      <option value="qa_tester">QA Tester</option>
+                      <option value="media">Media</option>
+                      <option value="event_team">Event Team</option>
+                      <option value="builder">Builder</option>
                     </select>
                   </label>
                   <label>
@@ -335,6 +387,7 @@
       // ── State ───────────────────────────────────────────────────────────────
       let currentFile   = null;
       let currentFileId = null;
+      let linkedApplication = null;
 
       const getFileIdFromQuery = () => {
         const params = new URLSearchParams(window.location.search);
@@ -353,6 +406,13 @@
         if (!el) return;
         el.textContent = msg;
         el.style.color = isError ? '#e75f5f' : '';
+      };
+
+      const getApplicationReviewStatusMeta = (status) => {
+        const value = String(status || 'pending').toLowerCase();
+        if (value === 'approved') return { label: 'Approved', className: 'app-review-status app-review-status-approved' };
+        if (value === 'denied') return { label: 'Denied', className: 'app-review-status app-review-status-denied' };
+        return { label: 'Pending', className: 'app-review-status app-review-status-pending' };
       };
 
       // ── Tabs ────────────────────────────────────────────────────────────────
@@ -407,6 +467,23 @@
       const isOnboardingCompleted = (file) => {
         const ob = file?.onboarding || {};
         return ob.onboardingComplete === true;
+      };
+
+      const getOnboardingProgress = (file) => {
+        const ob = file?.onboarding || {};
+        const checks = [
+          ob.interviewScheduled === true,
+          Boolean(String(ob.interviewDate || '').trim()),
+          ob.interviewComplete === true,
+          ob.interviewStatus === 'approved',
+          Boolean(String(ob.interviewNotes || '').trim()),
+          ob.onboardingSetup === true,
+          ob.portalGuided === true,
+          ob.workflowExplained === true,
+          ob.onboardingComplete === true,
+        ];
+        const completed = checks.filter(Boolean).length;
+        return Math.round((completed / checks.length) * 100);
       };
 
       const updateOnboardingCardVisibility = (file) => {
@@ -655,14 +732,139 @@
       });
 
       // ── Overview Tab ────────────────────────────────────────────────────────
+      const renderLinkedApplication = (submission) => {
+        const card = document.getElementById('linkedApplicationCard');
+        const statusEl = document.getElementById('linkedApplicationStatus');
+        const grid = document.getElementById('linkedApplicationGrid');
+        const answers = document.getElementById('linkedApplicationAnswers');
+        if (!card || !statusEl || !grid || !answers) return;
+
+        if (!submission) {
+          card.classList.add('is-hidden');
+          return;
+        }
+
+        card.classList.remove('is-hidden');
+        const statusMeta = getApplicationReviewStatusMeta(submission.status);
+        statusEl.className = statusMeta.className;
+        statusEl.textContent = statusMeta.label;
+
+        const roleTitle = window.getApplicationById?.(submission.roleId)?.title || submission.roleTitle || submission.roleId || '—';
+        const appInfoItems = [
+          ['Role Applied For', roleTitle],
+          ['Submitted', formatDate(submission.createdAt)],
+          ['Reviewed', submission.reviewedAt ? formatDate(submission.reviewedAt) : 'Not reviewed'],
+          ['Reviewer', submission.reviewedBy || '—'],
+        ];
+
+        grid.innerHTML = appInfoItems.map(([label, value]) => `
+          <div class="staff-app-info-item">
+            <p class="staff-app-info-label">${escHtml(label)}</p>
+            <p class="staff-app-info-value">${escHtml(String(value || '—'))}</p>
+          </div>
+        `).join('');
+
+        const promptAnswers = [];
+        const prompts = Array.isArray(submission.questionPrompts) ? submission.questionPrompts : [];
+        const responses = [submission.whyJoin, submission.experience, submission.conflictHandling, submission.communityImprovement];
+        prompts.forEach((prompt, index) => {
+          const response = String(responses[index] || '').trim();
+          if (!prompt || !response) return;
+          promptAnswers.push({ prompt, response });
+        });
+
+        const extraResponses = Array.isArray(submission.extraResponses) ? submission.extraResponses : [];
+        extraResponses.forEach((entry) => {
+          const prompt = String(entry?.label || entry?.id || 'Extra Question').trim();
+          const response = String(entry?.value || '').trim();
+          if (!response) return;
+          promptAnswers.push({ prompt, response });
+        });
+
+        if (!promptAnswers.length) {
+          answers.innerHTML = '<p class="announcement-empty">No application question responses were saved for this submission.</p>';
+          return;
+        }
+
+        answers.innerHTML = promptAnswers.map((entry) => `
+          <article class="staff-app-answer">
+            <h5>${escHtml(entry.prompt)}</h5>
+            <p>${escHtml(entry.response)}</p>
+          </article>
+        `).join('');
+      };
+
+      const loadLinkedApplication = async (file) => {
+        linkedApplication = null;
+        renderLinkedApplication(null);
+
+        const loadFn = window.syncApplicationSubmissionsFromSupabase;
+        if (typeof loadFn !== 'function' || !file) return;
+
+        const result = await loadFn();
+        if (!Array.isArray(result) || !result.length) return;
+
+        const applicationId = String(file.applicationId || '').trim();
+        if (applicationId) {
+          linkedApplication = result.find((submission) => String(submission.id || '') === applicationId) || null;
+        }
+
+        if (!linkedApplication) {
+          const username = String(file.minecraftUsername || '').trim().toLowerCase();
+          const roleId = String(file.appliedRoleId || '').trim().toLowerCase();
+          const byUser = result.filter((submission) => String(submission.minecraftUsername || '').trim().toLowerCase() === username);
+          if (roleId) {
+            linkedApplication = byUser.find((submission) => String(submission.roleId || '').trim().toLowerCase() === roleId) || null;
+          }
+          if (!linkedApplication) {
+            linkedApplication = byUser[0] || null;
+          }
+        }
+
+        renderLinkedApplication(linkedApplication);
+        if (currentFile) {
+          renderOverview(currentFile);
+        }
+      };
+
       const renderOverview = (file) => {
         const grid = document.getElementById('overviewInfoGrid');
-        if (!grid || !file) return;
+        const highlights = document.getElementById('overviewHighlights');
+        if (!grid || !highlights || !file) return;
 
         const appliedRoleTitle = window.getApplicationById?.(file.appliedRoleId)?.title || file.appliedRoleId || '—';
         const assignedRoleLabel = file.assignedRole
           ? (window.getRoleLabel?.(file.assignedRole) || file.assignedRole)
           : 'Not assigned';
+
+        const roleLinkState = file.userId ? 'Linked' : 'Unlinked';
+        const progress = getOnboardingProgress(file);
+        const statusMeta = (() => {
+          const ob = file.onboarding || {};
+          if (ob.archived === true) return { label: 'Archived', cls: 'hr-status-denied' };
+          if (ob.onboardingComplete === true || ob.interviewStatus === 'approved') return { label: 'Active Staff', cls: 'hr-status-active' };
+          if (ob.interviewStatus === 'denied') return { label: 'Interview Denied', cls: 'hr-status-denied' };
+          return { label: 'Onboarding', cls: 'hr-status-onboarding' };
+        })();
+
+        highlights.innerHTML = `
+          <article class="hr-overview-stat">
+            <p class="staff-app-info-label">Current Status</p>
+            <p class="staff-app-info-value"><span class="hr-status-badge ${statusMeta.cls}">${statusMeta.label}</span></p>
+          </article>
+          <article class="hr-overview-stat">
+            <p class="staff-app-info-label">Onboarding Progress</p>
+            <p class="staff-app-info-value">${progress}% complete</p>
+          </article>
+          <article class="hr-overview-stat">
+            <p class="staff-app-info-label">Assigned Role</p>
+            <p class="staff-app-info-value">${escHtml(assignedRoleLabel)}</p>
+          </article>
+          <article class="hr-overview-stat">
+            <p class="staff-app-info-label">Account Link</p>
+            <p class="staff-app-info-value">${escHtml(roleLinkState)}</p>
+          </article>
+        `;
 
         const items = [
           ['Minecraft Username', file.minecraftUsername || '—'],
@@ -674,6 +876,8 @@
           ['File Status',        file.isActive ? '✔ Active Staff Member' : 'Onboarding / Inactive'],
           ['Archived',           file.onboarding?.archived === true ? 'Yes' : 'No'],
           ['File Created',       formatDate(file.createdAt)],
+          ['Last Updated',       formatDate(file.updatedAt)],
+          ['Application Linked', linkedApplication ? 'Yes' : 'No'],
         ];
 
         grid.innerHTML = items.map(([label, value]) => `
@@ -750,18 +954,25 @@
 
       // ── Log Entry Rendering ──────────────────────────────────────────────────
       const LOG_TYPE_LABELS = {
-        positive: 'Positive', neutral: 'Neutral', negative: 'Negative',
-        verbal_warning: 'Verbal Warning', written_warning: 'Written Warning',
-        suspension: 'Suspension', demotion: 'Demotion',
-        note: 'Note', absence: 'Absence', meeting: 'Meeting', promotion: 'Promotion', other: 'Other',
+        positive: 'Positive', neutral: 'Neutral', negative: 'Negative', coaching: 'Coaching', concern: 'Concern',
+        verbal_warning: 'Verbal Warning', written_warning: 'Written Warning', final_warning: 'Final Warning', probation: 'Probation',
+        suspension: 'Suspension', demotion: 'Demotion', role_removal: 'Role Removal', termination: 'Termination',
+        note: 'Note', absence: 'Absence', meeting: 'Meeting', training: 'Training', milestone: 'Milestone', role_change: 'Role Change', promotion: 'Promotion', other: 'Other',
       };
 
       const LOG_TYPE_CLASSES = {
-        positive: 'hr-log-type-positive', neutral: 'hr-log-type-neutral', negative: 'hr-log-type-negative',
-        verbal_warning: 'hr-log-type-warning', written_warning: 'hr-log-type-warning',
-        suspension: 'hr-log-type-severe', demotion: 'hr-log-type-severe',
+        positive: 'hr-log-type-positive', neutral: 'hr-log-type-neutral', negative: 'hr-log-type-negative', coaching: 'hr-log-type-neutral', concern: 'hr-log-type-warning',
+        verbal_warning: 'hr-log-type-warning', written_warning: 'hr-log-type-warning', final_warning: 'hr-log-type-warning', probation: 'hr-log-type-warning',
+        suspension: 'hr-log-type-severe', demotion: 'hr-log-type-severe', role_removal: 'hr-log-type-severe', termination: 'hr-log-type-severe',
         note: 'hr-log-type-neutral', absence: 'hr-log-type-warning',
-        meeting: 'hr-log-type-neutral', promotion: 'hr-log-type-positive', other: 'hr-log-type-neutral',
+        meeting: 'hr-log-type-neutral', training: 'hr-log-type-neutral', milestone: 'hr-log-type-positive', role_change: 'hr-log-type-warning', promotion: 'hr-log-type-positive', other: 'hr-log-type-neutral',
+      };
+
+      const LOG_TYPE_ICONS = {
+        positive: '✅', neutral: 'ℹ️', negative: '❗', coaching: '🧭', concern: '⚠️',
+        verbal_warning: '⚠️', written_warning: '📄', final_warning: '⛔', probation: '🕒',
+        suspension: '🛑', demotion: '⬇️', role_removal: '🚫', termination: '❌',
+        note: '📝', absence: '📅', meeting: '👥', training: '📚', milestone: '🏅', role_change: '🔁', promotion: '⬆️', other: '•',
       };
 
       const renderLogEntries = (listId, entries, emptyLabel) => {
@@ -778,6 +989,7 @@
           const typeVal   = String(entry.type || 'other');
           const typeLabel = LOG_TYPE_LABELS[typeVal] || typeVal;
           const typeCls   = LOG_TYPE_CLASSES[typeVal] || 'hr-log-type-neutral';
+          const typeIcon  = LOG_TYPE_ICONS[typeVal] || '•';
           const byField   = entry.author || entry.issued_by || entry.logged_by || '';
           const body      = String(entry.content || entry.reason || '');
 
@@ -785,7 +997,7 @@
           item.className = 'hr-log-entry';
           item.innerHTML = `
             <div class="hr-log-entry-header">
-              <span class="hr-log-type ${escHtml(typeCls)}">${escHtml(typeLabel)}</span>
+              <span class="hr-log-type ${escHtml(typeCls)}">${escHtml(`${typeIcon} ${typeLabel}`)}</span>
               <span class="hr-log-meta">${byField ? `by ${escHtml(byField)} · ` : ''}${escHtml(formatDate(entry.created_at))}</span>
             </div>
             <p class="hr-log-body">${escHtml(body)}</p>
@@ -859,6 +1071,45 @@
         renderLogEntries('activityList', result?.entries || [], 'activity entries');
       };
 
+      const applyAssignedRoleChange = async ({ nextRole, statusId, actorLabel }) => {
+        const normalizedRole = String(nextRole || '').trim();
+        if (!normalizedRole || !currentFileId || !currentFile) {
+          return { ok: true, changed: false };
+        }
+
+        if (currentFile.assignedRole === normalizedRole) {
+          return { ok: true, changed: false, message: `Assigned role already set to ${window.getRoleLabel?.(normalizedRole) || normalizedRole}.` };
+        }
+
+        const updateResult = await window.updateStaffFile?.(currentFileId, { assignedRole: normalizedRole, isActive: true });
+        if (!updateResult?.ok) {
+          return { ok: false, message: updateResult?.message || 'Could not apply role change to the staff file.' };
+        }
+
+        currentFile = updateResult.file;
+        updateFileHeader(currentFile);
+        renderOnboarding(currentFile);
+        renderOverview(currentFile);
+
+        if (currentFile.userId) {
+          const syncResult = await window.upsertUserRoleByAuthUid?.(currentFile.userId, normalizedRole);
+          if (!syncResult?.ok) {
+            return {
+              ok: false,
+              changed: true,
+              message: `Role updated in file, but account role sync failed: ${syncResult?.message || 'Unknown error'}`,
+            };
+          }
+        }
+
+        const roleLabel = window.getRoleLabel?.(normalizedRole) || normalizedRole;
+        return {
+          ok: true,
+          changed: true,
+          message: `${actorLabel || 'Entry'} applied role change to ${roleLabel}.`,
+        };
+      };
+
       // ── Log form toggles ─────────────────────────────────────────────────────
       const wireToggle = (toggleId, formId, cancelId) => {
         document.getElementById(toggleId)?.addEventListener('click', () => {
@@ -883,10 +1134,20 @@
         const reviewer = getSession();
         const result = await window.addStaffFeedback?.(currentFileId, {
           author:  reviewer?.name || reviewer?.email || 'Staff',
-          type:    document.getElementById('feedbackType')?.value || 'neutral',
+          type:    document.getElementById('feedbackType')?.value || 'coaching',
           content,
         });
         if (!result?.ok) { setStatus('feedbackStatus', result?.message || 'Could not save.', true); return; }
+
+        const feedbackType = document.getElementById('feedbackType')?.value || 'coaching';
+        if (feedbackType === 'promotion' || feedbackType === 'demotion') {
+          await window.addStaffActivity?.(currentFileId, {
+            type: feedbackType,
+            content: `Role change noted in feedback: ${content}`,
+            logged_by: reviewer?.name || reviewer?.email || 'Staff',
+          });
+        }
+
         document.getElementById('feedbackForm')?.reset();
         document.getElementById('feedbackForm')?.classList.add('is-hidden');
         setStatus('feedbackStatus', 'Feedback saved.');
@@ -898,6 +1159,7 @@
         if (!currentFileId) return;
         const reason   = (document.getElementById('disciplinaryReason')?.value   || '').trim();
         const issuedBy = (document.getElementById('disciplinaryIssuedBy')?.value || '').trim();
+        const applyRole = (document.getElementById('disciplinaryApplyRole')?.value || '').trim();
         if (!reason || !issuedBy) { setStatus('disciplinaryStatus', 'Please fill in all required fields.', true); return; }
         setStatus('disciplinaryStatus', 'Saving…');
 
@@ -907,9 +1169,32 @@
           issued_by: issuedBy,
         });
         if (!result?.ok) { setStatus('disciplinaryStatus', result?.message || 'Could not save.', true); return; }
+
+        const disciplinaryType = document.getElementById('disciplinaryType')?.value || 'verbal_warning';
+        if (disciplinaryType === 'demotion') {
+          await window.addStaffActivity?.(currentFileId, {
+            type: 'demotion',
+            content: `Disciplinary demotion recorded: ${reason}`,
+            logged_by: issuedBy,
+          });
+        }
+
+        const roleApplyResult = await applyAssignedRoleChange({
+          nextRole: applyRole,
+          statusId: 'disciplinaryStatus',
+          actorLabel: 'Disciplinary action',
+        });
+        if (!roleApplyResult.ok) {
+          setStatus('disciplinaryStatus', roleApplyResult.message || 'Action recorded, but role change failed.', true);
+        }
+
         document.getElementById('disciplinaryForm')?.reset();
         document.getElementById('disciplinaryForm')?.classList.add('is-hidden');
-        setStatus('disciplinaryStatus', 'Action recorded.');
+        const baseMessage = 'Action recorded.';
+        const roleMessage = roleApplyResult.changed ? ` ${roleApplyResult.message || ''}` : '';
+        if (roleApplyResult.ok) {
+          setStatus('disciplinaryStatus', `${baseMessage}${roleMessage}`.trim());
+        }
         await loadDisciplinary();
       });
 
@@ -918,6 +1203,7 @@
         if (!currentFileId) return;
         const content  = (document.getElementById('activityContent')?.value  || '').trim();
         const loggedBy = (document.getElementById('activityLoggedBy')?.value || '').trim();
+        const applyRole = (document.getElementById('activityApplyRole')?.value || '').trim();
         if (!content || !loggedBy) { setStatus('activityStatus', 'Please fill in all required fields.', true); return; }
         setStatus('activityStatus', 'Saving…');
 
@@ -927,9 +1213,23 @@
           logged_by: loggedBy,
         });
         if (!result?.ok) { setStatus('activityStatus', result?.message || 'Could not save.', true); return; }
+
+        const roleApplyResult = await applyAssignedRoleChange({
+          nextRole: applyRole,
+          statusId: 'activityStatus',
+          actorLabel: 'Activity entry',
+        });
+        if (!roleApplyResult.ok) {
+          setStatus('activityStatus', roleApplyResult.message || 'Activity logged, but role change failed.', true);
+        }
+
         document.getElementById('activityForm')?.reset();
         document.getElementById('activityForm')?.classList.add('is-hidden');
-        setStatus('activityStatus', 'Activity logged.');
+        const baseMessage = 'Activity logged.';
+        const roleMessage = roleApplyResult.changed ? ` ${roleApplyResult.message || ''}` : '';
+        if (roleApplyResult.ok) {
+          setStatus('activityStatus', `${baseMessage}${roleMessage}`.trim());
+        }
         await loadActivity();
       });
 
@@ -957,6 +1257,7 @@
         updateFileHeader(currentFile);
         renderOnboarding(currentFile);
         renderOverview(currentFile);
+        await loadLinkedApplication(currentFile);
 
         // Pre-fill logged-by fields with current user name
         const user = getSession();
