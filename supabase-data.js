@@ -721,6 +721,26 @@
     return true;
   };
 
+  window.clearApplicationLockout = async (minecraftUsername) => {
+    const client = await getClient();
+    if (!client) return false;
+
+    const normalizedUsername = String(minecraftUsername || '').trim();
+    if (!normalizedUsername) return true;
+
+    const { error } = await client
+      .from(HR_TABLES.lockouts)
+      .delete()
+      .ilike('minecraft_username', normalizedUsername);
+
+    if (error) {
+      console.warn('Could not clear application lockout:', error.message);
+      return false;
+    }
+
+    return true;
+  };
+
   // ── Staff LOA requests ───────────────────────────────────────────────────
 
   const fromDbLoaRequest = (row) => ({

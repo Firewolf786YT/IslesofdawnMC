@@ -46,8 +46,10 @@
           <div class="staff-module-actions">
             <a href="staff-hr-files.html" class="btn btn-secondary">← Back to Staff Files</a>
             <button id="archiveStaffFileBtn" class="btn btn-secondary" type="button">Archive Staff File</button>
+            <button id="clearHrFileLockoutBtn" class="btn btn-secondary" type="button">Clear Applicant Lockout</button>
           </div>
           <p class="copy-message" id="archiveStaffFileStatus" aria-live="polite"></p>
+          <p class="copy-message" id="clearHrFileLockoutStatus" aria-live="polite"></p>
 
           <!-- ── Onboarding Checklist ─────────────────────────────────────── -->
           <div id="onboardingCard" class="card hr-onboarding-card">
@@ -661,6 +663,9 @@
         if (interviewStatus === 'denied' && currentFile.minecraftUsername) {
           await window.setApplicationLockout?.(currentFile.minecraftUsername, 'Interview denied');
           setStatus('checklistStatus', 'Checklist saved. Applicant locked from re-applying for 2 weeks.');
+        } else if (interviewStatus === 'approved' && currentFile.minecraftUsername) {
+          await window.clearApplicationLockout?.(currentFile.minecraftUsername);
+          setStatus('checklistStatus', 'Checklist saved. Applicant lockout cleared.');
         } else {
           setStatus('checklistStatus', 'Checklist saved.');
         }
@@ -729,6 +734,36 @@
         renderOverview(currentFile);
         renderOnboarding(currentFile);
         setStatus(statusEl, isArchived ? 'Staff file unarchived.' : 'Staff file archived.');
+      });
+
+      document.getElementById('clearHrFileLockoutBtn')?.addEventListener('click', async () => {
+        const statusEl = 'clearHrFileLockoutStatus';
+        if (!currentFile) {
+          setStatus(statusEl, 'No staff file loaded yet.', true);
+          return;
+        }
+
+        const suggestedUsername = String(currentFile.minecraftUsername || '').trim();
+        const promptText = suggestedUsername
+          ? `Enter Minecraft username to clear lockout for:`
+          : 'Enter Minecraft username to clear lockout for:';
+        const input = window.prompt(promptText, suggestedUsername || '');
+        const minecraftUsername = String(input || '').trim();
+
+        if (!minecraftUsername) {
+          setStatus(statusEl, 'Lockout clear cancelled. No username provided.');
+          return;
+        }
+
+        setStatus(statusEl, `Clearing lockout for ${minecraftUsername}...`);
+        const cleared = await window.clearApplicationLockout?.(minecraftUsername);
+
+        if (!cleared) {
+          setStatus(statusEl, `Could not clear lockout for ${minecraftUsername}.`, true);
+          return;
+        }
+
+        setStatus(statusEl, `✔ Lockout cleared for ${minecraftUsername}.`);
       });
 
       // ── Overview Tab ────────────────────────────────────────────────────────

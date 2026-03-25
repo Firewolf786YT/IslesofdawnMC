@@ -45,6 +45,7 @@
             <a class="btn btn-secondary" href="staff-applications.html">Back to Applications Manager</a>
             <a class="btn btn-primary" href="applications.html">View Public Applications</a>
             <a class="btn btn-secondary" href="staff-hr.html">🗂️ HR Portal</a>
+            <button id="clearApplicationLockoutBtn" type="button" class="btn btn-secondary">Clear Applicant Lockout</button>
           </div>
 
           <div class="card staff-app-review-card">
@@ -88,6 +89,7 @@
       const applicationReviewStatus = document.getElementById('applicationReviewStatus');
       const applicationReviewFilter = document.getElementById('applicationReviewFilter');
       const applicationReviewUsername = document.getElementById('applicationReviewUsername');
+      const clearApplicationLockoutBtn = document.getElementById('clearApplicationLockoutBtn');
 
       const setReviewStatus = (message, isError = false) => {
         if (!applicationReviewStatus) return;
@@ -176,6 +178,26 @@
             const discordUsername = String(submission.discord || '').toLowerCase();
             return minecraftUsername.includes(usernameFilter) || discordUsername.includes(usernameFilter);
           });
+      };
+
+      const clearApplicantLockoutManually = async () => {
+        const usernameInput = window.prompt('Enter the Minecraft username to clear lockout for:');
+        const minecraftUsername = String(usernameInput || '').trim();
+
+        if (!minecraftUsername) {
+          setReviewStatus('Lockout clear cancelled. No username provided.');
+          return;
+        }
+
+        setReviewStatus(`Clearing lockout for ${minecraftUsername}...`);
+        const cleared = await window.clearApplicationLockout?.(minecraftUsername);
+
+        if (!cleared) {
+          setReviewStatus(`Could not clear lockout for ${minecraftUsername}. Verify Supabase lockout table access.`, true);
+          return;
+        }
+
+        setReviewStatus(`✔ Lockout cleared for ${minecraftUsername}.`);
       };
 
       const renderApplicationReviews = () => {
@@ -288,6 +310,9 @@
           approveButton.disabled = status === 'approved';
           approveButton.addEventListener('click', async () => {
             await updateSubmissionStatus(submission.id, fullIndex, 'approved');
+            if (submission.minecraftUsername) {
+              await window.clearApplicationLockout?.(submission.minecraftUsername);
+            }
             // Try to resolve the applicant's Supabase auth UUID by their Minecraft username
             let resolvedUserId = null;
             if (submission.minecraftUsername) {
@@ -389,6 +414,12 @@
       if (applicationReviewUsername) {
         applicationReviewUsername.addEventListener('input', () => {
           renderApplicationReviews();
+        });
+      }
+
+      if (clearApplicationLockoutBtn) {
+        clearApplicationLockoutBtn.addEventListener('click', async () => {
+          await clearApplicantLockoutManually();
         });
       }
     </script>
