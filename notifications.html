@@ -69,6 +69,7 @@
     <script>
       (() => {
         const READ_STORAGE_KEY = 'islesOfDawnNotificationsRead';
+        const UNREAD_COUNT_KEY = 'islesOfDawnNotificationsUnreadCount';
         let notifications = [];
         let filterMode = 'all';
 
@@ -97,6 +98,11 @@
           localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(map || {}));
         };
 
+        const setUnreadCount = (count) => {
+          const safeCount = Math.max(0, Number(count) || 0);
+          localStorage.setItem(UNREAD_COUNT_KEY, String(safeCount));
+        };
+
         const setStatus = (message, isError = false) => {
           const el = document.getElementById('notificationsStatus');
           if (!el) return;
@@ -118,6 +124,7 @@
           if (!listEl || !subtitleEl) return;
 
           const unreadCount = notifications.filter((item) => !readMap[item.id]).length;
+          setUnreadCount(unreadCount);
           subtitleEl.textContent = unreadCount
             ? `You have ${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}.`
             : 'You are all caught up.';

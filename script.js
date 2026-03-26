@@ -6,11 +6,7 @@
       const href = String(link.getAttribute('href') || '').split('#')[0].split('?')[0];
       return href === 'wiki.html';
     });
-    const hasNotifications = links.some((link) => {
-      const href = String(link.getAttribute('href') || '').split('#')[0].split('?')[0];
-      return href === 'notifications.html';
-    });
-    if (hasWiki && hasNotifications) return;
+    if (hasWiki) return;
 
     const buildNavLink = (href, text) => {
       const anchor = document.createElement('a');
@@ -20,7 +16,6 @@
     };
 
     const wikiLink = hasWiki ? null : buildNavLink('wiki.html', 'Wiki');
-    const notificationsLink = hasNotifications ? null : buildNavLink('notifications.html', 'Notifications');
 
     const storeLink = Array.from(nav.querySelectorAll('a')).find((link) => {
       const href = String(link.getAttribute('href') || '');
@@ -29,14 +24,12 @@
 
     const addLinks = (parent) => {
       if (wikiLink) parent.insertBefore(wikiLink, storeLink || null);
-      if (notificationsLink) parent.insertBefore(notificationsLink, storeLink || null);
     };
 
     if (storeLink) {
       addLinks(nav);
     } else {
       if (wikiLink) nav.appendChild(wikiLink);
-      if (notificationsLink) nav.appendChild(notificationsLink);
     }
   });
 })();

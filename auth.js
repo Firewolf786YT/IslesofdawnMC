@@ -39,6 +39,7 @@ const USER_PROFILES_TABLE = 'user_profiles';
 const ACCESS_DENIED_PAGE = 'access-denied.html';
 const VERIFIED_ROLE_KEY = 'islesOfDawnVerifiedRole';
 const PROFILE_PAGE = 'profile.html';
+const NOTIFICATIONS_UNREAD_COUNT_KEY = 'islesOfDawnNotificationsUnreadCount';
 
 const ROLE_ALIASES = Object.freeze({
   user: 'player',
@@ -1117,6 +1118,17 @@ const renderNavAuth = () => {
     return;
   }
 
+  let unreadNotifications = 0;
+  try {
+    unreadNotifications = Number(localStorage.getItem(NOTIFICATIONS_UNREAD_COUNT_KEY) || '0') || 0;
+  } catch {
+    unreadNotifications = 0;
+  }
+  const unreadBadgeLabel = unreadNotifications > 99 ? '99+' : String(unreadNotifications);
+  const unreadBadgeAttrs = unreadNotifications > 0
+    ? ` aria-label="${unreadNotifications} unread notifications"`
+    : ' aria-hidden="true"';
+
   const initial = escHtml((user.name || user.email || '?')[0].toUpperCase());
   const displayName = escHtml(user.name || user.email);
   const avatarMarkup = user.avatar
@@ -1132,6 +1144,13 @@ const renderNavAuth = () => {
 
   slot.innerHTML = `
     <div class="nav-auth-user">
+      <a class="nav-auth-alert" href="notifications.html" aria-label="Notifications" title="Notifications">
+        <svg class="nav-auth-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        <span class="nav-auth-alert-badge${unreadNotifications > 0 ? '' : ' is-hidden'}"${unreadBadgeAttrs}>${unreadBadgeLabel}</span>
+      </a>
       <button class="nav-auth-trigger" id="navAuthTrigger" type="button" aria-haspopup="menu" aria-expanded="false">
         ${avatarMarkup}
         <span class="nav-auth-name">${displayName}</span>
@@ -1139,7 +1158,6 @@ const renderNavAuth = () => {
       </button>
       <div class="nav-auth-menu is-hidden" id="navAuthMenu" role="menu">
         <a class="nav-auth-menu-item" href="${PROFILE_PAGE}" role="menuitem">Profile</a>
-        <a class="nav-auth-menu-item" href="notifications.html" role="menuitem">Notifications</a>
         ${staffPortalLink}
         ${managementLink}
         <button class="nav-auth-menu-item nav-auth-menu-logout" id="navLogoutBtn" type="button" role="menuitem">Log out</button>

@@ -167,6 +167,62 @@ body {
   border-color: var(--accent);
 }
 
+.nav-auth-alert {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  background: transparent;
+  text-decoration: none;
+  position: relative;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.nav-auth-alert:hover {
+  border-color: rgba(122, 162, 255, 0.62);
+  color: var(--text);
+  background: rgba(122, 162, 255, 0.08);
+}
+
+.nav-auth-alert:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.nav-auth-alert-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.nav-auth-alert-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  padding: 0 4px;
+  background: #e75f5f;
+  color: #fff;
+  border: 1px solid var(--bg);
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.nav-auth-alert-badge.is-hidden {
+  display: none;
+}
+
 .nav-auth-caret {
   color: var(--muted);
   font-size: 0.78rem;
