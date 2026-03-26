@@ -1865,6 +1865,23 @@ body {
   font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
 }
 
+.staff-portal-overview-actions {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.staff-portal-overview-actions .btn {
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+}
+
+.staff-portal-grid {
+  margin-top: 0;
+}
+
 /* Responsive */
 @media (max-width: 860px) {
   .profile-layout {

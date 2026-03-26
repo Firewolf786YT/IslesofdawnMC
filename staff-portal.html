@@ -32,54 +32,138 @@
       </div>
     </header>
 
-    <main id="staffPortalContent" class="staff-module-page" hidden>
-      <section class="section">
+    <main id="staffPortalContent" class="profile-main" hidden>
+      <div class="profile-hero-banner">
         <div class="container">
-          <div class="card staff-module-header">
-            <p class="eyebrow">Staff Area</p>
-            <h2>Staff Portal</h2>
-            <p id="staffPortalWelcome" class="hero-text staff-module-subtitle"></p>
-          </div>
+          <p class="eyebrow">Staff Area</p>
+          <h1 class="profile-hero-title">Staff Portal</h1>
+          <p class="profile-hero-sub">Manage staff access, submit leave requests, and keep up with your internal tools.</p>
+        </div>
+      </div>
 
-          <div class="staff-module-actions">
-            <a class="btn btn-secondary" href="index.html">← Back to Home</a>
-            <a class="btn btn-secondary" href="profile.html">Open Profile</a>
-            <a class="btn btn-secondary" href="staff-wiki.html">Open Wiki Drafts</a>
-          </div>
+      <div class="profile-body">
+        <div class="container">
+          <div class="profile-layout">
+            <aside class="profile-overview">
+              <div class="card profile-ov-card">
+                <div class="profile-ov-cover" aria-hidden="true"></div>
+                <div class="profile-ov-avatar-ring">
+                  <div class="avatar-upload-preview profile-ov-avatar" id="staffPortalAvatarPreview" aria-label="Staff avatar"></div>
+                </div>
+                <div class="profile-ov-identity">
+                  <h2 class="profile-ov-name" id="staffPortalUserName">Loading…</h2>
+                  <div class="profile-ov-role-wrap" id="staffPortalRole"></div>
+                </div>
+                <ul class="profile-ov-meta">
+                  <li>
+                    <span class="profile-ov-meta-label">Email</span>
+                    <span class="profile-ov-meta-value" id="staffPortalEmail">Loading…</span>
+                  </li>
+                  <li>
+                    <span class="profile-ov-meta-label">Staff File</span>
+                    <span class="profile-ov-meta-value" id="staffPortalFileStatus">Checking…</span>
+                  </li>
+                  <li>
+                    <span class="profile-ov-meta-label">Assigned Role</span>
+                    <span class="profile-ov-meta-value" id="staffPortalAssignedRole">—</span>
+                  </li>
+                </ul>
+                <div class="staff-portal-overview-actions">
+                  <a class="btn btn-secondary" href="index.html">Back to Home</a>
+                  <a class="btn btn-secondary" href="profile.html">Open Profile</a>
+                  <a class="btn btn-secondary" href="staff-wiki.html">Wiki Drafts</a>
+                </div>
+              </div>
+            </aside>
 
-          <div class="card" style="margin-top: 1rem;">
-            <h3 style="margin: 0 0 0.4rem;">Request an LOA</h3>
-            <p class="staff-diagnostics-subtitle">Submit a Leave of Absence request if you have an emergency or cannot be active on the server.</p>
-            <form id="loaRequestForm" novalidate style="margin-top: 0.8rem;">
-              <div class="app-form-grid">
-                <label>
-                  Start Date
-                  <input id="loaStartDate" type="date" />
-                </label>
-                <label>
-                  End Date
-                  <input id="loaEndDate" type="date" />
-                </label>
-              </div>
-              <div class="app-form-grid" style="margin-top: 0.8rem;">
-                <label style="display:block;font-weight:600;">
-                  Reason <em>*</em>
-                  <textarea id="loaReason" rows="4" placeholder="Explain your LOA request..." required></textarea>
-                </label>
-              </div>
-              <div class="staff-module-actions" style="margin-top:0.8rem;">
-                <button type="submit" class="btn btn-primary">Submit LOA Request</button>
-              </div>
-              <p class="copy-message" id="loaRequestStatus" aria-live="polite"></p>
-            </form>
-          </div>
+            <div class="profile-settings-wrap">
+              <div class="card profile-settings-card">
+                <nav class="profile-stabs" role="tablist" aria-label="Staff portal sections">
+                  <button class="profile-stab active" data-stab="overview" role="tab" aria-selected="true" aria-controls="staff-stab-overview">Overview</button>
+                  <button class="profile-stab" data-stab="loa" role="tab" aria-selected="false" aria-controls="staff-stab-loa">Request LOA</button>
+                  <button class="profile-stab" data-stab="requests" role="tab" aria-selected="false" aria-controls="staff-stab-requests">My Requests</button>
+                </nav>
 
-          <div class="card" style="margin-top: 1rem;">
-            <h3 style="margin: 0 0 0.4rem;">My LOA Requests</h3>
-            <div id="myLoaRequestsList" class="hr-log-list"></div>
+                <div class="profile-stab-panel" id="staff-stab-overview" role="tabpanel">
+                  <div class="profile-setting-block">
+                    <div class="profile-setting-hd">
+                      <h3>Portal Overview</h3>
+                      <p id="staffPortalWelcome">Loading your staff portal details…</p>
+                    </div>
+                    <div class="staff-hub-grid staff-portal-grid">
+                      <div class="card staff-module-card">
+                        <p class="staff-module-kicker">Account</p>
+                        <h3>Open Your Profile</h3>
+                        <p>Update your public-facing account details, Discord link, and staff file overview.</p>
+                        <div class="staff-module-actions">
+                          <a class="btn btn-secondary" href="profile.html">Go to Profile</a>
+                        </div>
+                      </div>
+                      <div class="card staff-module-card">
+                        <p class="staff-module-kicker">Knowledge Base</p>
+                        <h3>Review Wiki Drafts</h3>
+                        <p>Access internal wiki drafts and keep up with staff guidance and reference pages.</p>
+                        <div class="staff-module-actions">
+                          <a class="btn btn-secondary" href="staff-wiki.html">Open Wiki Drafts</a>
+                        </div>
+                      </div>
+                      <div class="card staff-module-card">
+                        <p class="staff-module-kicker">Availability</p>
+                        <h3>Leave of Absence</h3>
+                        <p>Submit and review your LOA requests from one place when your availability changes.</p>
+                        <div class="staff-module-actions">
+                          <button class="btn btn-secondary" type="button" id="staffPortalOpenLoaTab">Open LOA Form</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="profile-stab-panel" id="staff-stab-loa" role="tabpanel" hidden>
+                  <div class="profile-setting-block">
+                    <div class="profile-setting-hd">
+                      <h3>Request a Leave of Absence</h3>
+                      <p>Submit a Leave of Absence request if you have an emergency or cannot be active on the server.</p>
+                    </div>
+                    <form id="loaRequestForm" novalidate>
+                      <div class="app-form-grid">
+                        <label>
+                          Start Date
+                          <input id="loaStartDate" type="date" />
+                        </label>
+                        <label>
+                          End Date
+                          <input id="loaEndDate" type="date" />
+                        </label>
+                      </div>
+                      <div class="app-form-grid" style="margin-top: 0.8rem;">
+                        <label style="display:block;font-weight:600;">
+                          Reason <em>*</em>
+                          <textarea id="loaReason" rows="4" placeholder="Explain your LOA request..." required></textarea>
+                        </label>
+                      </div>
+                      <div class="staff-module-actions" style="margin-top:0.8rem;">
+                        <button type="submit" class="btn btn-primary">Submit LOA Request</button>
+                      </div>
+                      <p class="copy-message" id="loaRequestStatus" aria-live="polite"></p>
+                    </form>
+                  </div>
+                </div>
+
+                <div class="profile-stab-panel" id="staff-stab-requests" role="tabpanel" hidden>
+                  <div class="profile-setting-block">
+                    <div class="profile-setting-hd">
+                      <h3>My LOA Requests</h3>
+                      <p>Track the status of your leave requests and any management notes attached to them.</p>
+                    </div>
+                    <div id="myLoaRequestsList" class="hr-log-list"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
     </main>
 
     <footer class="site-footer">
@@ -99,15 +183,32 @@
         document.getElementById('staffPortalContent').hidden = false;
 
         const user = getSession();
-        if (user) {
-          const role = getUserRole(user.uid);
-          const label = window.getRoleLabel?.(role) || role;
-          const pillClass = window.getRolePillClass?.(role) || 'role-pill role-pill-player';
-          const el = document.getElementById('staffPortalWelcome');
-          if (el) {
-            el.innerHTML = `Welcome, ${user.name || user.email}. You are signed in as <span class="${pillClass}">${label}</span>.`;
-          }
-        }
+        const staffPortalWelcome = document.getElementById('staffPortalWelcome');
+        const staffPortalUserName = document.getElementById('staffPortalUserName');
+        const staffPortalRole = document.getElementById('staffPortalRole');
+        const staffPortalEmail = document.getElementById('staffPortalEmail');
+        const staffPortalFileStatus = document.getElementById('staffPortalFileStatus');
+        const staffPortalAssignedRole = document.getElementById('staffPortalAssignedRole');
+        const staffPortalAvatarPreview = document.getElementById('staffPortalAvatarPreview');
+
+        const switchStaffTab = (tabName) => {
+          document.querySelectorAll('.profile-stab').forEach((btn) => {
+            const active = btn.dataset.stab === tabName;
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-selected', active ? 'true' : 'false');
+          });
+          document.querySelectorAll('.profile-stab-panel').forEach((panel) => {
+            panel.hidden = panel.id !== `staff-stab-${tabName}`;
+          });
+        };
+
+        document.querySelectorAll('.profile-stab').forEach((btn) => {
+          btn.addEventListener('click', () => switchStaffTab(btn.dataset.stab || 'overview'));
+        });
+
+        document.getElementById('staffPortalOpenLoaTab')?.addEventListener('click', () => {
+          switchStaffTab('loa');
+        });
 
         const escHtml = (str) => String(str || '')
           .replace(/&/g, '&amp;')
@@ -121,6 +222,16 @@
         };
 
         let currentStaffFile = null;
+
+        const renderAvatarPreview = (avatarUrl, username, role) => {
+          if (!staffPortalAvatarPreview) return;
+          if (avatarUrl) {
+            staffPortalAvatarPreview.innerHTML = `<img src="${avatarUrl}?t=${Date.now()}" alt="${username || 'Staff avatar'}" class="avatar-upload-img" />`;
+            return;
+          }
+          const initial = (username?.[0] || '?').toUpperCase();
+          staffPortalAvatarPreview.innerHTML = `<div class="meet-staff-avatar meet-staff-avatar-${role || 'player'}" aria-hidden="true">${initial}</div>`;
+        };
 
         const renderMyLoaRequests = (requests = []) => {
           const list = document.getElementById('myLoaRequestsList');
@@ -176,6 +287,43 @@
           currentStaffFile = fileResult?.ok && fileResult?.file ? fileResult.file : null;
         };
 
+        const renderPortalOverview = async () => {
+          const currentUser = window.getSession?.();
+          const currentRole = currentUser ? (window.getUserRole?.(currentUser.uid) || 'player') : 'player';
+          const label = window.getRoleLabel?.(currentRole) || currentRole;
+          const pillClass = window.getRolePillClass?.(currentRole) || 'role-pill role-pill-player';
+          const profileResult = await window.getCurrentUserProfile?.();
+          const username = profileResult?.ok && profileResult.profile?.username
+            ? profileResult.profile.username
+            : currentUser?.name || currentUser?.email || 'Unknown';
+          const avatarUrl = profileResult?.ok ? profileResult.profile?.avatar_url || null : null;
+
+          if (staffPortalWelcome) {
+            staffPortalWelcome.innerHTML = `Welcome, ${escHtml(currentUser?.name || currentUser?.email || 'Staff')}. You are signed in as <span class="${pillClass}">${escHtml(label)}</span>.`;
+          }
+          if (staffPortalUserName) {
+            staffPortalUserName.textContent = username;
+          }
+          if (staffPortalRole) {
+            staffPortalRole.innerHTML = `<span class="${pillClass}">${escHtml(label)}</span>`;
+          }
+          if (staffPortalEmail) {
+            staffPortalEmail.textContent = currentUser?.email || 'Not available';
+          }
+          if (staffPortalFileStatus) {
+            staffPortalFileStatus.textContent = currentStaffFile?.id ? 'Linked' : 'Not linked';
+            staffPortalFileStatus.className = currentStaffFile?.id
+              ? 'profile-ov-meta-value profile-discord-badge-linked'
+              : 'profile-ov-meta-value profile-discord-badge-unlinked';
+          }
+          if (staffPortalAssignedRole) {
+            staffPortalAssignedRole.textContent = currentStaffFile?.assignedRole
+              ? (window.getRoleLabel?.(currentStaffFile.assignedRole) || currentStaffFile.assignedRole)
+              : '—';
+          }
+          renderAvatarPreview(avatarUrl, username, currentRole);
+        };
+
         const loadLoaList = async () => {
           if (!currentStaffFile?.id) {
             renderMyLoaRequests([]);
@@ -187,6 +335,7 @@
         };
 
         await loadStaffFile();
+        await renderPortalOverview();
         await loadLoaList();
 
         document.getElementById('loaRequestForm')?.addEventListener('submit', async (event) => {
