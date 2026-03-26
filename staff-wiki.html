@@ -113,6 +113,13 @@ Visit [Appeals](https://example.com/appeals)</pre>
             <p class="copy-message" id="wikiMyStatus" aria-live="polite"></p>
             <div id="wikiMyList" class="hr-log-list"></div>
           </div>
+
+          <div class="card" style="margin-top: 1rem;">
+            <h3 style="margin: 0 0 0.4rem;">Published Wiki Pages</h3>
+            <p class="staff-diagnostics-subtitle">Edit any published page, move it to another folder/slug if needed, and submit the edit for approval.</p>
+            <p class="copy-message" id="wikiPublishedStatus" aria-live="polite"></p>
+            <div id="wikiPublishedList" class="hr-log-list"></div>
+          </div>
         </div>
       </section>
     </main>
@@ -181,9 +188,11 @@ Visit [Appeals](https://example.com/appeals)</pre>
         };
 
         let editingArticleId = null;
+        let editingMode = 'own';
 
         const resetEditorMode = () => {
           editingArticleId = null;
+          editingMode = 'own';
           const form = document.getElementById('wikiCreateForm');
           if (form) form.reset();
           const slugInput = document.getElementById('wikiSlug');
@@ -195,8 +204,9 @@ Visit [Appeals](https://example.com/appeals)</pre>
           setStatus('wikiEditModeStatus', '');
         };
 
-        const loadArticleIntoEditor = (article) => {
+        const loadArticleIntoEditor = (article, mode = 'own') => {
           editingArticleId = article.id;
+          editingMode = mode;
           const titleEl = document.getElementById('wikiTitle');
           const slugEl = document.getElementById('wikiSlug');
           const excerptEl = document.getElementById('wikiExcerpt');
@@ -212,9 +222,18 @@ Visit [Appeals](https://example.com/appeals)</pre>
           if (groupEl) groupEl.value = article.groupSlug || (wikiGroups[0]?.slug || 'getting-started');
 
           const submitBtn = document.getElementById('wikiSubmitBtn');
-          if (submitBtn) submitBtn.textContent = 'Save Edit & Resubmit';
+          if (submitBtn) {
+            submitBtn.textContent = mode === 'published'
+              ? 'Submit Published Edit For Approval'
+              : 'Save Edit & Resubmit';
+          }
           document.getElementById('wikiCancelEditBtn')?.classList.remove('is-hidden');
-          setStatus('wikiEditModeStatus', 'Edit mode enabled. Saving will re-submit this article for manager approval.');
+          setStatus(
+            'wikiEditModeStatus',
+            mode === 'published'
+              ? 'Published edit mode enabled. Submitting will send your edit for manager approval and temporarily unpublish the page until approved.'
+              : 'Edit mode enabled. Saving will re-submit this article for manager approval.'
+          );
           document.getElementById('wikiTitle')?.focus();
         };
 
@@ -260,9 +279,59 @@ Visit [Appeals](https://example.com/appeals)</pre>
               const articleId = button.getAttribute('data-wiki-edit-id');
               const selected = articles.find((article) => String(article.id) === String(articleId));
               if (!selected) return;
-              loadArticleIntoEditor(selected);
+              loadArticleIntoEditor(selected, 'own');
             });
           });
+        };
+
+        const renderPublishedArticles = (articles = []) => {
+          const list = document.getElementById('wikiPublishedList');
+          if (!list) return;
+          list.innerHTML = '';
+
+          if (!articles.length) {
+            list.innerHTML = '<p class="announcement-empty">No published pages available.</p>';
+            return;
+          }
+
+          articles.forEach((article) => {
+            const item = document.createElement('div');
+            item.className = 'hr-log-entry';
+            item.innerHTML = `
+              <div class="hr-log-entry-header">
+                <span class="hr-status-badge hr-status-active">Published</span>
+                <span class="hr-log-meta">${escHtml(formatDate(article.publishedAt || article.createdAt))}</span>
+              </div>
+              <p class="hr-log-body"><strong>${escHtml(article.title || 'Untitled')}</strong> (${escHtml(article.slug || '')})</p>
+              <p class="hr-log-body"><strong>Folder:</strong> ${escHtml(getGroupLabel(article.groupSlug))}</p>
+              <div class="staff-module-actions" style="margin-top:0.7rem;">
+                <button class="btn btn-secondary" type="button" data-wiki-edit-published-id="${escHtml(article.id)}">Edit & Submit Revision</button>
+              </div>
+            `;
+            list.appendChild(item);
+          });
+
+          list.querySelectorAll('button[data-wiki-edit-published-id]').forEach((button) => {
+            button.addEventListener('click', () => {
+              const articleId = button.getAttribute('data-wiki-edit-published-id');
+              const selected = articles.find((article) => String(article.id) === String(articleId));
+              if (!selected) return;
+              loadArticleIntoEditor(selected, 'published');
+            });
+          });
+        };
+
+        const loadPublishedArticles = async () => {
+          setStatus('wikiPublishedStatus', 'Loading published pages...');
+          const result = await window.getEditablePublishedWikiArticles?.();
+          if (!result?.ok) {
+            setStatus('wikiPublishedStatus', result?.message || 'Could not load published pages.', true);
+            renderPublishedArticles([]);
+            return;
+          }
+
+          setStatus('wikiPublishedStatus', `${result.articles.length} published page${result.articles.length === 1 ? '' : 's'} loaded.`);
+          renderPublishedArticles(result.articles || []);
         };
 
         const loadMyArticles = async () => {
@@ -324,15 +393,26 @@ Visit [Appeals](https://example.com/appeals)</pre>
           const isEditing = Boolean(editingArticleId);
           setStatus('wikiCreateStatus', isEditing ? 'Saving edit and re-submitting...' : 'Submitting for approval...');
           const result = isEditing
-            ? await window.updateMyWikiArticle?.({
-              articleId: editingArticleId,
-              title,
-              slug,
-              groupSlug,
-              excerpt,
-              content,
-              authorUserId: authUid,
-            })
+            ? (editingMode === 'published'
+              ? await window.submitWikiRevision?.({
+                articleId: editingArticleId,
+                title,
+                slug,
+                groupSlug,
+                excerpt,
+                content,
+                authorUserId: authUid,
+                authorName: session?.name || session?.email || 'Staff',
+              })
+              : await window.updateMyWikiArticle?.({
+                articleId: editingArticleId,
+                title,
+                slug,
+                groupSlug,
+                excerpt,
+                content,
+                authorUserId: authUid,
+              }))
             : await window.createWikiArticle?.({
               title,
               slug,
@@ -350,13 +430,17 @@ Visit [Appeals](https://example.com/appeals)</pre>
 
           resetEditorMode();
           setStatus('wikiCreateStatus', isEditing
-            ? 'Article updated and re-submitted for manager approval.'
+            ? (editingMode === 'published'
+              ? 'Published page edited and submitted for manager approval.'
+              : 'Article updated and re-submitted for manager approval.')
             : 'Article submitted. It is now pending manager approval.');
           await loadMyArticles();
+          await loadPublishedArticles();
         });
 
         await refreshWikiGroups();
         await loadMyArticles();
+        await loadPublishedArticles();
       })();
     </script>
   </body>

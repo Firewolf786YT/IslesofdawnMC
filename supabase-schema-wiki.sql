@@ -125,6 +125,28 @@ CREATE POLICY "staff_update_own_wiki_articles"
     author_user_id = auth.uid()
   );
 
+-- Staff can submit revisions on approved pages (moves approved -> pending for re-review)
+DROP POLICY IF EXISTS "staff_submit_revisions_on_approved_wiki_articles" ON public.wiki_articles;
+CREATE POLICY "staff_submit_revisions_on_approved_wiki_articles"
+  ON public.wiki_articles FOR UPDATE
+  USING (
+    status = 'approved'
+    AND EXISTS (
+      SELECT 1 FROM public.user_roles
+      WHERE user_id = auth.uid()
+        AND role IN ('builder', 'event_team', 'media', 'qa_tester', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner')
+    )
+  )
+  WITH CHECK (
+    status = 'pending'
+    AND author_user_id = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM public.user_roles
+      WHERE user_id = auth.uid()
+        AND role IN ('builder', 'event_team', 'media', 'qa_tester', 'helper', 'moderator', 'developer', 'admin', 'manager', 'owner')
+    )
+  );
+
 -- Public can read approved wiki articles only
 DROP POLICY IF EXISTS "public_read_approved_wiki_articles" ON public.wiki_articles;
 CREATE POLICY "public_read_approved_wiki_articles"

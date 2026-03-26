@@ -1355,6 +1355,76 @@
     return { ok: true, articles: (data || []).map(fromDbWikiArticle) };
   };
 
+  window.getEditablePublishedWikiArticles = async () => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', articles: [] };
+
+    const { data, error } = await client
+      .from(WIKI_TABLE)
+      .select('*')
+      .eq('status', 'approved')
+      .order('published_at', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Could not fetch editable published wiki articles:', error.message);
+      return { ok: false, message: error.message, articles: [] };
+    }
+
+    return { ok: true, articles: (data || []).map(fromDbWikiArticle) };
+  };
+
+  window.submitWikiRevision = async ({ articleId, title, slug, groupSlug, excerpt, content, authorUserId, authorName }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const normalizedSlug = String(slug || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    if (!articleId) return { ok: false, message: 'Article id is required.' };
+    if (!authorUserId) return { ok: false, message: 'Author account is required.' };
+    if (!String(title || '').trim() || !String(content || '').trim() || !normalizedSlug) {
+      return { ok: false, message: 'Title, slug, and content are required.' };
+    }
+
+    const nowIso = new Date().toISOString();
+    const patch = {
+      title: String(title || '').trim(),
+      slug: normalizedSlug,
+      group_slug: normalizeWikiGroupSlug(groupSlug),
+      excerpt: String(excerpt || '').trim(),
+      content: String(content || '').trim(),
+      status: 'pending',
+      author_user_id: authorUserId,
+      author_name: String(authorName || '').trim() || null,
+      review_note: '',
+      reviewer_user_id: null,
+      reviewer_name: '',
+      reviewed_at: null,
+      published_at: null,
+      updated_at: nowIso,
+    };
+
+    const { data, error } = await client
+      .from(WIKI_TABLE)
+      .update(patch)
+      .eq('id', articleId)
+      .eq('status', 'approved')
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not submit wiki revision:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, article: fromDbWikiArticle(data) };
+  };
+
   window.getPendingWikiArticles = async () => {
     const client = await getClient();
     if (!client) return { ok: false, message: 'Supabase not configured.', articles: [] };
