@@ -111,6 +111,13 @@
                   </div>
                 </div>
                 <p class="roadmap-help">Drag left or right across the board area to pan between lists when they run off-screen.</p>
+                <div id="roadmapEditorArea" class="roadmap-editor-area" hidden>
+                  <div class="roadmap-editor-area-header">
+                    <h4>Card Editor</h4>
+                    <button class="btn btn-secondary" type="button" id="roadmapEditorCloseBtn">Close Editor</button>
+                  </div>
+                  <div id="roadmapEditorContent"></div>
+                </div>
               </div>
               <p id="roadmapStatus" class="copy-message" aria-live="polite"></p>
             </div>
@@ -147,6 +154,9 @@
         const createRoadmapBtn = document.getElementById('createRoadmapBtn');
         const viewAllRoadmapsBtn = document.getElementById('viewAllRoadmapsBtn');
         const toggleRoadmapStatusBtn = document.getElementById('toggleRoadmapStatusBtn');
+        const roadmapEditorArea = document.getElementById('roadmapEditorArea');
+        const roadmapEditorContent = document.getElementById('roadmapEditorContent');
+        const roadmapEditorCloseBtn = document.getElementById('roadmapEditorCloseBtn');
 
         const ROADMAP_STATUS_LABELS = {
           todo: 'Not Started',
@@ -218,6 +228,7 @@
 
         const openRoadmapWorkspace = async (roadmapId) => {
           if (!roadmapId) return;
+          closeRoadmapModal();
           selectedRoadmapId = String(roadmapId);
           activeRoadmapId = String(roadmapId);
           if (roadmapPicker) {
@@ -230,6 +241,7 @@
 
         const showRoadmapLibrary = () => {
           activeRoadmapId = null;
+          closeRoadmapModal();
           setRoadmapWorkspaceVisible(false);
           updateRoadmapControlsState();
           setRoadmapStatus('Select a roadmap to open its board.');
@@ -521,7 +533,12 @@
         };
 
         const closeRoadmapModal = () => {
-          document.getElementById('roadmapModal')?.remove();
+          if (roadmapEditorContent) {
+            roadmapEditorContent.innerHTML = '';
+          }
+          if (roadmapEditorArea) {
+            roadmapEditorArea.hidden = true;
+          }
         };
 
         const openRoadmapModal = async (cardId = null) => {
@@ -669,11 +686,16 @@
             ...tasks.map((task) => `<option value="${escHtml(task.id)}">${escHtml(task.title)}</option>`),
           ].join('');
 
+          if (!roadmapEditorArea || !roadmapEditorContent) {
+            setRoadmapStatus('Roadmap editor failed to load on this page.', true);
+            return;
+          }
+
           const modal = document.createElement('div');
           modal.id = 'roadmapModal';
-          modal.className = 'roadmap-modal';
+          modal.className = 'roadmap-editor-shell';
           modal.innerHTML = `
-            <div class="roadmap-modal-content">
+            <div class="roadmap-modal-content roadmap-editor-content">
               <button class="roadmap-modal-close" type="button" aria-label="Close roadmap modal">×</button>
               <div class="roadmap-modal-header">
                 <h2>${card ? 'Edit Roadmap Card' : 'Create Roadmap Card'}</h2>
@@ -758,10 +780,13 @@
               ` : ''}
             </div>`;
 
-          document.body.appendChild(modal);
+          roadmapEditorContent.innerHTML = '';
+          roadmapEditorContent.appendChild(modal);
+          roadmapEditorArea.hidden = false;
+          roadmapEditorArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
           modal.addEventListener('click', (event) => {
-            if (event.target === modal || event.target.closest('[data-close-roadmap]') || event.target.closest('.roadmap-modal-close')) {
+            if (event.target.closest('[data-close-roadmap]') || event.target.closest('.roadmap-modal-close')) {
               closeRoadmapModal();
             }
           });
@@ -1141,6 +1166,10 @@
 
         roadmapPicker?.addEventListener('change', async () => {
           await openRoadmapWorkspace(String(roadmapPicker.value || ''));
+        });
+
+        roadmapEditorCloseBtn?.addEventListener('click', () => {
+          closeRoadmapModal();
         });
 
         viewAllRoadmapsBtn?.addEventListener('click', () => {
