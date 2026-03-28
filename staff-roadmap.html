@@ -49,35 +49,53 @@
                 <h3>Roadmap & Task Board</h3>
                 <p>Drag cards between columns, assign staff members, and manage checklist-driven work from a dedicated page.</p>
               </div>
-              <div class="roadmap-controls" style="margin-bottom: 1rem;">
-                <label for="roadmapPicker">Roadmap</label>
-                <select id="roadmapPicker"></select>
-                <button id="createRoadmapBtn" class="btn btn-secondary" type="button">+ New Roadmap</button>
-                <button id="toggleRoadmapStatusBtn" class="btn btn-secondary" type="button">Close Roadmap</button>
+              <div id="roadmapLibrary" class="roadmap-library">
+                <div class="roadmap-library-toolbar">
+                  <div>
+                    <h4>All Roadmaps</h4>
+                    <p>Select, create, or review a roadmap here before opening its board editor.</p>
+                  </div>
+                  <div class="staff-module-actions">
+                    <button id="createRoadmapBtn" class="btn btn-primary" type="button">+ New Roadmap</button>
+                  </div>
+                </div>
+                <div id="roadmapLibraryList" class="roadmap-library-grid"></div>
+                <p id="roadmapLibraryStatus" class="roadmap-help" aria-live="polite"></p>
               </div>
-              <p id="roadmapMeta" class="roadmap-help" aria-live="polite"></p>
-              <div class="staff-module-actions" style="margin-bottom: 1rem;">
-                <a class="btn btn-secondary" href="staff-portal.html">Back to Staff Portal</a>
-                <a class="btn btn-secondary" href="notifications.html">View Notifications</a>
-                <button id="createRoadmapCardBtn" class="btn btn-primary" type="button">+ New Card</button>
-              </div>
-              <div id="roadmapBoard" class="roadmap-board">
-                <div class="roadmap-column" data-status="todo">
-                  <h4>To Do</h4>
-                  <div class="roadmap-cards-container" data-status="todo"></div>
+              <div id="roadmapWorkspace" hidden>
+                <div class="roadmap-controls" style="margin-bottom: 1rem;">
+                  <label for="roadmapPicker">Roadmap</label>
+                  <select id="roadmapPicker"></select>
+                  <button id="viewAllRoadmapsBtn" class="btn btn-secondary" type="button">View All Roadmaps</button>
+                  <button id="toggleRoadmapStatusBtn" class="btn btn-secondary" type="button">Close Roadmap</button>
+                  <button id="createRoadmapCardBtn" class="btn btn-primary" type="button">+ New Card</button>
                 </div>
-                <div class="roadmap-column" data-status="in_progress">
-                  <h4>In Progress</h4>
-                  <div class="roadmap-cards-container" data-status="in_progress"></div>
+                <p id="roadmapMeta" class="roadmap-help" aria-live="polite"></p>
+                <div class="staff-module-actions" style="margin-bottom: 1rem;">
+                  <a class="btn btn-secondary" href="staff-portal.html">Back to Staff Portal</a>
+                  <a class="btn btn-secondary" href="notifications.html">View Notifications</a>
                 </div>
-                <div class="roadmap-column" data-status="in_review">
-                  <h4>In Review</h4>
-                  <div class="roadmap-cards-container" data-status="in_review"></div>
+                <div id="roadmapBoardScroller" class="roadmap-board-scroller">
+                  <div id="roadmapBoard" class="roadmap-board">
+                    <div class="roadmap-column" data-status="todo">
+                      <h4>Not Started</h4>
+                      <div class="roadmap-cards-container" data-status="todo"></div>
+                    </div>
+                    <div class="roadmap-column" data-status="in_progress">
+                      <h4>Started</h4>
+                      <div class="roadmap-cards-container" data-status="in_progress"></div>
+                    </div>
+                    <div class="roadmap-column" data-status="in_review">
+                      <h4>In Review</h4>
+                      <div class="roadmap-cards-container" data-status="in_review"></div>
+                    </div>
+                    <div class="roadmap-column" data-status="done">
+                      <h4>Done</h4>
+                      <div class="roadmap-cards-container" data-status="done"></div>
+                    </div>
+                  </div>
                 </div>
-                <div class="roadmap-column" data-status="done">
-                  <h4>Done</h4>
-                  <div class="roadmap-cards-container" data-status="done"></div>
-                </div>
+                <p class="roadmap-help">Drag left or right across the board area to pan between lists when they run off-screen.</p>
               </div>
               <p id="roadmapStatus" class="copy-message" aria-live="polite"></p>
             </div>
@@ -101,18 +119,24 @@
         if (!allowed) return;
 
         document.getElementById('staffRoadmapContent').hidden = false;
+        const roadmapLibrary = document.getElementById('roadmapLibrary');
+        const roadmapLibraryList = document.getElementById('roadmapLibraryList');
+        const roadmapLibraryStatus = document.getElementById('roadmapLibraryStatus');
+        const roadmapWorkspace = document.getElementById('roadmapWorkspace');
         const roadmapBoard = document.getElementById('roadmapBoard');
+        const roadmapBoardScroller = document.getElementById('roadmapBoardScroller');
         const roadmapStatus = document.getElementById('roadmapStatus');
         const staffRoadmapWelcome = document.getElementById('staffRoadmapWelcome');
         const roadmapMeta = document.getElementById('roadmapMeta');
         const roadmapPicker = document.getElementById('roadmapPicker');
         const createRoadmapBtn = document.getElementById('createRoadmapBtn');
+        const viewAllRoadmapsBtn = document.getElementById('viewAllRoadmapsBtn');
         const toggleRoadmapStatusBtn = document.getElementById('toggleRoadmapStatusBtn');
         const createRoadmapCardBtn = document.getElementById('createRoadmapCardBtn');
 
         const ROADMAP_STATUS_LABELS = {
-          todo: 'To Do',
-          in_progress: 'In Progress',
+          todo: 'Not Started',
+          in_progress: 'Started',
           in_review: 'In Review',
           done: 'Done',
         };
@@ -138,6 +162,7 @@
         let staffById = new Map();
         let roadmapDefinitions = [];
         let selectedRoadmapId = null;
+        let activeRoadmapId = null;
         let roadmapCards = [];
         let roadmapTasksByCard = new Map();
         let roadmapAssignmentsByCard = new Map();
@@ -168,6 +193,34 @@
           return `User ${normalizedId.slice(0, 8)}`;
         };
 
+        const setRoadmapWorkspaceVisible = (visible) => {
+          if (roadmapLibrary) {
+            roadmapLibrary.hidden = visible;
+          }
+          if (roadmapWorkspace) {
+            roadmapWorkspace.hidden = !visible;
+          }
+        };
+
+        const openRoadmapWorkspace = async (roadmapId) => {
+          if (!roadmapId) return;
+          selectedRoadmapId = String(roadmapId);
+          activeRoadmapId = String(roadmapId);
+          if (roadmapPicker) {
+            roadmapPicker.value = String(roadmapId);
+          }
+          setRoadmapWorkspaceVisible(true);
+          updateRoadmapControlsState();
+          await loadRoadmapBoard();
+        };
+
+        const showRoadmapLibrary = () => {
+          activeRoadmapId = null;
+          setRoadmapWorkspaceVisible(false);
+          updateRoadmapControlsState();
+          setRoadmapStatus('Select a roadmap to open its board.');
+        };
+
         const renderSelectedRoadmapMeta = () => {
           if (!roadmapMeta) return;
 
@@ -188,6 +241,52 @@
           roadmapMeta.textContent = `Status: Active. Created: ${createdAt}.`;
         };
 
+        const renderRoadmapLibrary = () => {
+          if (!roadmapLibraryList) return;
+
+          if (!roadmapDefinitions.length) {
+            roadmapLibraryList.innerHTML = '<div class="roadmap-library-empty">No roadmaps yet. Create the first roadmap to start planning.</div>';
+            if (roadmapLibraryStatus) {
+              roadmapLibraryStatus.textContent = '0 roadmaps available.';
+            }
+            return;
+          }
+
+          roadmapLibraryList.innerHTML = roadmapDefinitions.map((roadmap) => {
+            const isClosed = roadmap.status === 'closed';
+            const createdAt = formatMetaDate(roadmap.createdAt) || 'Unknown date';
+            const closedAt = formatMetaDate(roadmap.closedAt);
+            const archivedBy = resolveStaffLabel(roadmap.closedBy);
+            return `
+              <article class="roadmap-library-card${String(roadmap.id) === String(selectedRoadmapId) ? ' is-selected' : ''}">
+                <div class="roadmap-library-card-header">
+                  <div>
+                    <h4>${escHtml(roadmap.name || 'Untitled roadmap')}</h4>
+                    <p>${escHtml(roadmap.description || 'No description yet.')}</p>
+                  </div>
+                  <span class="roadmap-status-pill${isClosed ? ' is-closed' : ''}">${isClosed ? 'Archived' : 'Active'}</span>
+                </div>
+                <div class="roadmap-library-card-meta">
+                  <span>Created: ${escHtml(createdAt)}</span>
+                  ${isClosed ? `<span>Archived: ${escHtml(closedAt || 'Unknown date')}</span><span>By: ${escHtml(archivedBy)}</span>` : ''}
+                </div>
+                <div class="roadmap-library-card-actions">
+                  <button class="btn btn-secondary" type="button" data-open-roadmap-id="${escHtml(roadmap.id)}">Open Board</button>
+                </div>
+              </article>`;
+          }).join('');
+
+          if (roadmapLibraryStatus) {
+            roadmapLibraryStatus.textContent = `${roadmapDefinitions.length} roadmap${roadmapDefinitions.length === 1 ? '' : 's'} available.`;
+          }
+
+          roadmapLibraryList.querySelectorAll('[data-open-roadmap-id]').forEach((button) => {
+            button.addEventListener('click', async () => {
+              await openRoadmapWorkspace(button.getAttribute('data-open-roadmap-id'));
+            });
+          });
+        };
+
         const updateRoadmapControlsState = () => {
           const selected = getSelectedRoadmap();
           const isClosed = selected?.status === 'closed';
@@ -197,8 +296,11 @@
             toggleRoadmapStatusBtn.textContent = isClosed ? 'Reopen Roadmap' : 'Close Roadmap';
           }
           if (createRoadmapCardBtn) {
-            createRoadmapCardBtn.disabled = !selected || isClosed;
+            createRoadmapCardBtn.disabled = !selected || isClosed || !activeRoadmapId;
             createRoadmapCardBtn.textContent = isClosed ? 'Roadmap Closed' : '+ New Card';
+          }
+          if (viewAllRoadmapsBtn) {
+            viewAllRoadmapsBtn.disabled = !activeRoadmapId;
           }
           renderSelectedRoadmapMeta();
         };
@@ -226,6 +328,7 @@
             roadmapPicker.value = String(selectedRoadmapId);
           }
           updateRoadmapControlsState();
+          renderRoadmapLibrary();
         };
 
         const loadRoadmaps = async ({ preferredRoadmapId = null } = {}) => {
@@ -349,6 +452,7 @@
           staffDirectory = result?.ok ? (result.staff || []) : [];
           staffById = new Map(staffDirectory.map((member) => [String(member.userId), member]));
           renderSelectedRoadmapMeta();
+          renderRoadmapLibrary();
         };
 
         const closeRoadmapModal = () => {
@@ -464,8 +568,8 @@
                   <div class="roadmap-form-group">
                     <label for="roadmapCardStatus">Status</label>
                     <select id="roadmapCardStatus" name="status">
-                      <option value="todo" ${card?.status === 'todo' || !card ? 'selected' : ''}>To Do</option>
-                      <option value="in_progress" ${card?.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
+                      <option value="todo" ${card?.status === 'todo' || !card ? 'selected' : ''}>Not Started</option>
+                      <option value="in_progress" ${card?.status === 'in_progress' ? 'selected' : ''}>Started</option>
                       <option value="in_review" ${card?.status === 'in_review' ? 'selected' : ''}>In Review</option>
                       <option value="done" ${card?.status === 'done' ? 'selected' : ''}>Done</option>
                     </select>
@@ -792,12 +896,12 @@
 
         const loadRoadmapBoard = async () => {
           if (!roadmapBoard) return;
-          if (!selectedRoadmapId) {
+          if (!selectedRoadmapId || !activeRoadmapId) {
             roadmapCards = [];
             roadmapTasksByCard = new Map();
             roadmapAssignmentsByCard = new Map();
             renderRoadmapBoard();
-            setRoadmapStatus('No roadmap selected yet.', true);
+            setRoadmapStatus('Select a roadmap from the library to open its board.');
             return;
           }
 
@@ -838,9 +942,11 @@
         });
 
         roadmapPicker?.addEventListener('change', async () => {
-          selectedRoadmapId = String(roadmapPicker.value || '');
-          updateRoadmapControlsState();
-          await loadRoadmapBoard();
+          await openRoadmapWorkspace(String(roadmapPicker.value || ''));
+        });
+
+        viewAllRoadmapsBtn?.addEventListener('click', () => {
+          showRoadmapLibrary();
         });
 
         createRoadmapBtn?.addEventListener('click', async () => {
@@ -858,7 +964,7 @@
           }
 
           await loadRoadmaps({ preferredRoadmapId: result.roadmap.id });
-          await loadRoadmapBoard();
+          await openRoadmapWorkspace(result.roadmap.id);
           setRoadmapStatus(`Roadmap "${name}" created.`);
         });
 
@@ -892,6 +998,39 @@
             : `Roadmap "${selectedRoadmap.name}" reopened.`);
         });
 
+        const attachRoadmapScrollerDrag = () => {
+          if (!roadmapBoardScroller || roadmapBoardScroller.dataset.dragReady === '1') return;
+          roadmapBoardScroller.dataset.dragReady = '1';
+
+          let isPointerDown = false;
+          let startX = 0;
+          let startScrollLeft = 0;
+
+          roadmapBoardScroller.addEventListener('pointerdown', (event) => {
+            if (event.button !== 0) return;
+            if (event.target.closest('button, a, input, select, textarea, .roadmap-card')) return;
+            isPointerDown = true;
+            startX = event.clientX;
+            startScrollLeft = roadmapBoardScroller.scrollLeft;
+            roadmapBoardScroller.classList.add('is-panning');
+          });
+
+          roadmapBoardScroller.addEventListener('pointermove', (event) => {
+            if (!isPointerDown) return;
+            const delta = event.clientX - startX;
+            roadmapBoardScroller.scrollLeft = startScrollLeft - delta;
+          });
+
+          const stopPanning = () => {
+            isPointerDown = false;
+            roadmapBoardScroller.classList.remove('is-panning');
+          };
+
+          roadmapBoardScroller.addEventListener('pointerup', stopPanning);
+          roadmapBoardScroller.addEventListener('pointercancel', stopPanning);
+          roadmapBoardScroller.addEventListener('pointerleave', stopPanning);
+        };
+
         await loadStaffDirectory();
 
         const initialParams = new URLSearchParams(location.search);
@@ -905,10 +1044,17 @@
         }
 
         await loadRoadmaps({ preferredRoadmapId });
-        await loadRoadmapBoard();
+        attachRoadmapScrollerDrag();
 
         if (initialCardId) {
+          if (preferredRoadmapId) {
+            await openRoadmapWorkspace(preferredRoadmapId);
+          }
           await openRoadmapModal(initialCardId);
+        } else if (preferredRoadmapId && initialRoadmapId) {
+          await openRoadmapWorkspace(preferredRoadmapId);
+        } else {
+          showRoadmapLibrary();
         }
       })();
     </script>
