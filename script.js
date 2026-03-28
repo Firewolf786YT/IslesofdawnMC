@@ -667,6 +667,90 @@ if (clearAnnouncementsButton) {
   renderAnnouncements();
 })();
 
+const loadHomeAnnouncementsPreview = async () => {
+  const container = document.getElementById('homeAnnouncementsList');
+  if (!container) {
+    return;
+  }
+
+  if (!window.isSupabaseConfigured?.()) {
+    container.innerHTML = '<p class="announcement-empty">Announcements are unavailable until Supabase is configured.</p>';
+    return;
+  }
+
+  const client = await window.getSupabaseClient?.();
+  if (!client) {
+    container.innerHTML = '<p class="announcement-empty">Could not connect to load announcements.</p>';
+    return;
+  }
+
+  const { data, error } = await client
+    .from('announcements')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(3);
+
+  if (error) {
+    console.warn('Could not fetch announcements:', error.message);
+    container.innerHTML = '<p class="announcement-empty">Could not load announcements.</p>';
+    return;
+  }
+
+  const announcements = data || [];
+  if (!announcements.length) {
+    container.innerHTML = '<p class="announcement-empty">No announcements yet. Check back soon!</p>';
+    return;
+  }
+
+  container.innerHTML = '';
+  announcements.forEach((announcement) => {
+    const item = document.createElement('article');
+    item.className = 'home-announcement-item card';
+
+    const title = String(announcement.title || 'Announcement').trim();
+    const message = String(announcement.message || '').trim();
+    const imageUrl = announcement.image_data_url || '';
+
+    const createdDate = announcement.created_at 
+      ? new Date(announcement.created_at).toLocaleDateString()
+      : 'Recently';
+
+    let html = `
+      <div class="home-announcement-header">
+        <h3>${escapeHtml(title)}</h3>
+        <span class="home-announcement-date">${escapeHtml(createdDate)}</span>
+      </div>
+    `;
+
+    if (imageUrl) {
+      html += `<img class="home-announcement-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(title)}" loading="lazy" />`;
+    }
+
+    html += `<p class="home-announcement-message">${escapeHtml(message.substring(0, 150))}${message.length > 150 ? '...' : ''}</p>`;
+
+    item.innerHTML = html;
+    container.appendChild(item);
+  });
+};
+
+const escapeHtml = (text) => {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+};
+
+const renderTestimonials = () => {
+  const container = document.getElementById('testimonialsList');
+  if (!container) {
+    return;
+  }
+
+  // Placeholder for future testimonials
+  container.innerHTML = '<p class="announcement-empty">Testimonials coming soon! Share your IslesOfDawnMC experience.</p>';
+};
+
 (async () => {
   await loadMeetStaff();
+  await loadHomeAnnouncementsPreview();
+  renderTestimonials();
 })();

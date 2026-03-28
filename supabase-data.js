@@ -1520,4 +1520,440 @@
 
     return { ok: true, article: data ? fromDbWikiArticle(data) : null };
   };
+
+  // ── Roadmap Cards & Tasks ────────────────────────────────────────────────
+
+  const fromDbRoadmapCard = (row) => ({
+    id: row.id,
+    title: row.title || '',
+    description: row.description || '',
+    status: row.status || 'todo',
+    priority: row.priority || 'medium',
+    createdBy: row.created_by || null,
+    createdAt: row.created_at || null,
+    updatedAt: row.updated_at || null,
+  });
+
+  const fromDbSiteNotification = (row) => ({
+    id: row.id,
+    userId: row.user_id || null,
+    type: row.type || 'general',
+    title: row.title || '',
+    message: row.message || '',
+    link: row.link || '',
+    metadata: row.metadata || {},
+    createdBy: row.created_by || null,
+    createdAt: row.created_at || null,
+  });
+
+  window.getStaffDirectory = async () => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', staff: [] };
+
+    const { data, error } = await client.rpc('list_staff_directory');
+    if (error) {
+      console.warn('Could not load staff directory:', error.message);
+      return { ok: false, message: error.message, staff: [] };
+    }
+
+    return {
+      ok: true,
+      staff: (data || []).map((row) => ({
+        userId: row.user_id,
+        username: row.username || '',
+        role: row.role || 'player',
+        avatarUrl: row.avatar_url || null,
+      })),
+    };
+  };
+
+  window.createSiteNotification = async ({ userId, type, title, message, link, metadata, createdBy }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const notificationId = `notice-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const payload = {
+      id: notificationId,
+      user_id: userId,
+      type: String(type || 'general').trim() || 'general',
+      title: String(title || '').trim(),
+      message: String(message || '').trim(),
+      link: String(link || '').trim() || null,
+      metadata: metadata && typeof metadata === 'object' ? metadata : {},
+      created_by: createdBy || null,
+      created_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await client
+      .from('site_notifications')
+      .insert([payload])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not create notification:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, notification: fromDbSiteNotification(data) };
+  };
+
+  window.getMySiteNotifications = async () => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', notifications: [] };
+
+    const authUid = window.getCurrentAuthUid?.() || '';
+    if (!authUid) return { ok: false, message: 'Sign in required.', notifications: [] };
+
+    const { data, error } = await client
+      .from('site_notifications')
+      .select('*')
+      .eq('user_id', authUid)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Could not fetch notifications:', error.message);
+      return { ok: false, message: error.message, notifications: [] };
+    }
+
+    return { ok: true, notifications: (data || []).map(fromDbSiteNotification) };
+  };
+
+  window.createRoadmapCard = async ({ title, description, status, priority, createdBy }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const cardId = `card-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const payload = {
+      id: cardId,
+      title: String(title || '').trim(),
+      description: String(description || '').trim(),
+      status: ['todo', 'in_progress', 'in_review', 'done'].includes(status) ? status : 'todo',
+      priority: ['low', 'medium', 'high'].includes(priority) ? priority : 'medium',
+      created_by: createdBy,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await client
+      .from('roadmap_cards')
+      .insert([payload])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not create roadmap card:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, card: fromDbRoadmapCard(data) };
+  };
+
+  window.getRoadmapCards = async () => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', cards: [] };
+
+    const { data, error } = await client
+      .from('roadmap_cards')
+      .select('*')
+      .order('status', { ascending: true })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Could not fetch roadmap cards:', error.message);
+      return { ok: false, message: error.message, cards: [] };
+    }
+
+    return { ok: true, cards: (data || []).map(fromDbRoadmapCard) };
+  };
+
+  window.getRoadmapCardById = async (cardId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', card: null };
+
+    const { data, error } = await client
+      .from('roadmap_cards')
+      .select('*')
+      .eq('id', cardId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Could not fetch roadmap card:', error.message);
+      return { ok: false, message: error.message, card: null };
+    }
+
+    return { ok: true, card: data ? fromDbRoadmapCard(data) : null };
+  };
+
+  window.updateRoadmapCard = async (cardId, { title, description, status, priority }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const patch = { updated_at: new Date().toISOString() };
+    if (title !== undefined) patch.title = String(title || '').trim();
+    if (description !== undefined) patch.description = String(description || '').trim();
+    if (status !== undefined) patch.status = ['todo', 'in_progress', 'in_review', 'done'].includes(status) ? status : 'todo';
+    if (priority !== undefined) patch.priority = ['low', 'medium', 'high'].includes(priority) ? priority : 'medium';
+
+    const { data, error } = await client
+      .from('roadmap_cards')
+      .update(patch)
+      .eq('id', cardId)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not update roadmap card:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, card: fromDbRoadmapCard(data) };
+  };
+
+  window.deleteRoadmapCard = async (cardId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const { error } = await client
+      .from('roadmap_cards')
+      .delete()
+      .eq('id', cardId);
+
+    if (error) {
+      console.warn('Could not delete roadmap card:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true };
+  };
+
+  window.createRoadmapTask = async ({ cardId, checklistId, title }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const taskId = `task-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const payload = {
+      id: taskId,
+      card_id: cardId,
+      checklist_id: checklistId || null,
+      title: String(title || '').trim(),
+      is_completed: false,
+      created_at: new Date().toISOString(),
+      completed_at: null,
+    };
+
+    const { data, error } = await client
+      .from('roadmap_card_tasks')
+      .insert([payload])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not create roadmap task:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, task: data };
+  };
+
+  window.getRoadmapTasksByCard = async (cardId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', tasks: [] };
+
+    const { data, error } = await client
+      .from('roadmap_card_tasks')
+      .select('*')
+      .eq('card_id', cardId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.warn('Could not fetch roadmap tasks:', error.message);
+      return { ok: false, message: error.message, tasks: [] };
+    }
+
+    return { ok: true, tasks: data || [] };
+  };
+
+  window.updateRoadmapTask = async (taskId, { title, isCompleted }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const patch = {};
+    if (title !== undefined) patch.title = String(title || '').trim();
+    if (isCompleted !== undefined) {
+      patch.is_completed = isCompleted === true;
+      patch.completed_at = isCompleted ? new Date().toISOString() : null;
+    }
+
+    const { data, error } = await client
+      .from('roadmap_card_tasks')
+      .update(patch)
+      .eq('id', taskId)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not update roadmap task:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, task: data };
+  };
+
+  window.deleteRoadmapTask = async (taskId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const { error } = await client
+      .from('roadmap_card_tasks')
+      .delete()
+      .eq('id', taskId);
+
+    if (error) {
+      console.warn('Could not delete roadmap task:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true };
+  };
+
+  window.createRoadmapChecklist = async ({ cardId, title }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const checklistId = `checklist-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const payload = {
+      id: checklistId,
+      card_id: cardId,
+      title: String(title || '').trim(),
+      created_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await client
+      .from('roadmap_card_checklists')
+      .insert([payload])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not create roadmap checklist:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, checklist: data };
+  };
+
+  window.getRoadmapChecklistsByCard = async (cardId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', checklists: [] };
+
+    const { data, error } = await client
+      .from('roadmap_card_checklists')
+      .select('*')
+      .eq('card_id', cardId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.warn('Could not fetch roadmap checklists:', error.message);
+      return { ok: false, message: error.message, checklists: [] };
+    }
+
+    return { ok: true, checklists: data || [] };
+  };
+
+  window.deleteRoadmapChecklist = async (checklistId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const { error } = await client
+      .from('roadmap_card_checklists')
+      .delete()
+      .eq('id', checklistId);
+
+    if (error) {
+      console.warn('Could not delete roadmap checklist:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true };
+  };
+
+  window.assignRoadmapCard = async ({ cardId, assignedTo, assignedBy }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const assignmentId = `assign-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const payload = {
+      id: assignmentId,
+      card_id: cardId,
+      assigned_to: assignedTo,
+      assigned_by: assignedBy,
+      created_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await client
+      .from('roadmap_card_assignments')
+      .insert([payload])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not assign roadmap card:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    const cardResult = await window.getRoadmapCardById?.(cardId);
+    const cardTitle = cardResult?.ok && cardResult.card?.title ? cardResult.card.title : 'Roadmap card';
+    const notificationLink = `staff-portal.html?tab=roadmap&card=${encodeURIComponent(cardId)}`;
+    const notificationResult = await window.createSiteNotification?.({
+      userId: assignedTo,
+      type: 'roadmap_assignment',
+      title: 'New roadmap assignment',
+      message: `You were assigned to "${cardTitle}".`,
+      link: notificationLink,
+      metadata: { cardId },
+      createdBy: assignedBy,
+    });
+
+    if (!notificationResult?.ok) {
+      console.warn('Roadmap assignment created without notification:', notificationResult?.message || 'Unknown notification error');
+    }
+
+    return { ok: true, assignment: data };
+  };
+
+  window.getRoadmapAssignmentsByCard = async (cardId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', assignments: [] };
+
+    const { data, error } = await client
+      .from('roadmap_card_assignments')
+      .select('*')
+      .eq('card_id', cardId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.warn('Could not fetch roadmap assignments:', error.message);
+      return { ok: false, message: error.message, assignments: [] };
+    }
+
+    return { ok: true, assignments: data || [] };
+  };
+
+  window.removeRoadmapAssignment = async (assignmentId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const { error } = await client
+      .from('roadmap_card_assignments')
+      .delete()
+      .eq('id', assignmentId);
+
+    if (error) {
+      console.warn('Could not remove roadmap assignment:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true };
+  };
 })();

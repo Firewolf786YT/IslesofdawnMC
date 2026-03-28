@@ -267,6 +267,20 @@
               });
             }
 
+          const siteNotifications = await window.getMySiteNotifications?.();
+          if (siteNotifications?.ok) {
+            (siteNotifications.notifications || []).forEach((item) => {
+              all.push(createNotification({
+                id: `site:${item.id}`,
+                type: item.type || 'general',
+                createdAt: item.createdAt,
+                title: item.title || 'Notification',
+                message: item.message || '',
+                link: item.link || '',
+              }));
+            });
+          }
+
             const activityRows = await window.getStaffActivity?.(staffFile.id);
             if (activityRows?.ok) {
               (activityRows.entries || [])
