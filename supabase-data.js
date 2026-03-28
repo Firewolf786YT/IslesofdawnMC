@@ -1525,6 +1525,7 @@
 
   const fromDbRoadmapCard = (row) => ({
     id: row.id,
+    roadmapId: row.roadmap_id || null,
     title: row.title || '',
     description: row.description || '',
     status: row.status || 'todo',
@@ -1532,6 +1533,18 @@
     createdBy: row.created_by || null,
     createdAt: row.created_at || null,
     updatedAt: row.updated_at || null,
+  });
+
+  const fromDbRoadmap = (row) => ({
+    id: row.id,
+    name: row.name || '',
+    description: row.description || '',
+    status: row.status || 'active',
+    createdBy: row.created_by || null,
+    closedBy: row.closed_by || null,
+    createdAt: row.created_at || null,
+    updatedAt: row.updated_at || null,
+    closedAt: row.closed_at || null,
   });
 
   const fromDbSiteNotification = (row) => ({
@@ -1619,13 +1632,118 @@
     return { ok: true, notifications: (data || []).map(fromDbSiteNotification) };
   };
 
-  window.createRoadmapCard = async ({ title, description, status, priority, createdBy }) => {
+  window.createRoadmap = async ({ name, description, createdBy }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const roadmapId = `roadmap-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const payload = {
+      id: roadmapId,
+      name: String(name || '').trim(),
+      description: String(description || '').trim(),
+      status: 'active',
+      created_by: createdBy || null,
+      closed_by: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      closed_at: null,
+    };
+
+    const { data, error } = await client
+      .from('roadmaps')
+      .insert([payload])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not create roadmap:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, roadmap: fromDbRoadmap(data) };
+  };
+
+  window.getRoadmaps = async ({ status = 'active' } = {}) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', roadmaps: [] };
+
+    let query = client
+      .from('roadmaps')
+      .select('*')
+      .order('status', { ascending: true })
+      .order('updated_at', { ascending: false });
+
+    if (status === 'active' || status === 'closed') {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.warn('Could not fetch roadmaps:', error.message);
+      return { ok: false, message: error.message, roadmaps: [] };
+    }
+
+    return { ok: true, roadmaps: (data || []).map(fromDbRoadmap) };
+  };
+
+  window.getRoadmapById = async (roadmapId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', roadmap: null };
+
+    const { data, error } = await client
+      .from('roadmaps')
+      .select('*')
+      .eq('id', roadmapId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Could not fetch roadmap:', error.message);
+      return { ok: false, message: error.message, roadmap: null };
+    }
+
+    return { ok: true, roadmap: data ? fromDbRoadmap(data) : null };
+  };
+
+  window.updateRoadmap = async (roadmapId, { name, description, status, closedBy }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const nextStatus = status === 'closed' ? 'closed' : 'active';
+    const patch = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (name !== undefined) patch.name = String(name || '').trim();
+    if (description !== undefined) patch.description = String(description || '').trim();
+    if (status !== undefined) {
+      patch.status = nextStatus;
+      patch.closed_at = nextStatus === 'closed' ? new Date().toISOString() : null;
+      patch.closed_by = nextStatus === 'closed' ? (closedBy || null) : null;
+    }
+
+    const { data, error } = await client
+      .from('roadmaps')
+      .update(patch)
+      .eq('id', roadmapId)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not update roadmap:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, roadmap: fromDbRoadmap(data) };
+  };
+
+  window.createRoadmapCard = async ({ roadmapId, title, description, status, priority, createdBy }) => {
     const client = await getClient();
     if (!client) return { ok: false, message: 'Supabase not configured.' };
 
     const cardId = `card-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const payload = {
       id: cardId,
+      roadmap_id: roadmapId || null,
       title: String(title || '').trim(),
       description: String(description || '').trim(),
       status: ['todo', 'in_progress', 'in_review', 'done'].includes(status) ? status : 'todo',
@@ -1649,15 +1767,21 @@
     return { ok: true, card: fromDbRoadmapCard(data) };
   };
 
-  window.getRoadmapCards = async () => {
+  window.getRoadmapCards = async (roadmapId = null) => {
     const client = await getClient();
     if (!client) return { ok: false, message: 'Supabase not configured.', cards: [] };
 
-    const { data, error } = await client
+    let query = client
       .from('roadmap_cards')
       .select('*')
       .order('status', { ascending: true })
       .order('created_at', { ascending: false });
+
+    if (roadmapId) {
+      query = query.eq('roadmap_id', roadmapId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.warn('Could not fetch roadmap cards:', error.message);
@@ -1904,7 +2028,10 @@
 
     const cardResult = await window.getRoadmapCardById?.(cardId);
     const cardTitle = cardResult?.ok && cardResult.card?.title ? cardResult.card.title : 'Roadmap card';
-    const notificationLink = `staff-portal.html?tab=roadmap&card=${encodeURIComponent(cardId)}`;
+    const roadmapQuery = cardResult?.ok && cardResult.card?.roadmapId
+      ? `roadmap=${encodeURIComponent(cardResult.card.roadmapId)}&`
+      : '';
+    const notificationLink = `staff-roadmap.html?${roadmapQuery}card=${encodeURIComponent(cardId)}`;
     const notificationResult = await window.createSiteNotification?.({
       userId: assignedTo,
       type: 'roadmap_assignment',

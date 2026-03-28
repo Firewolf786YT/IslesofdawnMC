@@ -170,8 +170,21 @@ create index if not exists idx_site_notifications_user_id_created_at
 create index if not exists idx_site_notifications_created_by
   on public.site_notifications (created_by);
 
+create table if not exists public.roadmaps (
+  id text primary key,
+  name text not null,
+  description text,
+  status text not null default 'active' check (status in ('active', 'closed')),
+  created_by uuid references auth.users(id) on delete set null,
+  closed_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  closed_at timestamptz
+);
+
 create table if not exists public.roadmap_cards (
   id text primary key,
+  roadmap_id text references public.roadmaps(id),
   title text not null,
   description text,
   status text not null default 'todo' check (status in ('todo', 'in_progress', 'in_review', 'done')),
@@ -180,6 +193,49 @@ create table if not exists public.roadmap_cards (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.roadmap_cards
+  add column if not exists roadmap_id text references public.roadmaps(id);
+
+insert into public.roadmaps (id, name, description, status, created_by, created_at, updated_at)
+select
+  'roadmap-default',
+  'General Roadmap',
+  'Default roadmap created to retain existing board history.',
+  'active',
+  (
+    select rc.created_by
+    from public.roadmap_cards rc
+    order by rc.created_at asc
+    limit 1
+  ),
+  coalesce(
+    (
+      select rc.created_at
+      from public.roadmap_cards rc
+      order by rc.created_at asc
+      limit 1
+    ),
+    now()
+  ),
+  now()
+where exists (select 1 from public.roadmap_cards)
+  and not exists (select 1 from public.roadmaps);
+
+update public.roadmap_cards
+set roadmap_id = 'roadmap-default'
+where roadmap_id is null
+  and exists (
+    select 1
+    from public.roadmaps roadmap
+    where roadmap.id = 'roadmap-default'
+  );
+
+create index if not exists idx_roadmaps_status
+  on public.roadmaps (status, updated_at desc);
+
+create index if not exists idx_roadmaps_created_at
+  on public.roadmaps (created_at desc);
 
 create table if not exists public.roadmap_card_checklists (
   id text primary key,
@@ -209,6 +265,9 @@ create table if not exists public.roadmap_card_assignments (
 create index if not exists idx_roadmap_cards_status
   on public.roadmap_cards (status);
 
+create index if not exists idx_roadmap_cards_roadmap_id
+  on public.roadmap_cards (roadmap_id, status, created_at desc);
+
 create index if not exists idx_roadmap_cards_created_at
   on public.roadmap_cards (created_at desc);
 
@@ -236,6 +295,7 @@ alter table public.user_discord_links enable row level security;
 alter table public.discord_link_codes enable row level security;
 alter table public.announcements enable row level security;
 alter table public.site_notifications enable row level security;
+alter table public.roadmaps enable row level security;
 alter table public.roadmap_cards enable row level security;
 alter table public.roadmap_card_checklists enable row level security;
 alter table public.roadmap_card_tasks enable row level security;
@@ -432,6 +492,9 @@ drop policy if exists announcements_write_staff on public.announcements;
 drop policy if exists site_notifications_select_own on public.site_notifications;
 drop policy if exists site_notifications_insert_staff on public.site_notifications;
 drop policy if exists site_notifications_delete_own on public.site_notifications;
+drop policy if exists roadmaps_select_staff on public.roadmaps;
+drop policy if exists roadmaps_insert_staff on public.roadmaps;
+drop policy if exists roadmaps_update_staff on public.roadmaps;
 drop policy if exists roadmap_cards_select_staff on public.roadmap_cards;
 drop policy if exists roadmap_cards_insert_staff on public.roadmap_cards;
 drop policy if exists roadmap_cards_update_staff on public.roadmap_cards;
@@ -601,6 +664,23 @@ create policy site_notifications_delete_own
   on public.site_notifications
   for delete
   using (auth.uid() = user_id);
+
+create policy roadmaps_select_staff
+  on public.roadmaps
+  for select
+  using (public.is_staff_member());
+
+create policy roadmaps_insert_staff
+  on public.roadmaps
+  for insert
+  to authenticated
+  with check (public.is_staff_member() and auth.uid() = created_by);
+
+create policy roadmaps_update_staff
+  on public.roadmaps
+  for update
+  using (public.is_staff_member())
+  with check (public.is_staff_member());
 
 -- Roadmap cards policies (staff only)
 create policy roadmap_cards_select_staff
