@@ -68,7 +68,6 @@
                   <select id="roadmapPicker"></select>
                   <button id="viewAllRoadmapsBtn" class="btn btn-secondary" type="button">View All Roadmaps</button>
                   <button id="toggleRoadmapStatusBtn" class="btn btn-secondary" type="button">Close Roadmap</button>
-                  <button id="createRoadmapCardBtn" class="btn btn-primary" type="button">+ New Card</button>
                 </div>
                 <p id="roadmapMeta" class="roadmap-help" aria-live="polite"></p>
                 <div class="staff-module-actions" style="margin-bottom: 1rem;">
@@ -78,20 +77,36 @@
                 <div id="roadmapBoardScroller" class="roadmap-board-scroller">
                   <div id="roadmapBoard" class="roadmap-board">
                     <div class="roadmap-column" data-status="todo">
-                      <h4>Not Started</h4>
+                      <div class="roadmap-column-header">
+                        <h4>Not Started</h4>
+                        <button class="roadmap-column-add" type="button" data-create-card-status="todo" aria-label="Create card in Not Started">+</button>
+                      </div>
                       <div class="roadmap-cards-container" data-status="todo"></div>
+                      <button class="btn btn-secondary roadmap-column-create" type="button" data-create-card-status="todo">Create card</button>
                     </div>
                     <div class="roadmap-column" data-status="in_progress">
-                      <h4>Started</h4>
+                      <div class="roadmap-column-header">
+                        <h4>Started</h4>
+                        <button class="roadmap-column-add" type="button" data-create-card-status="in_progress" aria-label="Create card in Started">+</button>
+                      </div>
                       <div class="roadmap-cards-container" data-status="in_progress"></div>
+                      <button class="btn btn-secondary roadmap-column-create" type="button" data-create-card-status="in_progress">Create card</button>
                     </div>
                     <div class="roadmap-column" data-status="in_review">
-                      <h4>In Review</h4>
+                      <div class="roadmap-column-header">
+                        <h4>In Review</h4>
+                        <button class="roadmap-column-add" type="button" data-create-card-status="in_review" aria-label="Create card in In Review">+</button>
+                      </div>
                       <div class="roadmap-cards-container" data-status="in_review"></div>
+                      <button class="btn btn-secondary roadmap-column-create" type="button" data-create-card-status="in_review">Create card</button>
                     </div>
                     <div class="roadmap-column" data-status="done">
-                      <h4>Done</h4>
+                      <div class="roadmap-column-header">
+                        <h4>Done</h4>
+                        <button class="roadmap-column-add" type="button" data-create-card-status="done" aria-label="Create card in Done">+</button>
+                      </div>
                       <div class="roadmap-cards-container" data-status="done"></div>
+                      <button class="btn btn-secondary roadmap-column-create" type="button" data-create-card-status="done">Create card</button>
                     </div>
                   </div>
                 </div>
@@ -132,7 +147,6 @@
         const createRoadmapBtn = document.getElementById('createRoadmapBtn');
         const viewAllRoadmapsBtn = document.getElementById('viewAllRoadmapsBtn');
         const toggleRoadmapStatusBtn = document.getElementById('toggleRoadmapStatusBtn');
-        const createRoadmapCardBtn = document.getElementById('createRoadmapCardBtn');
 
         const ROADMAP_STATUS_LABELS = {
           todo: 'Not Started',
@@ -177,7 +191,7 @@
         }
 
         const getRoadmapPriorityLabel = (priority) => ROADMAP_PRIORITY_LABELS[String(priority || 'medium')] || 'Medium';
-        const getRoadmapStatusLabel = (status) => ROADMAP_STATUS_LABELS[String(status || 'todo')] || 'To Do';
+        const getRoadmapStatusLabel = (status) => ROADMAP_STATUS_LABELS[String(status || 'todo')] || 'Not Started';
         const getSelectedRoadmap = () => roadmapDefinitions.find((roadmap) => String(roadmap.id) === String(selectedRoadmapId)) || null;
         const formatMetaDate = (isoStr) => {
           if (!isoStr) return null;
@@ -219,6 +233,56 @@
           setRoadmapWorkspaceVisible(false);
           updateRoadmapControlsState();
           setRoadmapStatus('Select a roadmap to open its board.');
+        };
+
+        const quickCreateRoadmapCard = async (status) => {
+          const selectedRoadmap = getSelectedRoadmap();
+          if (!selectedRoadmap || !selectedRoadmapId || !activeRoadmapId) {
+            setRoadmapStatus('Open a roadmap first before creating cards.', true);
+            return;
+          }
+          if (selectedRoadmap.status === 'closed') {
+            setRoadmapStatus('This roadmap is closed. Reopen it before adding cards.', true);
+            return;
+          }
+
+          const title = String(window.prompt(`Card title for ${getRoadmapStatusLabel(status)}`, '') || '').trim();
+          if (!title) return;
+
+          setRoadmapStatus('Creating roadmap card…');
+          const currentAuthUid = window.getCurrentAuthUid?.() || '';
+          const createResult = await window.createRoadmapCard?.({
+            roadmapId: selectedRoadmapId,
+            title,
+            description: '',
+            status,
+            priority: 'medium',
+            createdBy: currentAuthUid,
+          });
+
+          if (!createResult?.ok || !createResult.card?.id) {
+            setRoadmapStatus(createResult?.message || 'Could not create roadmap card.', true);
+            return;
+          }
+
+          await loadRoadmapBoard();
+          await loadStaffDirectory();
+          await openRoadmapModal(createResult.card.id);
+          setRoadmapStatus(`Card "${title}" created in ${getRoadmapStatusLabel(status)}.`);
+        };
+
+        const attachColumnCreateButtons = () => {
+          if (!roadmapBoard) return;
+
+          roadmapBoard.querySelectorAll('[data-create-card-status]').forEach((button) => {
+            if (button.dataset.createReady === '1') return;
+            button.dataset.createReady = '1';
+
+            button.addEventListener('click', async () => {
+              const status = String(button.getAttribute('data-create-card-status') || 'todo');
+              await quickCreateRoadmapCard(status);
+            });
+          });
         };
 
         const renderSelectedRoadmapMeta = () => {
@@ -295,10 +359,11 @@
             toggleRoadmapStatusBtn.disabled = !selected;
             toggleRoadmapStatusBtn.textContent = isClosed ? 'Reopen Roadmap' : 'Close Roadmap';
           }
-          if (createRoadmapCardBtn) {
-            createRoadmapCardBtn.disabled = !selected || isClosed || !activeRoadmapId;
-            createRoadmapCardBtn.textContent = isClosed ? 'Roadmap Closed' : '+ New Card';
-          }
+
+          document.querySelectorAll('[data-create-card-status]').forEach((button) => {
+            button.disabled = !selected || isClosed || !activeRoadmapId;
+          });
+
           if (viewAllRoadmapsBtn) {
             viewAllRoadmapsBtn.disabled = !activeRoadmapId;
           }
@@ -476,19 +541,22 @@
 
           let card = null;
           let tasks = [];
+          let taskChecklistItems = [];
           let checklists = [];
           let assignments = [];
 
           if (cardId) {
-            const [cardResult, taskResult, checklistResult, assignmentResult] = await Promise.all([
+            const [cardResult, taskResult, taskChecklistItemResult, checklistResult, assignmentResult] = await Promise.all([
               window.getRoadmapCardById?.(cardId),
               window.getRoadmapTasksByCard?.(cardId),
+              window.getRoadmapTaskChecklistItemsByCard?.(cardId),
               window.getRoadmapChecklistsByCard?.(cardId),
               window.getRoadmapAssignmentsByCard?.(cardId),
             ]);
 
             card = cardResult?.ok ? cardResult.card : null;
             tasks = taskResult?.ok ? (taskResult.tasks || []) : [];
+            taskChecklistItems = taskChecklistItemResult?.ok ? (taskChecklistItemResult.items || []) : [];
             checklists = checklistResult?.ok ? (checklistResult.checklists || []) : [];
             assignments = assignmentResult?.ok ? (assignmentResult.assignments || []) : [];
 
@@ -534,16 +602,72 @@
                 </div>`).join('')
             : '<p class="roadmap-empty">No checklist created for this card yet.</p>';
 
-          const tasksHtml = tasks.length
-            ? tasks.map((task) => `
-                <div class="roadmap-task-row">
+          const tasksByParent = new Map();
+          tasks.forEach((task) => {
+            const parentId = task.parent_task_id ? String(task.parent_task_id) : '__root__';
+            if (!tasksByParent.has(parentId)) tasksByParent.set(parentId, []);
+            tasksByParent.get(parentId).push(task);
+          });
+
+          const checklistItemsByTask = new Map();
+          taskChecklistItems.forEach((item) => {
+            const taskId = String(item.task_id || '');
+            if (!taskId) return;
+            if (!checklistItemsByTask.has(taskId)) checklistItemsByTask.set(taskId, []);
+            checklistItemsByTask.get(taskId).push(item);
+          });
+
+          const renderTaskNode = (task, depth = 0) => {
+            const childTasks = tasksByParent.get(String(task.id)) || [];
+            const ownChecklistItems = checklistItemsByTask.get(String(task.id)) || [];
+
+            const checklistHtml = ownChecklistItems.length
+              ? ownChecklistItems.map((item) => `
+                  <label class="roadmap-task-checklist-item">
+                    <input type="checkbox" data-toggle-task-checklist-id="${escHtml(item.id)}" ${item.is_completed ? 'checked' : ''} />
+                    <span class="roadmap-task-checklist-title${item.is_completed ? ' is-complete' : ''}">${escHtml(item.title)}</span>
+                    <button class="btn btn-secondary" type="button" data-delete-task-checklist-id="${escHtml(item.id)}">Remove</button>
+                  </label>`).join('')
+              : '<p class="roadmap-empty">No checklist items yet.</p>';
+
+            const childrenHtml = childTasks.length
+              ? `<div class="roadmap-subtask-list">${childTasks.map((child) => renderTaskNode(child, depth + 1)).join('')}</div>`
+              : '';
+
+            return `
+              <div class="roadmap-task-row" data-task-depth="${depth}">
+                <div class="roadmap-task-row-head">
                   <div class="roadmap-task-row-info">
                     <input type="checkbox" data-toggle-task-id="${escHtml(task.id)}" ${task.is_completed ? 'checked' : ''} />
                     <span class="roadmap-task-row-title${task.is_completed ? ' is-complete' : ''}">${escHtml(task.title)}</span>
                   </div>
-                  <button class="btn btn-secondary" type="button" data-delete-task-id="${escHtml(task.id)}">Remove</button>
-                </div>`).join('')
+                  <div class="roadmap-task-row-actions">
+                    <button class="btn btn-secondary" type="button" data-add-subtask-task-id="${escHtml(task.id)}">Add Subtask</button>
+                    <button class="btn btn-secondary" type="button" data-delete-task-id="${escHtml(task.id)}">Remove</button>
+                  </div>
+                </div>
+                ${task.description ? `<p class="roadmap-task-row-description">${escHtml(task.description)}</p>` : ''}
+                <div class="roadmap-task-own-checklist">
+                  <div class="roadmap-task-own-checklist-title">Task Checklist</div>
+                  <div class="roadmap-task-own-checklist-items">${checklistHtml}</div>
+                  <div class="roadmap-inline-actions">
+                    <input type="text" data-task-checklist-title-for="${escHtml(task.id)}" placeholder="Checklist item for this task" />
+                    <button class="btn btn-secondary" type="button" data-add-task-checklist-for="${escHtml(task.id)}">Add Item</button>
+                  </div>
+                </div>
+                ${childrenHtml}
+              </div>`;
+          };
+
+          const rootTasks = tasksByParent.get('__root__') || [];
+          const tasksHtml = rootTasks.length
+            ? rootTasks.map((task) => renderTaskNode(task)).join('')
             : '<p class="roadmap-empty">No tasks added yet.</p>';
+
+          const parentTaskOptions = [
+            '<option value="">Top-level task</option>',
+            ...tasks.map((task) => `<option value="${escHtml(task.id)}">${escHtml(task.title)}</option>`),
+          ].join('');
 
           const modal = document.createElement('div');
           modal.id = 'roadmapModal';
@@ -625,6 +749,8 @@
                   <div class="roadmap-task-list">${tasksHtml}</div>
                   <div class="roadmap-inline-actions">
                     <input id="roadmapNewTaskTitle" type="text" placeholder="New task title" />
+                    <input id="roadmapNewTaskDescription" type="text" placeholder="Task description (optional)" />
+                    <select id="roadmapTaskParentSelect">${parentTaskOptions}</select>
                     <select id="roadmapTaskChecklistSelect">${checklistOptions}</select>
                     <button class="btn btn-secondary" type="button" data-add-task>Add Task</button>
                   </div>
@@ -752,12 +878,14 @@
 
           modal.querySelector('[data-add-task]')?.addEventListener('click', async () => {
             const title = String(modal.querySelector('#roadmapNewTaskTitle')?.value || '').trim();
+            const description = String(modal.querySelector('#roadmapNewTaskDescription')?.value || '').trim();
+            const parentTaskId = String(modal.querySelector('#roadmapTaskParentSelect')?.value || '').trim() || null;
             const checklistId = String(modal.querySelector('#roadmapTaskChecklistSelect')?.value || '').trim() || null;
             if (!title) {
               setRoadmapStatus('Enter a task title first.', true);
               return;
             }
-            const result = await window.createRoadmapTask?.({ cardId: card.id, checklistId, title });
+            const result = await window.createRoadmapTask?.({ cardId: card.id, checklistId, parentTaskId, title, description });
             if (!result?.ok) {
               setRoadmapStatus(result?.message || 'Could not add task.', true);
               return;
@@ -765,6 +893,80 @@
             await loadRoadmapBoard();
             await openRoadmapModal(card.id);
             setRoadmapStatus('Task added.');
+          });
+
+          modal.querySelectorAll('[data-add-subtask-task-id]').forEach((button) => {
+            button.addEventListener('click', async () => {
+              const parentTaskId = String(button.getAttribute('data-add-subtask-task-id') || '').trim();
+              if (!parentTaskId) return;
+              const title = String(window.prompt('Subtask name', '') || '').trim();
+              if (!title) return;
+              const description = String(window.prompt('Subtask description (optional)', '') || '').trim();
+
+              const result = await window.createRoadmapTask?.({
+                cardId: card.id,
+                parentTaskId,
+                title,
+                description,
+                checklistId: null,
+              });
+              if (!result?.ok) {
+                setRoadmapStatus(result?.message || 'Could not create subtask.', true);
+                return;
+              }
+              await loadRoadmapBoard();
+              await openRoadmapModal(card.id);
+              setRoadmapStatus('Subtask added.');
+            });
+          });
+
+          modal.querySelectorAll('[data-add-task-checklist-for]').forEach((button) => {
+            button.addEventListener('click', async () => {
+              const taskId = String(button.getAttribute('data-add-task-checklist-for') || '').trim();
+              const input = modal.querySelector(`[data-task-checklist-title-for="${taskId}"]`);
+              const title = String(input?.value || '').trim();
+              if (!taskId || !title) {
+                setRoadmapStatus('Enter a checklist item title first.', true);
+                return;
+              }
+
+              const result = await window.createRoadmapTaskChecklistItem?.({ cardId: card.id, taskId, title });
+              if (!result?.ok) {
+                setRoadmapStatus(result?.message || 'Could not add task checklist item.', true);
+                return;
+              }
+              await loadRoadmapBoard();
+              await openRoadmapModal(card.id);
+              setRoadmapStatus('Task checklist item added.');
+            });
+          });
+
+          modal.querySelectorAll('[data-toggle-task-checklist-id]').forEach((checkbox) => {
+            checkbox.addEventListener('change', async () => {
+              const itemId = checkbox.getAttribute('data-toggle-task-checklist-id');
+              const result = await window.updateRoadmapTaskChecklistItem?.(itemId, { isCompleted: checkbox.checked });
+              if (!result?.ok) {
+                setRoadmapStatus(result?.message || 'Could not update task checklist item.', true);
+                return;
+              }
+              await loadRoadmapBoard();
+              await openRoadmapModal(card.id);
+              setRoadmapStatus('Task checklist item updated.');
+            });
+          });
+
+          modal.querySelectorAll('[data-delete-task-checklist-id]').forEach((button) => {
+            button.addEventListener('click', async () => {
+              const itemId = button.getAttribute('data-delete-task-checklist-id');
+              const result = await window.deleteRoadmapTaskChecklistItem?.(itemId);
+              if (!result?.ok) {
+                setRoadmapStatus(result?.message || 'Could not remove task checklist item.', true);
+                return;
+              }
+              await loadRoadmapBoard();
+              await openRoadmapModal(card.id);
+              setRoadmapStatus('Task checklist item removed.');
+            });
           });
 
           modal.querySelectorAll('[data-toggle-task-id]').forEach((checkbox) => {
@@ -930,16 +1132,12 @@
           roadmapTasksByCard = new Map(taskPairs);
           roadmapAssignmentsByCard = new Map(assignmentPairs);
           renderRoadmapBoard();
+          attachColumnCreateButtons();
           const selectedRoadmap = getSelectedRoadmap();
           const roadmapLabel = selectedRoadmap?.name || 'Roadmap';
           setRoadmapStatus(`${roadmapCards.length} roadmap card${roadmapCards.length === 1 ? '' : 's'} loaded for ${roadmapLabel}.`);
           updateRoadmapControlsState();
         };
-
-        createRoadmapCardBtn?.addEventListener('click', async () => {
-          await loadStaffDirectory();
-          await openRoadmapModal();
-        });
 
         roadmapPicker?.addEventListener('change', async () => {
           await openRoadmapWorkspace(String(roadmapPicker.value || ''));

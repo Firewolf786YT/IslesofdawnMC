@@ -248,6 +248,24 @@ create table if not exists public.roadmap_card_tasks (
   id text primary key,
   card_id text not null references public.roadmap_cards(id) on delete cascade,
   checklist_id text references public.roadmap_card_checklists(id) on delete cascade,
+  parent_task_id text references public.roadmap_card_tasks(id) on delete cascade,
+  title text not null,
+  description text,
+  is_completed boolean not null default false,
+  created_at timestamptz not null default now(),
+  completed_at timestamptz
+);
+
+alter table public.roadmap_card_tasks
+  add column if not exists parent_task_id text references public.roadmap_card_tasks(id) on delete cascade;
+
+alter table public.roadmap_card_tasks
+  add column if not exists description text;
+
+create table if not exists public.roadmap_task_checklist_items (
+  id text primary key,
+  card_id text not null references public.roadmap_cards(id) on delete cascade,
+  task_id text not null references public.roadmap_card_tasks(id) on delete cascade,
   title text not null,
   is_completed boolean not null default false,
   created_at timestamptz not null default now(),
@@ -280,6 +298,15 @@ create index if not exists idx_roadmap_card_tasks_card_id
 create index if not exists idx_roadmap_card_tasks_checklist_id
   on public.roadmap_card_tasks (checklist_id);
 
+create index if not exists idx_roadmap_card_tasks_parent_task_id
+  on public.roadmap_card_tasks (parent_task_id);
+
+create index if not exists idx_roadmap_task_checklist_items_task_id
+  on public.roadmap_task_checklist_items (task_id, created_at asc);
+
+create index if not exists idx_roadmap_task_checklist_items_card_id
+  on public.roadmap_task_checklist_items (card_id, created_at asc);
+
 create index if not exists idx_roadmap_card_assignments_card_id
   on public.roadmap_card_assignments (card_id);
 
@@ -299,6 +326,7 @@ alter table public.roadmaps enable row level security;
 alter table public.roadmap_cards enable row level security;
 alter table public.roadmap_card_checklists enable row level security;
 alter table public.roadmap_card_tasks enable row level security;
+alter table public.roadmap_task_checklist_items enable row level security;
 alter table public.roadmap_card_assignments enable row level security;
 
 create or replace function public.is_staff_member()
@@ -507,6 +535,10 @@ drop policy if exists roadmap_card_tasks_select_staff on public.roadmap_card_tas
 drop policy if exists roadmap_card_tasks_insert_staff on public.roadmap_card_tasks;
 drop policy if exists roadmap_card_tasks_update_staff on public.roadmap_card_tasks;
 drop policy if exists roadmap_card_tasks_delete_staff on public.roadmap_card_tasks;
+drop policy if exists roadmap_task_checklist_items_select_staff on public.roadmap_task_checklist_items;
+drop policy if exists roadmap_task_checklist_items_insert_staff on public.roadmap_task_checklist_items;
+drop policy if exists roadmap_task_checklist_items_update_staff on public.roadmap_task_checklist_items;
+drop policy if exists roadmap_task_checklist_items_delete_staff on public.roadmap_task_checklist_items;
 drop policy if exists roadmap_card_assignments_select_staff on public.roadmap_card_assignments;
 drop policy if exists roadmap_card_assignments_insert_staff on public.roadmap_card_assignments;
 drop policy if exists roadmap_card_assignments_delete_staff on public.roadmap_card_assignments;
@@ -748,6 +780,29 @@ create policy roadmap_card_tasks_update_staff
 
 create policy roadmap_card_tasks_delete_staff
   on public.roadmap_card_tasks
+  for delete
+  using (public.is_staff_member());
+
+-- Roadmap task checklist items policies
+create policy roadmap_task_checklist_items_select_staff
+  on public.roadmap_task_checklist_items
+  for select
+  using (public.is_staff_member());
+
+create policy roadmap_task_checklist_items_insert_staff
+  on public.roadmap_task_checklist_items
+  for insert
+  to authenticated
+  with check (public.is_staff_member());
+
+create policy roadmap_task_checklist_items_update_staff
+  on public.roadmap_task_checklist_items
+  for update
+  using (public.is_staff_member())
+  with check (public.is_staff_member());
+
+create policy roadmap_task_checklist_items_delete_staff
+  on public.roadmap_task_checklist_items
   for delete
   using (public.is_staff_member());
 

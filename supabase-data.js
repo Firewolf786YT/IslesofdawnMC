@@ -1851,7 +1851,7 @@
     return { ok: true };
   };
 
-  window.createRoadmapTask = async ({ cardId, checklistId, title }) => {
+  window.createRoadmapTask = async ({ cardId, checklistId, parentTaskId, title, description }) => {
     const client = await getClient();
     if (!client) return { ok: false, message: 'Supabase not configured.' };
 
@@ -1860,7 +1860,9 @@
       id: taskId,
       card_id: cardId,
       checklist_id: checklistId || null,
+      parent_task_id: parentTaskId || null,
       title: String(title || '').trim(),
+      description: String(description || '').trim() || null,
       is_completed: false,
       created_at: new Date().toISOString(),
       completed_at: null,
@@ -1898,12 +1900,14 @@
     return { ok: true, tasks: data || [] };
   };
 
-  window.updateRoadmapTask = async (taskId, { title, isCompleted }) => {
+  window.updateRoadmapTask = async (taskId, { title, description, parentTaskId, isCompleted }) => {
     const client = await getClient();
     if (!client) return { ok: false, message: 'Supabase not configured.' };
 
     const patch = {};
     if (title !== undefined) patch.title = String(title || '').trim();
+    if (description !== undefined) patch.description = String(description || '').trim() || null;
+    if (parentTaskId !== undefined) patch.parent_task_id = parentTaskId || null;
     if (isCompleted !== undefined) {
       patch.is_completed = isCompleted === true;
       patch.completed_at = isCompleted ? new Date().toISOString() : null;
@@ -1935,6 +1939,96 @@
 
     if (error) {
       console.warn('Could not delete roadmap task:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true };
+  };
+
+  window.createRoadmapTaskChecklistItem = async ({ cardId, taskId, title }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const itemId = `task-check-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const payload = {
+      id: itemId,
+      card_id: cardId,
+      task_id: taskId,
+      title: String(title || '').trim(),
+      is_completed: false,
+      created_at: new Date().toISOString(),
+      completed_at: null,
+    };
+
+    const { data, error } = await client
+      .from('roadmap_task_checklist_items')
+      .insert([payload])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not create task checklist item:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, item: data };
+  };
+
+  window.getRoadmapTaskChecklistItemsByCard = async (cardId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.', items: [] };
+
+    const { data, error } = await client
+      .from('roadmap_task_checklist_items')
+      .select('*')
+      .eq('card_id', cardId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.warn('Could not fetch task checklist items:', error.message);
+      return { ok: false, message: error.message, items: [] };
+    }
+
+    return { ok: true, items: data || [] };
+  };
+
+  window.updateRoadmapTaskChecklistItem = async (itemId, { title, isCompleted }) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const patch = {};
+    if (title !== undefined) patch.title = String(title || '').trim();
+    if (isCompleted !== undefined) {
+      patch.is_completed = isCompleted === true;
+      patch.completed_at = isCompleted ? new Date().toISOString() : null;
+    }
+
+    const { data, error } = await client
+      .from('roadmap_task_checklist_items')
+      .update(patch)
+      .eq('id', itemId)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.warn('Could not update task checklist item:', error.message);
+      return { ok: false, message: error.message };
+    }
+
+    return { ok: true, item: data };
+  };
+
+  window.deleteRoadmapTaskChecklistItem = async (itemId) => {
+    const client = await getClient();
+    if (!client) return { ok: false, message: 'Supabase not configured.' };
+
+    const { error } = await client
+      .from('roadmap_task_checklist_items')
+      .delete()
+      .eq('id', itemId);
+
+    if (error) {
+      console.warn('Could not delete task checklist item:', error.message);
       return { ok: false, message: error.message };
     }
 
