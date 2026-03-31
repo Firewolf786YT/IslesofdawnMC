@@ -149,14 +149,7 @@
       await loadWikiFolders();
     }
 
-    document.getElementById('addWikiFolderBtn').onclick = async () => {
-      const label = prompt('Folder name?');
-      if (!label) return;
-      const icon = prompt('Icon (emoji, optional)?', '📁') || '📁';
-      const description = prompt('Description (optional)?', '') || '';
-      await window.createWikiGroup?.({ label, icon, description });
-      await loadWikiFolders();
-    };
+
 
     // Set year in footer
     document.getElementById('year').textContent = new Date().getFullYear();
