@@ -49,55 +49,7 @@
               <section class="card wiki-content-card" style="width:100%;">
                 <h3 class="wiki-block-title">Wiki Sections</h3>
                 <div id="wikiCardGrid" class="wiki-card-grid">
-                  <!-- Fallback static cards if JS fails -->
-                  <div class="wiki-folder-card">
-                    <div class="wiki-folder-icon">❓</div>
-                    <div class="wiki-folder-title">FAQ</div>
-                    <div class="wiki-folder-desc">Frequently asked questions about IslesOfDawnMC.</div>
-                    <a class="wiki-folder-link" href="wiki.html?section=FAQ">View Pages</a>
-                  </div>
-                  <div class="wiki-folder-card">
-                    <div class="wiki-folder-icon">🚀</div>
-                    <div class="wiki-folder-title">Getting Started</div>
-                    <div class="wiki-folder-desc">Begin your adventure with essential info.</div>
-                    <a class="wiki-folder-link" href="wiki.html?section=Getting%20Started">View Pages</a>
-                  </div>
-                  <div class="wiki-folder-card">
-                    <div class="wiki-folder-icon">🦊</div>
-                    <div class="wiki-folder-title">Animals - Bestiary</div>
-                    <div class="wiki-folder-desc">Discover the wildlife and creatures.</div>
-                    <a class="wiki-folder-link" href="wiki.html?section=Animals%20-%20Bestiary">View Pages</a>
-                  </div>
-                  <div class="wiki-folder-card">
-                    <div class="wiki-folder-icon">👹</div>
-                    <div class="wiki-folder-title">Mobs and Bosses</div>
-                    <div class="wiki-folder-desc">Learn about hostile mobs and bosses.</div>
-                    <a class="wiki-folder-link" href="wiki.html?section=Mobs%20and%20Bosses">View Pages</a>
-                  </div>
-                  <div class="wiki-folder-card">
-                    <div class="wiki-folder-icon">⚔️</div>
-                    <div class="wiki-folder-title">Weapons and Tools</div>
-                    <div class="wiki-folder-desc">All about weapons and tools.</div>
-                    <a class="wiki-folder-link" href="wiki.html?section=Weapons%20and%20Tools">View Pages</a>
-                  </div>
-                  <div class="wiki-folder-card">
-                    <div class="wiki-folder-icon">🛡️</div>
-                    <div class="wiki-folder-title">Armors</div>
-                    <div class="wiki-folder-desc">Protect yourself with the best armor.</div>
-                    <a class="wiki-folder-link" href="wiki.html?section=Armors">View Pages</a>
-                  </div>
-                  <div class="wiki-folder-card">
-                    <div class="wiki-folder-icon">🏡</div>
-                    <div class="wiki-folder-title">Land Claiming</div>
-                    <div class="wiki-folder-desc">How to claim and protect your land.</div>
-                    <a class="wiki-folder-link" href="wiki.html?section=Land%20Claiming">View Pages</a>
-                  </div>
-                  <div class="wiki-folder-card">
-                    <div class="wiki-folder-icon">⌨️</div>
-                    <div class="wiki-folder-title">Commands</div>
-                    <div class="wiki-folder-desc">Useful in-game commands.</div>
-                    <a class="wiki-folder-link" href="wiki.html?section=Commands">View Pages</a>
-                  </div>
+                  <!-- Cards will be loaded dynamically by JS -->
                 </div>
               </section>
             </div>
@@ -112,9 +64,6 @@
       </div>
     </footer>
 
-    <script src="auth.js"></script>
-    <script src="supabase-data.js"></script>
-    <script src="script.js"></script>
     <script>
       // --- Dynamic Wiki Card Redesign (Supabase) ---
       (async () => {
@@ -126,7 +75,11 @@
           grid.innerHTML = '<p style="color:#e75f5f">Could not load wiki folders.</p>';
           return;
         }
-        grid.innerHTML = '';
+        if (res.message && res.message.includes('default')) {
+          grid.innerHTML = '<p style="color:#e7b95f">Showing default wiki sections. Supabase connection or table may be missing.</p>';
+        } else {
+          grid.innerHTML = '';
+        }
         res.groups.forEach(folder => {
           const card = document.createElement('div');
           card.className = 'wiki-folder-card';
@@ -138,50 +91,6 @@
           `;
           grid.appendChild(card);
         });
-      })();
-
-          if (!scopedArticles.length) {
-            list.innerHTML = '<p class="announcement-empty">No approved pages in this folder yet.</p>';
-            return;
-          }
-
-          scopedArticles.forEach((article) => {
-            const item = document.createElement('article');
-            item.className = 'hr-log-entry';
-            const articleHref = `wiki-article.html?slug=${encodeURIComponent(article.slug || '')}`;
-            item.innerHTML = `
-              <div class="hr-log-entry-header">
-                <span class="hr-status-badge hr-status-active">Published</span>
-                <span class="hr-log-meta">${escHtml(formatDate(article.publishedAt || article.createdAt))}</span>
-              </div>
-              <p class="hr-log-body"><strong>${escHtml(article.title || 'Untitled')}</strong></p>
-              ${article.excerpt ? `<p class="hr-log-body">${escHtml(article.excerpt)}</p>` : ''}
-              <div class="staff-module-actions wiki-card-actions">
-                <a class="btn btn-secondary" href="${escHtml(articleHref)}">Open Page</a>
-              </div>
-            `;
-            list.appendChild(item);
-          });
-        };
-
-        setStatus('Loading wiki pages...');
-        await loadGroups();
-        const result = await window.getPublishedWikiArticles?.();
-        if (!result?.ok) {
-          setStatus(result?.message || 'Could not load wiki pages.', true);
-          renderArticles();
-          return;
-        }
-
-        publishedArticles.push(...(result.articles || []));
-        if (publishedArticles.length && !wikiGroups.some((group) => group.slug === activeGroupSlug)) {
-          activeGroupSlug = publishedArticles[0].groupSlug || wikiGroups[0]?.slug || activeGroupSlug;
-        }
-
-        setStatus(`${publishedArticles.length} published page${publishedArticles.length === 1 ? '' : 's'} loaded.`);
-        renderSidebarGroups();
-        renderSidebarPages();
-        renderArticles();
       })();
     </script>
   </body>

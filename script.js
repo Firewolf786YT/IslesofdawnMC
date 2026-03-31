@@ -161,3 +161,70 @@ const renderTestimonials = () => {
   await loadHomeAnnouncementsPreview();
   renderTestimonials();
 })();
+
+// Dynamically load and render the staff roster on the homepage
+async function loadMeetStaff() {
+  const statusEl = document.getElementById('meetStaffStatus');
+  const pyramidEl = document.getElementById('meetStaffPyramid');
+  if (!statusEl || !pyramidEl) return;
+
+  statusEl.textContent = 'Loading staff roster…';
+  pyramidEl.innerHTML = '';
+
+  if (!window.isSupabaseConfigured?.()) {
+    statusEl.textContent = 'Staff roster unavailable until Supabase is configured.';
+    return;
+  }
+
+  const result = await window.getStaffFiles?.();
+  if (!result?.ok) {
+    statusEl.textContent = 'Could not load staff roster.';
+    return;
+  }
+  const staff = result.files || [];
+  if (!staff.length) {
+    statusEl.textContent = 'No staff found.';
+    return;
+  }
+
+  // Group staff by assignedRole (rank), descending order (Owner, Manager, Admin, etc.)
+  const RANK_ORDER = [
+    'owner', 'manager', 'admin', 'developer', 'moderator', 'helper', 'qa_tester', 'media', 'event_team', 'builder'
+  ];
+  const grouped = {};
+  staff.forEach(member => {
+    const role = String(member.assignedRole || 'other').toLowerCase();
+    if (!grouped[role]) grouped[role] = [];
+    grouped[role].push(member);
+  });
+
+  let rendered = false;
+  RANK_ORDER.forEach(rank => {
+    const members = grouped[rank];
+    if (members && members.length) {
+      rendered = true;
+      const groupDiv = document.createElement('div');
+      groupDiv.className = 'staff-rank-group';
+      const label = document.createElement('h3');
+      label.className = 'staff-rank-label';
+      label.textContent = rank.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      groupDiv.appendChild(label);
+      const list = document.createElement('ul');
+      list.className = 'staff-rank-list';
+      members.forEach(member => {
+        const li = document.createElement('li');
+        li.className = 'staff-member';
+        li.innerHTML = `<span class="staff-username">${escapeHtml(member.minecraftUsername || 'Unknown')}</span>`;
+        list.appendChild(li);
+      });
+      groupDiv.appendChild(list);
+      pyramidEl.appendChild(groupDiv);
+    }
+  });
+
+  if (!rendered) {
+    statusEl.textContent = 'No staff found.';
+    return;
+  }
+  statusEl.textContent = '';
+}
