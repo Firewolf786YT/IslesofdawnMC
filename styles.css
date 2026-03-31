@@ -4319,6 +4319,61 @@ body {
   margin-top: 1.2rem;
 }
 
+.wiki-folder-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.012), rgba(122,162,255,0.03)), var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(122,162,255,0.07);
+  padding: 1.1rem 1rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.wiki-folder-card:hover {
+  border-color: rgba(122, 162, 255, 0.45);
+  background: rgba(122, 162, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+.wiki-folder-icon {
+  font-size: 2rem;
+  margin-bottom: 0.2rem;
+}
+
+.wiki-folder-title {
+  font-weight: 700;
+  font-size: 1.08rem;
+  color: var(--accent);
+}
+
+.wiki-folder-desc {
+  color: var(--muted);
+  font-size: 0.97rem;
+  margin-bottom: 0.3rem;
+}
+
+.wiki-folder-link {
+  margin-top: auto;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.38rem 0.8rem;
+  background: transparent;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  font-size: 0.93rem;
+}
+
+.wiki-folder-link:hover {
+  border-color: var(--accent);
+  background: rgba(122, 162, 255, 0.08);
+  color: var(--accent-strong);
+}
+
 .wiki-rendered-content {
   color: var(--text);
   line-height: 1.6;
