@@ -70,30 +70,46 @@
         const grid = document.getElementById('wikiCardGrid');
         if (!grid) return;
         grid.innerHTML = '<p>Loading...</p>';
-        const res = await window.loadWikiGroups?.();
-        if (!res?.ok) {
-          let msg = 'Could not load wiki folders.';
-          if (res.message) msg += `<br><span style="font-size:0.95em;color:#e7b95f">${res.message}</span>`;
-          grid.innerHTML = `<p style="color:#e75f5f">${msg}</p>`;
-          if (window.console && res.message) console.warn('Wiki load error:', res.message);
-          return;
+        let timedOut = false;
+        let timeoutId = setTimeout(() => {
+          timedOut = true;
+          grid.innerHTML = '<p style="color:#e75f5f">Wiki folder load timed out. Supabase may be unavailable or there is a JS error.</p>';
+        }, 6000);
+        try {
+          const res = await Promise.race([
+            window.loadWikiGroups?.(),
+            new Promise(resolve => setTimeout(() => resolve(null), 5500))
+          ]);
+          clearTimeout(timeoutId);
+          if (timedOut) return;
+          if (!res || !res.ok) {
+            let msg = 'Could not load wiki folders.';
+            if (res && res.message) msg += `<br><span style="font-size:0.95em;color:#e7b95f">${res.message}</span>`;
+            grid.innerHTML = `<p style="color:#e75f5f">${msg}</p>`;
+            if (window.console && res && res.message) console.warn('Wiki load error:', res.message);
+            return;
+          }
+          if (res.message && res.message.includes('default')) {
+            grid.innerHTML = '<p style="color:#e7b95f">Showing default wiki sections. Supabase connection or table may be missing.</p>';
+          } else {
+            grid.innerHTML = '';
+          }
+          res.groups.forEach(folder => {
+            const card = document.createElement('div');
+            card.className = 'wiki-folder-card';
+            card.innerHTML = `
+              <div class="wiki-folder-icon">${folder.icon || '📁'}</div>
+              <div class="wiki-folder-title">${folder.label}</div>
+              <div class="wiki-folder-desc">${folder.description || ''}</div>
+              <a class="wiki-folder-link" href="wiki.html?section=${encodeURIComponent(folder.slug)}">View Pages</a>
+            `;
+            grid.appendChild(card);
+          });
+        } catch (err) {
+          clearTimeout(timeoutId);
+          grid.innerHTML = `<p style="color:#e75f5f">JS error loading wiki folders: ${err?.message || err}</p>`;
+          if (window.console) console.error('Wiki JS error:', err);
         }
-        if (res.message && res.message.includes('default')) {
-          grid.innerHTML = '<p style="color:#e7b95f">Showing default wiki sections. Supabase connection or table may be missing.</p>';
-        } else {
-          grid.innerHTML = '';
-        }
-        res.groups.forEach(folder => {
-          const card = document.createElement('div');
-          card.className = 'wiki-folder-card';
-          card.innerHTML = `
-            <div class="wiki-folder-icon">${folder.icon || '📁'}</div>
-            <div class="wiki-folder-title">${folder.label}</div>
-            <div class="wiki-folder-desc">${folder.description || ''}</div>
-            <a class="wiki-folder-link" href="wiki.html?section=${encodeURIComponent(folder.slug)}">View Pages</a>
-          `;
-          grid.appendChild(card);
-        });
       })();
     </script>
   </body>
