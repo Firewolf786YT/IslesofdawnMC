@@ -647,6 +647,30 @@ if (clearAnnouncementsButton) {
   });
 }
 
+// Nav dropdown toggle logic
+(function () {
+  document.querySelectorAll('.nav-dropdown-btn').forEach((btn) => {
+    const dropdown = btn.closest('.nav-dropdown');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Close other open dropdowns
+      document.querySelectorAll('.nav-dropdown.open').forEach((open) => {
+        if (open !== dropdown) open.classList.remove('open');
+      });
+      const expanded = dropdown.classList.toggle('open');
+      btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    });
+  });
+  // Close dropdown on outside click
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.nav-dropdown.open').forEach((open) => {
+      open.classList.remove('open');
+      const btn = open.querySelector('.nav-dropdown-btn');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    });
+  });
+})();
+
 (async () => {
   const hasAnnouncementsUi = Boolean(announcementList || announcementForm || clearAnnouncementsButton);
   if (!hasAnnouncementsUi) {

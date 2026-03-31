@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Teasers — IslesOfDawnMC</title>
+    <meta name="description" content="Staff management page for posting teasers and photos." />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="../index.html" aria-label="IslesOfDawnMC home">
+          <img class="brand-logo" src="../assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+        </a>
+        <div class="nav-right">
+          <nav class="nav-links">
+            <a href="../index.html">Home</a>
+            <a href="../announcements.html">Announcements</a>
+            <a href="../applications.html">Applications</a>
+            <div class="nav-dropdown">
+              <button class="nav-dropdown-btn" aria-haspopup="true" aria-expanded="false">More ▾</button>
+              <div class="nav-dropdown-content">
+                <a href="../appeals.html">Appeals</a>
+                <a href="../teasers.html">Teasers</a>
+                <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+              </div>
+            </div>
+          </nav>
+          <div id="navAuth"></div>
+        </div>
+      </div>
+    </header>
+    <main class="container" style="margin-top:2rem;">
+      <h1>Post a Teaser or Photo</h1>
+      <section class="card" style="max-width:500px;margin-bottom:2rem;">
+        <form id="teaserForm">
+          <label for="teaserText">Caption or Description</label>
+          <textarea id="teaserText" name="teaserText" rows="2" maxlength="200" required></textarea>
+          <label for="teaserImage">Image <span style="color:#e75f5f">*</span></label>
+          <input type="file" id="teaserImage" name="teaserImage" accept="image/*" required />
+          <button class="btn btn-primary" type="submit">Post</button>
+        </form>
+        <p id="teaserFormStatus" class="copy-message" aria-live="polite"></p>
+      </section>
+      <section id="teaserGallery" class="gallery-grid">
+        <!-- Teasers/photos will be loaded here for management preview -->
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+      </div>
+    </footer>
+    <script src="../auth.js"></script>
+    <script src="../supabase-data.js"></script>
+    <script src="../script.js"></script>
+    <script>
+      document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>

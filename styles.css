@@ -1,3 +1,59 @@
+/* ── Nav Dropdown ───────────────────────────── */
+.nav-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.nav-dropdown-btn {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.42rem 0.72rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.nav-dropdown-btn:hover,
+.nav-dropdown-btn[aria-expanded="true"] {
+  color: var(--accent);
+  border-color: rgba(122, 162, 255, 0.62);
+  background: rgba(122, 162, 255, 0.08);
+}
+
+.nav-dropdown-content {
+  display: none;
+  position: absolute;
+  background: var(--surface);
+  min-width: 170px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  z-index: 100;
+  right: 0;
+  margin-top: 0.3rem;
+}
+
+.nav-dropdown-content a {
+  color: var(--text);
+  padding: 0.6rem 1rem;
+  text-decoration: none;
+  display: block;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-dropdown-content a:hover {
+  background: rgba(122, 162, 255, 0.08);
+  color: var(--accent);
+}
+
+.nav-dropdown.open .nav-dropdown-content {
+  display: block;
+}
 /* ── Teasers & Gallery ───────────────────────────── */
 .gallery-grid {
   display: grid;
