@@ -1,0 +1,72 @@
+/*
+  staff-wiki-manage.css
+  Custom styles for the Wiki Folder Management page to match the IslesOfDawnMC website style.
+*/
+
+body {
+  background: var(--background, #181a1b);
+  color: var(--text, #f3f3f3);
+}
+
+.card {
+  background: var(--card-bg, #23272a);
+  border-radius: 1.1em;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+  border: 1px solid var(--border, #23272a);
+}
+
+input, textarea, select, button {
+  background: var(--input-bg, #23272a);
+  color: var(--text, #f3f3f3);
+  border: 1px solid var(--border, #23272a);
+  border-radius: 0.5em;
+  padding: 0.5em 0.8em;
+  font-size: 1em;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: 2px solid var(--primary, #5e81f4);
+  border-color: var(--primary, #5e81f4);
+}
+
+.btn, .btn-primary, .btn-secondary {
+  background: var(--primary, #5e81f4);
+  color: #fff;
+  border: none;
+  border-radius: 0.5em;
+  padding: 0.5em 1.2em;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 0.5em;
+  transition: background 0.15s;
+}
+
+.btn-secondary {
+  background: var(--secondary, #23272a);
+  color: var(--text, #f3f3f3);
+  border: 1px solid var(--border, #23272a);
+}
+
+.btn:hover, .btn-primary:hover, .btn-secondary:hover {
+  background: var(--primary-hover, #4661c5);
+}
+
+.form-group {
+  margin-bottom: 1.2em;
+}
+
+.copy-message {
+  color: var(--muted-text, #e7b95f);
+  font-size: 1em;
+  margin-top: 0.5em;
+}
+
+.wiki-folder-row {
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+#addWikiFolderBtn {
+  margin-top: 1.2rem;
+}
