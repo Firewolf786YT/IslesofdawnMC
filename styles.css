@@ -66,21 +66,6 @@
   text-decoration: underline;
   color: var(--accent);
 }
-  align-items: center;
-  justify-content: flex-start;
-  width: 100%;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  padding: 0.45rem 0.6rem;
-  background: transparent;
-  color: var(--text);
-  text-decoration: none;
-  font-size: 0.86rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
 .nav-dropdown-content a:hover {
   border-color: rgba(122, 162, 255, 0.45);
   background: rgba(122, 162, 255, 0.08);
