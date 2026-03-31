@@ -1,3 +1,25 @@
+// Dropdown for 'More' button (toggle .open on .nav-dropdown)
+function setupNavDropdown() {
+  const dropdown = document.querySelector('.nav-dropdown');
+  const dropdownBtn = dropdown?.querySelector('.nav-dropdown-btn');
+  if (dropdown && dropdownBtn) {
+    dropdownBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    });
+    document.addEventListener('click', function(e) {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+      }
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupNavDropdown);
+} else {
+  setupNavDropdown();
+}
 
 
 // Highlight the nav link matching the current page
