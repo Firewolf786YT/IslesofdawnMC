@@ -1,38 +1,4 @@
-// Ensure Wiki link appears in top nav across pages
-(function () {
-  document.querySelectorAll('.nav-links').forEach((nav) => {
-    const links = Array.from(nav.querySelectorAll('a'));
-    const hasWiki = links.some((link) => {
-      const href = String(link.getAttribute('href') || '').split('#')[0].split('?')[0];
-      return href === 'wiki.html';
-    });
-    if (hasWiki) return;
 
-    const buildNavLink = (href, text) => {
-      const anchor = document.createElement('a');
-      anchor.href = href;
-      anchor.textContent = text;
-      return anchor;
-    };
-
-    const wikiLink = hasWiki ? null : buildNavLink('wiki.html', 'Wiki');
-
-    const storeLink = Array.from(nav.querySelectorAll('a')).find((link) => {
-      const href = String(link.getAttribute('href') || '');
-      return href.includes('tebex.io');
-    });
-
-    const addLinks = (parent) => {
-      if (wikiLink) parent.insertBefore(wikiLink, storeLink || null);
-    };
-
-    if (storeLink) {
-      addLinks(nav);
-    } else {
-      if (wikiLink) nav.appendChild(wikiLink);
-    }
-  });
-})();
 
 // Highlight the nav link matching the current page
 (function () {
