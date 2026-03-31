@@ -34,29 +34,41 @@
 .nav-dropdown-content {
   display: none;
   position: absolute;
-  background: var(--surface);
-  min-width: 170px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  z-index: 100;
+  top: calc(100% + 0.45rem);
   right: 0;
-  margin-top: 0.3rem;
+  min-width: 190px;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  z-index: 30;
 }
 
 .nav-dropdown-content a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 0.45rem 0.6rem;
+  background: transparent;
   color: var(--text);
-  padding: 0.6rem 1rem;
   text-decoration: none;
-  display: block;
-  border-radius: 8px;
-  font-size: 0.88rem;
-  transition: background 0.15s, color 0.15s;
+  font-size: 0.86rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .nav-dropdown-content a:hover {
   background: rgba(122, 162, 255, 0.08);
   color: var(--accent);
+  border-color: var(--accent);
 }
 
 .nav-dropdown.open .nav-dropdown-content {
