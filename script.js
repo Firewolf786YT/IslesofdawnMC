@@ -1,3 +1,38 @@
+// Robust nav dropdown for 'More' button
+(function () {
+  function closeAllDropdowns() {
+    document.querySelectorAll('.nav-dropdown.open').forEach(drop => drop.classList.remove('open'));
+    document.querySelectorAll('.nav-dropdown-btn[aria-expanded]')
+      .forEach(btn => btn.setAttribute('aria-expanded', 'false'));
+  }
+
+  document.addEventListener('click', closeAllDropdowns);
+
+  document.querySelectorAll('.nav-dropdown-btn').forEach(btn => {
+    const dropdown = btn.closest('.nav-dropdown');
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const isOpen = dropdown.classList.toggle('open');
+      btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      // Close others
+      document.querySelectorAll('.nav-dropdown').forEach(other => {
+        if (other !== dropdown) other.classList.remove('open');
+      });
+      document.querySelectorAll('.nav-dropdown-btn[aria-expanded]')
+        .forEach(otherBtn => {
+          if (otherBtn !== btn) otherBtn.setAttribute('aria-expanded', 'false');
+        });
+    });
+    // Keyboard accessibility
+    btn.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        dropdown.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.blur();
+      }
+    });
+  });
+})();
 // Dropdown for 'More' button (toggle .open on .nav-dropdown)
 function setupNavDropdown() {
   const dropdown = document.querySelector('.nav-dropdown');
