@@ -46,42 +46,42 @@
 
 /* --- Improved More Dropdown Styling --- */
 /* --- Redesigned More Dropdown to match nav-auth-menu (profile dropdown) --- */
+/* --- More Dropdown: EXACT nav-auth-menu style --- */
 .nav-dropdown-content {
   display: none;
   position: absolute;
   top: calc(100% + 0.45rem);
   right: 0;
-  min-width: 210px;
-  padding: 0.4rem 0.2rem;
-  border: 1.5px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
-  z-index: 40;
+  min-width: 190px;
   display: grid;
   gap: 0.2rem;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  z-index: 30;
 }
 .nav-dropdown-content a {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   width: 100%;
-  border: 1.5px solid transparent;
-  border-radius: 10px;
-  padding: 0.55rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 0.45rem 0.6rem;
   background: transparent;
   color: var(--text);
   text-decoration: none;
-  font-size: 0.97rem;
+  font-size: 0.86rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.16s, color 0.16s, border-color 0.16s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .nav-dropdown-content a:hover {
-  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
-  color: #fff;
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px rgba(122,162,255,0.10);
+  border-color: rgba(122, 162, 255, 0.45);
+  background: rgba(122, 162, 255, 0.08);
 }
 .nav-dropdown.open .nav-dropdown-content {
   display: grid;
