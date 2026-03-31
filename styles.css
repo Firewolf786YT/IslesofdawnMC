@@ -4401,6 +4401,13 @@ body {
   box-shadow: 0 0 0 3px rgba(122, 162, 255, 0.2);
 }
 
+.wiki-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.1rem;
+  margin-top: 1.2rem;
+}
+
 .wiki-rendered-content {
   color: var(--text);
   line-height: 1.6;
