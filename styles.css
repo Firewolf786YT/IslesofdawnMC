@@ -44,45 +44,49 @@
   letter-spacing: 0.01em;
 }
 
-.wiki-rendered-content p {
-  margin-bottom: 1.1em;
+/* --- Improved More Dropdown Styling --- */
+.nav-dropdown-content {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  min-width: 210px;
+  gap: 0.2rem;
+  padding: 0.5rem 0.3rem;
+  border: 1.5px solid var(--accent);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(122, 162, 255, 0.13), rgba(139, 92, 246, 0.09)), var(--surface);
+  box-shadow: 0 12px 32px rgba(122, 162, 255, 0.18);
+  z-index: 40;
 }
-
-.wiki-rendered-content ul,
-.wiki-rendered-content ol {
-  margin-bottom: 1.1em;
-  padding-left: 2em;
-}
-
-.wiki-rendered-content img {
-  display: block;
-  margin: 1.5em auto;
-  max-width: 100%;
+.nav-dropdown-content a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  border: 1.5px solid transparent;
   border-radius: 10px;
+  padding: 0.55rem 0.9rem;
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.97rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.16s, color 0.16s, border-color 0.16s;
+  margin-bottom: 0.1rem;
+}
+.nav-dropdown-content a:hover {
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  color: #fff;
+  border-color: var(--accent);
   box-shadow: 0 2px 8px rgba(122,162,255,0.10);
 }
-
-.wiki-article-meta-row {
+.nav-dropdown.open .nav-dropdown-content {
   display: flex;
-  gap: 1.2rem;
-  align-items: center;
-  margin-bottom: 1.2rem;
+  flex-direction: column;
 }
-
-.wiki-block-title {
-  font-size: 1.18rem;
-  color: var(--accent);
-  font-weight: 700;
-  margin-bottom: 1.1rem;
-}
-/* ── Wiki Card Grid Redesign ───────────────────────────── */
-.wiki-card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 2rem;
-  margin: 2.5rem 0 1.5rem 0;
-}
-
 .wiki-folder-card {
   background: linear-gradient(135deg, rgba(122, 162, 255, 0.10), rgba(139, 92, 246, 0.08)), var(--surface);
   border: 1.5px solid var(--border);
