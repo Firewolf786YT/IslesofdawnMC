@@ -204,20 +204,33 @@ async function loadMeetStaff() {
     if (members && members.length) {
       rendered = true;
       const groupDiv = document.createElement('div');
-      groupDiv.className = 'staff-rank-group';
+      groupDiv.className = 'meet-staff-group';
       const label = document.createElement('h3');
       label.className = 'staff-rank-label';
       label.textContent = rank.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       groupDiv.appendChild(label);
-      const list = document.createElement('ul');
-      list.className = 'staff-rank-list';
+      const cardsRow = document.createElement('div');
+      cardsRow.className = 'meet-staff-cards';
       members.forEach(member => {
-        const li = document.createElement('li');
-        li.className = 'staff-member';
-        li.innerHTML = `<span class="staff-username">${escapeHtml(member.minecraftUsername || 'Unknown')}</span>`;
-        list.appendChild(li);
+        const card = document.createElement('div');
+        card.className = 'meet-staff-card';
+        // Avatar circle with color by rank
+        const avatar = document.createElement('div');
+        avatar.className = `meet-staff-avatar meet-staff-avatar-${rank}`;
+        avatar.textContent = (member.minecraftUsername || '?').charAt(0).toUpperCase();
+        card.appendChild(avatar);
+        // Info block
+        const info = document.createElement('div');
+        info.className = 'meet-staff-card-info';
+        // Username
+        const name = document.createElement('div');
+        name.className = 'meet-staff-card-name';
+        name.textContent = member.minecraftUsername || 'Unknown';
+        info.appendChild(name);
+        card.appendChild(info);
+        cardsRow.appendChild(card);
       });
-      groupDiv.appendChild(list);
+      groupDiv.appendChild(cardsRow);
       pyramidEl.appendChild(groupDiv);
     }
   });
