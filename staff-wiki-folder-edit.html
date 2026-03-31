@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edit Wiki Folder — IslesOfDawnMC</title>
+  <meta name="description" content="Edit a wiki folder's name, icon, and description." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+        <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+      </a>
+      <div class="nav-right">
+        <nav class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="announcements.html">Announcements</a>
+          <a href="applications.html">Applications</a>
+          <a href="appeals.html">Appeals</a>
+          <a href="wiki.html">Wiki</a>
+          <a href="teasers.html">Teasers</a>
+          <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+        </nav>
+        <div id="navAuth"></div>
+      </div>
+    </div>
+  </header>
+  <main class="staff-module-page">
+    <section class="section">
+      <div class="container">
+        <div class="card staff-module-header">
+          <p class="eyebrow">Management</p>
+          <h2>Edit Wiki Folder</h2>
+          <p class="staff-module-subtitle">Edit the folder's name, icon, and description. The slug is generated automatically and cannot be changed.</p>
+        </div>
+        <div class="card" style="margin-top: 1.5rem; max-width: 500px;">
+          <form id="editWikiFolderForm">
+            <div class="form-group">
+              <label for="folderLabel">Folder Name</label>
+              <input type="text" id="folderLabel" name="folderLabel" required maxlength="48" autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label for="folderIcon">Icon (emoji or character)</label>
+              <input type="text" id="folderIcon" name="folderIcon" maxlength="2" autocomplete="off" placeholder="📁" />
+            </div>
+            <div class="form-group">
+              <label for="folderDescription">Description</label>
+              <textarea id="folderDescription" name="folderDescription" maxlength="200" rows="2" placeholder="Optional description..."></textarea>
+            </div>
+            <div class="form-group">
+              <button class="btn btn-primary" type="submit">Save Changes</button>
+              <a class="btn btn-secondary" href="staff-wiki-manage.html" style="margin-left:1em;">Cancel</a>
+            </div>
+            <div id="editFolderStatus" class="copy-message" style="margin-top:1em;"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+    </div>
+  </footer>
+  <script src="auth.js"></script>
+  <script src="supabase-data.js"></script>
+  <script>
+    function getQueryId() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('id') || '';
+    }
+    function slugify(text) {
+      return String(text || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9- ]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+    async function loadFolder() {
+      const id = getQueryId();
+      if (!id) return;
+      const groupsRes = await window.loadWikiGroups?.();
+      if (!groupsRes?.ok) return;
+      const group = (groupsRes.groups || []).find(g => String(g.id) === String(id));
+      if (!group) return;
+      document.getElementById('folderLabel').value = group.label;
+      document.getElementById('folderIcon').value = group.icon || '';
+      document.getElementById('folderDescription').value = group.description || '';
+    }
+    document.getElementById('editWikiFolderForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const id = getQueryId();
+      const label = document.getElementById('folderLabel').value.trim();
+      const icon = document.getElementById('folderIcon').value.trim() || '📁';
+      const description = document.getElementById('folderDescription').value.trim();
+      const slug = slugify(label);
+      const statusEl = document.getElementById('editFolderStatus');
+      statusEl.textContent = 'Saving...';
+      const res = await window.updateWikiGroup?.(id, { label, slug, icon, description });
+      if (res?.ok) {
+        statusEl.textContent = 'Folder updated! Redirecting...';
+        setTimeout(() => window.location.href = 'staff-wiki-manage.html', 1200);
+      } else {
+        statusEl.textContent = res?.message || 'Could not update folder.';
+      }
+    });
+    document.getElementById('year').textContent = new Date().getFullYear();
+    loadFolder();
+  </script>
+</body>
+</html>

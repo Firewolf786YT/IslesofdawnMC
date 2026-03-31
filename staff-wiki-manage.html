@@ -45,7 +45,7 @@
         <div class="card" style="margin-top: 1.5rem;">
           <h3>Wiki Folders</h3>
           <div id="wikiFoldersManage"></div>
-          <button class="btn btn-primary" id="addWikiFolderBtn" style="margin-top:1.2rem;">Add New Folder</button>
+          <a class="btn btn-primary" id="addWikiFolderBtn" style="margin-top:1.2rem;" href="staff-wiki-folder-add.html">Add New Folder</a>
         </div>
       </div>
     </section>
@@ -90,6 +90,7 @@
           <button class="btn btn-secondary" title="Move Down" ${idx===groups.length-1?'disabled':''}>&darr;</button>
           <button class="btn btn-secondary" title="Save">Save</button>
           <button class="btn btn-secondary" title="Delete" style="color:#e75f5f;">Delete</button>
+          <a class="btn btn-secondary" title="Edit" href="staff-wiki-folder-edit.html?id=${group.id}" style="margin-left:0.5em;">Edit</a>
         `;
         // Icon
         row.children[0].onchange = async (e) => {
