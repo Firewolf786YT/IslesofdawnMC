@@ -50,15 +50,9 @@
           <div class="card wiki-shell">
             <p class="copy-message" id="wikiPublicStatus" aria-live="polite"></p>
             <div class="wiki-layout wiki-layout-home">
-              <aside class="card wiki-sidebar-card">
-                <h3 class="wiki-block-title">Folders</h3>
-                <div id="wikiSidebarGroups" class="hr-log-list"></div>
-                <h3 class="wiki-block-title wiki-secondary-title">Pages</h3>
-                <div id="wikiSidebarPages" class="hr-log-list"></div>
-              </aside>
-              <section class="card wiki-content-card">
-                <h3 id="wikiSectionTitle" class="wiki-block-title">Section</h3>
-                <div id="wikiPublicList" class="hr-log-list"></div>
+              <section class="card wiki-content-card" style="width:100%;">
+                <h3 class="wiki-block-title">Wiki Sections</h3>
+                <div id="wikiCardGrid" class="wiki-card-grid"></div>
               </section>
             </div>
           </div>
@@ -76,107 +70,61 @@
     <script src="supabase-data.js"></script>
     <script src="script.js"></script>
     <script>
+      // --- Wiki Card Redesign ---
       (async () => {
-        const escHtml = (str) => String(str || '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
+        // List of wiki folders (should match those in assets/wiki/)
+        const wikiFolders = [
+          'FAQ',
+          'Getting Started',
+          'Animals - Bestiary',
+          'Mobs and Bosses',
+          'Weapons and Tools',
+          'Armors',
+          'Land Claiming',
+          'Commands',
+        ];
 
-        const formatDate = (isoStr) => {
-          if (!isoStr) return '—';
-          const d = new Date(isoStr);
-          return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+        // Card icons (emoji or SVG, can be customized)
+        const folderIcons = {
+          'FAQ': '❓',
+          'Getting Started': '🚀',
+          'Animals - Bestiary': '🦊',
+          'Mobs and Bosses': '👹',
+          'Weapons and Tools': '⚔️',
+          'Armors': '🛡️',
+          'Land Claiming': '🏡',
+          'Commands': '⌨️',
         };
 
-        const setStatus = (message, isError = false) => {
-          const el = document.getElementById('wikiPublicStatus');
-          if (!el) return;
-          el.textContent = message;
-          el.style.color = isError ? '#e75f5f' : '';
+        // Card descriptions (optional)
+        const folderDescriptions = {
+          'FAQ': 'Frequently asked questions about IslesOfDawnMC.',
+          'Getting Started': 'Begin your adventure with essential info.',
+          'Animals - Bestiary': 'Discover the wildlife and creatures.',
+          'Mobs and Bosses': 'Learn about hostile mobs and bosses.',
+          'Weapons and Tools': 'All about weapons and tools.',
+          'Armors': 'Protect yourself with the best armor.',
+          'Land Claiming': 'How to claim and protect your land.',
+          'Commands': 'Useful in-game commands.',
         };
 
-        let wikiGroups = [];
-        const publishedArticles = [];
-        let activeGroupSlug = 'getting-started';
-
-        const getGroupLabel = (slug) => {
-          const found = wikiGroups.find((group) => group.slug === slug);
-          return found?.label || slug || 'General';
-        };
-
-        const getArticlesByGroup = (groupSlug) => publishedArticles.filter((article) => article.groupSlug === groupSlug);
-
-        const loadGroups = async () => {
-          const result = await window.loadWikiGroups?.();
-          wikiGroups = (result?.ok ? result.groups : null) || window.getWikiGroups?.() || [];
-          if (!wikiGroups.length) {
-            wikiGroups = [{ slug: 'getting-started', label: 'Getting Started' }];
-          }
-          if (!wikiGroups.some((group) => group.slug === activeGroupSlug)) {
-            activeGroupSlug = wikiGroups[0].slug;
-          }
-        };
-
-        const renderSidebarGroups = () => {
-          const container = document.getElementById('wikiSidebarGroups');
-          if (!container) return;
-
-          container.innerHTML = '';
-          wikiGroups.forEach((group) => {
-            const count = getArticlesByGroup(group.slug).length;
-            const row = document.createElement('div');
-            row.className = 'hr-log-entry wiki-group-entry';
-            row.innerHTML = `
-              <div class="hr-log-entry-header">
-                <span class="hr-status-badge ${group.slug === activeGroupSlug ? 'hr-status-active' : 'hr-status-onboarding'}">${escHtml(count)}</span>
-                <span class="hr-log-meta">${escHtml(group.slug === activeGroupSlug ? 'Selected' : 'Open')}</span>
-              </div>
-              <p class="hr-log-body"><strong>${escHtml(group.label)}</strong></p>
+        // Render the card grid
+        const grid = document.getElementById('wikiCardGrid');
+        if (grid) {
+          grid.innerHTML = '';
+          wikiFolders.forEach(folder => {
+            const card = document.createElement('div');
+            card.className = 'wiki-folder-card';
+            card.innerHTML = `
+              <div class="wiki-folder-icon">${folderIcons[folder] || '📁'}</div>
+              <div class="wiki-folder-title">${folder}</div>
+              <div class="wiki-folder-desc">${folderDescriptions[folder] || ''}</div>
+              <a class="wiki-folder-link" href="wiki.html?section=${encodeURIComponent(folder)}">View Pages</a>
             `;
-            row.addEventListener('click', () => {
-              activeGroupSlug = group.slug;
-              renderSidebarGroups();
-              renderSidebarPages();
-              renderArticles();
-            });
-            container.appendChild(row);
+            grid.appendChild(card);
           });
-        };
-
-        const renderSidebarPages = () => {
-          const container = document.getElementById('wikiSidebarPages');
-          if (!container) return;
-
-          const articles = getArticlesByGroup(activeGroupSlug);
-          container.innerHTML = '';
-          if (!articles.length) {
-            container.innerHTML = '<p class="announcement-empty">No pages in this folder yet.</p>';
-            return;
-          }
-
-          articles.forEach((article) => {
-            const row = document.createElement('div');
-            row.className = 'hr-log-entry';
-            const articleHref = `wiki-article.html?slug=${encodeURIComponent(article.slug || '')}`;
-            row.innerHTML = `
-              <p class="hr-log-body"><strong><a href="${escHtml(articleHref)}">${escHtml(article.title || 'Untitled')}</a></strong></p>
-              <p class="hr-log-meta">${escHtml(formatDate(article.publishedAt || article.createdAt))}</p>
-            `;
-            container.appendChild(row);
-          });
-        };
-
-        const renderArticles = (articles = []) => {
-          const list = document.getElementById('wikiPublicList');
-          if (!list) return;
-
-          const heading = document.getElementById('wikiSectionTitle');
-          if (heading) {
-            heading.textContent = `${getGroupLabel(activeGroupSlug)} Pages`;
-          }
-
-          const scopedArticles = getArticlesByGroup(activeGroupSlug);
-          list.innerHTML = '';
+        }
+      })();
 
           if (!scopedArticles.length) {
             list.innerHTML = '<p class="announcement-empty">No approved pages in this folder yet.</p>';
