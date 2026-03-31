@@ -3,9 +3,85 @@
   Custom styles for the Wiki Folder Management page to match the IslesOfDawnMC website style.
 */
 
+
 body {
-  background: var(--background, #181a1b);
-  color: var(--text, #f3f3f3);
+  background: var(--bg, #0d1117);
+  color: var(--text, #e6edf3);
+}
+
+.section {
+  background: none;
+  padding: 0;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.card {
+  background: var(--surface, #1d2633);
+  border-radius: 1.1em;
+  box-shadow: 0 2px 12px 0 rgba(122,162,255,0.07);
+  border: 1.5px solid var(--border, #2a3544);
+  color: var(--text, #e6edf3);
+}
+
+input, textarea, select, button {
+  background: var(--surface, #1d2633);
+  color: var(--text, #e6edf3);
+  border: 1.5px solid var(--border, #2a3544);
+  border-radius: 0.5em;
+  padding: 0.5em 0.8em;
+  font-size: 1em;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: 2px solid var(--accent, #7aa2ff);
+  border-color: var(--accent, #7aa2ff);
+}
+
+.btn, .btn-primary, .btn-secondary {
+  background: var(--accent, #7aa2ff);
+  color: #fff;
+  border: none;
+  border-radius: 0.5em;
+  padding: 0.5em 1.2em;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 0.5em;
+  transition: background 0.15s;
+}
+
+.btn-secondary {
+  background: var(--surface, #1d2633);
+  color: var(--text, #e6edf3);
+  border: 1.5px solid var(--border, #2a3544);
+}
+
+.btn:hover, .btn-primary:hover, .btn-secondary:hover {
+  background: var(--accent-strong, #8b5cf6);
+}
+
+.form-group {
+  margin-bottom: 1.2em;
+}
+
+.copy-message {
+  color: var(--muted, #e7b95f);
+  font-size: 1em;
+  margin-top: 0.5em;
+}
+
+.wiki-folder-row {
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+#addWikiFolderBtn {
+  margin-top: 1.2rem;
 }
 
 .card {
