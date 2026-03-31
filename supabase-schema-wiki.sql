@@ -9,16 +9,18 @@ CREATE TABLE IF NOT EXISTS public.wiki_groups (
   slug       text        NOT NULL UNIQUE,
   sort_order integer     NOT NULL DEFAULT 0,
   created_at timestamptz DEFAULT now() NOT NULL,
-  updated_at timestamptz DEFAULT now() NOT NULL
+  updated_at timestamptz DEFAULT now() NOT NULL,
+  icon       text        DEFAULT '📁',
+  description text        DEFAULT ''
 );
 
-INSERT INTO public.wiki_groups (label, slug, sort_order)
+INSERT INTO public.wiki_groups (label, slug, sort_order, icon, description)
 VALUES
-  ('Getting Started', 'getting-started', 10),
-  ('Server Guides', 'server-guides', 20),
-  ('Staff Guides', 'staff-guides', 30),
-  ('Rules & Policies', 'rules-policies', 40),
-  ('FAQ', 'faq', 50)
+  ('Getting Started', 'getting-started', 10, '🚀', 'Begin your adventure with essential info.'),
+  ('Server Guides', 'server-guides', 20, '📚', 'Guides for server features and gameplay.'),
+  ('Staff Guides', 'staff-guides', 30, '🛠️', 'Internal guides for staff members.'),
+  ('Rules & Policies', 'rules-policies', 40, '📜', 'Server rules and important policies.'),
+  ('FAQ', 'faq', 50, '❓', 'Frequently asked questions about IslesOfDawnMC.')
 ON CONFLICT (slug) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS public.wiki_articles (

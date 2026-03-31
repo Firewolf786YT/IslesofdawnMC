@@ -1002,6 +1002,8 @@
     slug: sanitizeWikiGroupSlug(row.slug),
     label: sanitizeWikiGroupLabel(row.label) || sanitizeWikiGroupSlug(row.slug),
     sortOrder: Number.isFinite(Number(row.sort_order)) ? Number(row.sort_order) : 0,
+    icon: row.icon || '📁',
+    description: row.description || '',
     createdAt: row.created_at || null,
     updatedAt: row.updated_at || null,
   });
@@ -1012,14 +1014,13 @@
 
   const ensureWikiGroupsFallback = (groups) => {
     const next = Array.isArray(groups) ? groups.filter((group) => group.slug && group.label) : [];
-    return next.length ? sortWikiGroups(next) : DEFAULT_WIKI_GROUPS.map((group, index) => ({
-      id: null,
-      slug: group.slug,
-      label: group.label,
-      sortOrder: index,
-      createdAt: null,
-      updatedAt: null,
-    }));
+    return next.length ? sortWikiGroups(next) : [
+      { slug: 'getting-started', label: 'Getting Started', icon: '🚀', description: 'Begin your adventure with essential info.', sortOrder: 10 },
+      { slug: 'server-guides', label: 'Server Guides', icon: '📚', description: 'Guides for server features and gameplay.', sortOrder: 20 },
+      { slug: 'staff-guides', label: 'Staff Guides', icon: '🛠️', description: 'Internal guides for staff members.', sortOrder: 30 },
+      { slug: 'rules-policies', label: 'Rules & Policies', icon: '📜', description: 'Server rules and important policies.', sortOrder: 40 },
+      { slug: 'faq', label: 'FAQ', icon: '❓', description: 'Frequently asked questions about IslesOfDawnMC.', sortOrder: 50 },
+    ];
   };
 
   window.getWikiGroups = () => wikiGroupsCache.slice();

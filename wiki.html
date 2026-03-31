@@ -27,8 +27,9 @@
             <div class="nav-dropdown">
               <button class="nav-dropdown-btn" aria-haspopup="true" aria-expanded="false">More ▾</button>
               <div class="nav-dropdown-content">
-                <a href="appeals.html">Appeals</a>
+                <a href="wiki.html">Wiki</a>
                 <a href="teasers.html">Teasers</a>
+                <a href="appeals.html">Appeals</a>
                 <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
               </div>
             </div>
@@ -120,60 +121,28 @@
     <script src="supabase-data.js"></script>
     <script src="script.js"></script>
     <script>
-      // --- Wiki Card Redesign ---
+      // --- Dynamic Wiki Card Redesign (Supabase) ---
       (async () => {
-        // List of wiki folders (should match those in assets/wiki/)
-        const wikiFolders = [
-          'FAQ',
-          'Getting Started',
-          'Animals - Bestiary',
-          'Mobs and Bosses',
-          'Weapons and Tools',
-          'Armors',
-          'Land Claiming',
-          'Commands',
-        ];
-
-        // Card icons (emoji or SVG, can be customized)
-        const folderIcons = {
-          'FAQ': '❓',
-          'Getting Started': '🚀',
-          'Animals - Bestiary': '🦊',
-          'Mobs and Bosses': '👹',
-          'Weapons and Tools': '⚔️',
-          'Armors': '🛡️',
-          'Land Claiming': '🏡',
-          'Commands': '⌨️',
-        };
-
-        // Card descriptions (optional)
-        const folderDescriptions = {
-          'FAQ': 'Frequently asked questions about IslesOfDawnMC.',
-          'Getting Started': 'Begin your adventure with essential info.',
-          'Animals - Bestiary': 'Discover the wildlife and creatures.',
-          'Mobs and Bosses': 'Learn about hostile mobs and bosses.',
-          'Weapons and Tools': 'All about weapons and tools.',
-          'Armors': 'Protect yourself with the best armor.',
-          'Land Claiming': 'How to claim and protect your land.',
-          'Commands': 'Useful in-game commands.',
-        };
-
-        // Render the card grid
         const grid = document.getElementById('wikiCardGrid');
-        if (grid) {
-          grid.innerHTML = '';
-          wikiFolders.forEach(folder => {
-            const card = document.createElement('div');
-            card.className = 'wiki-folder-card';
-            card.innerHTML = `
-              <div class="wiki-folder-icon">${folderIcons[folder] || '📁'}</div>
-              <div class="wiki-folder-title">${folder}</div>
-              <div class="wiki-folder-desc">${folderDescriptions[folder] || ''}</div>
-              <a class="wiki-folder-link" href="wiki.html?section=${encodeURIComponent(folder)}">View Pages</a>
-            `;
-            grid.appendChild(card);
-          });
+        if (!grid) return;
+        grid.innerHTML = '<p>Loading...</p>';
+        const res = await window.loadWikiGroups?.();
+        if (!res?.ok) {
+          grid.innerHTML = '<p style="color:#e75f5f">Could not load wiki folders.</p>';
+          return;
         }
+        grid.innerHTML = '';
+        res.groups.forEach(folder => {
+          const card = document.createElement('div');
+          card.className = 'wiki-folder-card';
+          card.innerHTML = `
+            <div class="wiki-folder-icon">${folder.icon || '📁'}</div>
+            <div class="wiki-folder-title">${folder.label}</div>
+            <div class="wiki-folder-desc">${folder.description || ''}</div>
+            <a class="wiki-folder-link" href="wiki.html?section=${encodeURIComponent(folder.slug)}">View Pages</a>
+          `;
+          grid.appendChild(card);
+        });
       })();
 
           if (!scopedArticles.length) {

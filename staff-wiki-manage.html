@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Wiki Folders — IslesOfDawnMC</title>
+  <meta name="description" content="Manage wiki folder structure, order, icons, and descriptions." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html" aria-label="IslesOfDawnMC home">
+        <img class="brand-logo" src="assets/islesofdawnmc-logo.svg" alt="IslesOfDawnMC" />
+      </a>
+      <div class="nav-right">
+        <nav class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="announcements.html">Announcements</a>
+          <a href="applications.html">Applications</a>
+          <div class="nav-dropdown">
+            <button class="nav-dropdown-btn" aria-haspopup="true" aria-expanded="false">More ▾</button>
+            <div class="nav-dropdown-content">
+              <a href="appeals.html">Appeals</a>
+              <a href="wiki.html">Wiki</a>
+              <a href="teasers.html">Teasers</a>
+              <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
+            </div>
+          </div>
+        </nav>
+        <div id="navAuth"></div>
+      </div>
+    </div>
+  </header>
+  <main class="staff-module-page">
+    <section class="section">
+      <div class="container">
+        <div class="card staff-module-header">
+          <p class="eyebrow">Management</p>
+          <h2>Manage Wiki Folders</h2>
+          <p class="staff-module-subtitle">Add, remove, reorder, and edit wiki folders, icons, and descriptions. Changes are live for the public wiki.</p>
+        </div>
+        <div class="staff-module-actions">
+          <a class="btn btn-secondary" href="staff-portal.html">← Back to Staff Portal</a>
+          <a class="btn btn-secondary" href="wiki.html">View Public Wiki</a>
+        </div>
+        <div class="card" style="margin-top: 1.5rem;">
+          <h3>Wiki Folders</h3>
+          <div id="wikiFoldersManage"></div>
+          <button class="btn btn-primary" id="addWikiFolderBtn" style="margin-top:1.2rem;">Add New Folder</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <p>© <span id="year"></span> IslesOfDawnMC. All rights reserved.</p>
+    </div>
+  </footer>
+  <script src="auth.js"></script>
+  <script src="supabase-data.js"></script>
+  <script src="script.js"></script>
+  <script>
+    // Management UI for wiki folders
+    async function loadWikiFolders() {
+      const container = document.getElementById('wikiFoldersManage');
+      container.innerHTML = '<p>Loading...</p>';
+      const res = await window.loadWikiGroups?.();
+      if (!res?.ok) {
+        container.innerHTML = '<p style="color:#e75f5f">Could not load wiki folders.</p>';
+        return;
+      }
+      renderWikiFolders(res.groups);
+    }
+
+    function renderWikiFolders(groups) {
+      const container = document.getElementById('wikiFoldersManage');
+      if (!groups.length) {
+        container.innerHTML = '<p>No folders yet.</p>';
+        return;
+      }
+      container.innerHTML = '';
+      groups.forEach((group, idx) => {
+        const row = document.createElement('div');
+        row.className = 'wiki-folder-row';
+        row.style = 'display:flex;align-items:center;gap:1rem;margin-bottom:1.1rem;padding:0.7rem 0;border-bottom:1px solid var(--border);';
+        row.innerHTML = `
+          <input type="text" value="${group.icon || ''}" maxlength="2" style="width:2.5em;font-size:1.5em;text-align:center;" title="Icon" />
+          <input type="text" value="${group.label}" style="width:12em;font-weight:700;" title="Folder Name" />
+          <input type="text" value="${group.description || ''}" style="flex:1;" placeholder="Description" title="Description" />
+          <button class="btn btn-secondary" title="Move Up" ${idx===0?'disabled':''}>&uarr;</button>
+          <button class="btn btn-secondary" title="Move Down" ${idx===groups.length-1?'disabled':''}>&darr;</button>
+          <button class="btn btn-secondary" title="Save">Save</button>
+          <button class="btn btn-secondary" title="Delete" style="color:#e75f5f;">Delete</button>
+        `;
+        // Icon
+        row.children[0].onchange = async (e) => {
+          await saveGroup(group, { icon: e.target.value });
+        };
+        // Label
+        row.children[1].onchange = async (e) => {
+          await saveGroup(group, { label: e.target.value });
+        };
+        // Description
+        row.children[2].onchange = async (e) => {
+          await saveGroup(group, { description: e.target.value });
+        };
+        // Move Up
+        row.children[3].onclick = async () => {
+          if (idx > 0) {
+            await reorderGroups(groups, idx, idx-1);
+          }
+        };
+        // Move Down
+        row.children[4].onclick = async () => {
+          if (idx < groups.length-1) {
+            await reorderGroups(groups, idx, idx+1);
+          }
+        };
+        // Save
+        row.children[5].onclick = async () => {
+          await saveGroup(group, {
+            icon: row.children[0].value,
+            label: row.children[1].value,
+            description: row.children[2].value
+          });
+        };
+        // Delete
+        row.children[6].onclick = async () => {
+          if (confirm('Delete this folder?')) {
+            await window.deleteWikiGroup?.(group.id);
+            await loadWikiFolders();
+          }
+        };
+        container.appendChild(row);
+      });
+    }
+
+    async function saveGroup(group, patch) {
+      await window.updateWikiGroup?.(group.id, patch);
+      await loadWikiFolders();
+    }
+
+    async function reorderGroups(groups, fromIdx, toIdx) {
+      // Swap sortOrder and update both
+      const a = groups[fromIdx], b = groups[toIdx];
+      const tmp = a.sortOrder;
+      await window.updateWikiGroup?.(a.id, { sortOrder: b.sortOrder });
+      await window.updateWikiGroup?.(b.id, { sortOrder: tmp });
+      await loadWikiFolders();
+    }
+
+    document.getElementById('addWikiFolderBtn').onclick = async () => {
+      const label = prompt('Folder name?');
+      if (!label) return;
+      const icon = prompt('Icon (emoji, optional)?', '📁') || '📁';
+      const description = prompt('Description (optional)?', '') || '';
+      await window.createWikiGroup?.({ label, icon, description });
+      await loadWikiFolders();
+    };
+
+    // Set year in footer
+    document.getElementById('year').textContent = new Date().getFullYear();
+    // Initial load
+    loadWikiFolders();
+  </script>
+</body>
+</html>

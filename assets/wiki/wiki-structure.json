@@ -1,0 +1,42 @@
+[
+  {
+    "name": "FAQ",
+    "icon": "❓",
+    "description": "Frequently asked questions about IslesOfDawnMC."
+  },
+  {
+    "name": "Getting Started",
+    "icon": "🚀",
+    "description": "Begin your adventure with essential info."
+  },
+  {
+    "name": "Animals - Bestiary",
+    "icon": "🦊",
+    "description": "Discover the wildlife and creatures."
+  },
+  {
+    "name": "Mobs and Bosses",
+    "icon": "👹",
+    "description": "Learn about hostile mobs and bosses."
+  },
+  {
+    "name": "Weapons and Tools",
+    "icon": "⚔️",
+    "description": "All about weapons and tools."
+  },
+  {
+    "name": "Armors",
+    "icon": "🛡️",
+    "description": "Protect yourself with the best armor."
+  },
+  {
+    "name": "Land Claiming",
+    "icon": "🏡",
+    "description": "How to claim and protect your land."
+  },
+  {
+    "name": "Commands",
+    "icon": "⌨️",
+    "description": "Useful in-game commands."
+  }
+]
