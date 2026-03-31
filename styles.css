@@ -47,23 +47,25 @@
 /* --- Improved More Dropdown Styling --- */
 /* --- Redesigned More Dropdown to match nav-auth-menu (profile dropdown) --- */
 /* --- More Dropdown: EXACT nav-auth-menu style --- */
-.nav-dropdown-content {
-  display: none;
-  position: absolute;
-  top: calc(100% + 0.45rem);
-  right: 0;
-  min-width: 190px;
-  display: grid;
-  gap: 0.2rem;
-  padding: 0.4rem;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
-  z-index: 30;
+.nav-dropdown-btn {
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  border: none;
+  padding: 0.28rem 0.6rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s;
 }
-.nav-dropdown-content a {
-  display: flex;
+
+.nav-dropdown-btn:hover,
+.nav-dropdown-btn:focus {
+  text-decoration: underline;
+  color: var(--accent);
+}
   align-items: center;
   justify-content: flex-start;
   width: 100%;
@@ -89,57 +91,52 @@
 .wiki-folder-card {
   background: linear-gradient(135deg, rgba(122, 162, 255, 0.10), rgba(139, 92, 246, 0.08)), var(--surface);
   border: 1.5px solid var(--border);
-  border-radius: 18px;
-  box-shadow: 0 4px 18px rgba(122,162,255,0.10);
-  padding: 2.1rem 1.2rem 1.5rem 1.2rem;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(122,162,255,0.10);
+  padding: 1rem 0.7rem 0.9rem 0.7rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   transition: border-color 0.18s, background 0.18s, box-shadow 0.18s, transform 0.18s;
   position: relative;
-  min-height: 260px;
-}
-
-.wiki-folder-card:hover {
-  border-color: var(--accent);
-  background: linear-gradient(135deg, rgba(122, 162, 255, 0.18), rgba(139, 92, 246, 0.13)), var(--surface);
-  box-shadow: 0 8px 32px rgba(122,162,255,0.18);
-  transform: translateY(-4px) scale(1.025);
+  min-height: 120px;
+  max-width: 220px;
+  margin: 0 auto;
 }
 
 .wiki-folder-icon {
-  font-size: 2.7rem;
-  margin-bottom: 1.1rem;
+  font-size: 1.7rem;
+  margin-bottom: 0.6rem;
   filter: drop-shadow(0 2px 8px rgba(122,162,255,0.13));
 }
 
 .wiki-folder-title {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--accent);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
   letter-spacing: 0.01em;
 }
 
 .wiki-folder-desc {
   color: var(--muted);
-  font-size: 1.01rem;
-  margin-bottom: 1.2rem;
-  min-height: 2.5em;
+  font-size: 0.92rem;
+  margin-bottom: 0.7rem;
+  min-height: 1.5em;
 }
 
 .wiki-folder-link {
   margin-top: auto;
   display: inline-block;
-  padding: 0.7rem 1.2rem;
-  border-radius: 10px;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
   background: linear-gradient(90deg, var(--accent), var(--accent-strong));
   color: #0b1a0f;
   font-weight: 700;
   text-decoration: none;
-  font-size: 1rem;
-  box-shadow: 0 2px 8px rgba(122,162,255,0.10);
+  font-size: 0.92rem;
+  box-shadow: 0 1px 4px rgba(122,162,255,0.10);
   transition: background 0.18s, color 0.18s, box-shadow 0.18s;
 }
 
@@ -1884,9 +1881,9 @@ body {
   width: 100%;
   padding: 0.6rem;
   background: var(--bg);
+  color: var(--text);
   border: 1px solid var(--border);
   border-radius: 6px;
-  color: var(--text);
   font-family: inherit;
   font-size: 0.9rem;
 }
