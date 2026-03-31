@@ -72,7 +72,10 @@
         grid.innerHTML = '<p>Loading...</p>';
         const res = await window.loadWikiGroups?.();
         if (!res?.ok) {
-          grid.innerHTML = '<p style="color:#e75f5f">Could not load wiki folders.</p>';
+          let msg = 'Could not load wiki folders.';
+          if (res.message) msg += `<br><span style="font-size:0.95em;color:#e7b95f">${res.message}</span>`;
+          grid.innerHTML = `<p style="color:#e75f5f">${msg}</p>`;
+          if (window.console && res.message) console.warn('Wiki load error:', res.message);
           return;
         }
         if (res.message && res.message.includes('default')) {
