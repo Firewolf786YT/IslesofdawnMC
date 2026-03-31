@@ -37,7 +37,6 @@
   top: calc(100% + 0.45rem);
   right: 0;
   min-width: 190px;
-  display: grid;
   gap: 0.2rem;
   padding: 0.4rem;
   border: 1px solid var(--border);
@@ -72,7 +71,7 @@
 }
 
 .nav-dropdown.open .nav-dropdown-content {
-  display: block;
+  display: grid;
 }
 /* ── Teasers & Gallery ───────────────────────────── */
 .gallery-grid {
