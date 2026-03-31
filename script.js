@@ -181,7 +181,8 @@ async function loadMeetStaff() {
     statusEl.textContent = 'Could not load staff roster.';
     return;
   }
-  const staff = result.files || [];
+  // Only show active staff
+  const staff = (result.files || []).filter(member => member.isActive);
   if (!staff.length) {
     statusEl.textContent = 'No staff found.';
     return;
