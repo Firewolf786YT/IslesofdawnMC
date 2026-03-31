@@ -670,18 +670,18 @@ if (clearAnnouncementsButton) {
     });
   });
 })();
-// Dropdown for 'More' button
+// Dropdown for 'More' button (fix: toggle .open on .nav-dropdown)
 function setupNavDropdown() {
-  const dropdownBtn = document.querySelector('.nav-dropdown-btn');
-  const dropdownContent = document.querySelector('.nav-dropdown-content');
-  if (dropdownBtn && dropdownContent) {
+  const dropdown = document.querySelector('.nav-dropdown');
+  const dropdownBtn = dropdown?.querySelector('.nav-dropdown-btn');
+  if (dropdown && dropdownBtn) {
     dropdownBtn.addEventListener('click', function(e) {
       e.stopPropagation();
-      dropdownContent.classList.toggle('show');
+      dropdown.classList.toggle('open');
     });
     document.addEventListener('click', function(e) {
-      if (!dropdownContent.contains(e.target) && e.target !== dropdownBtn) {
-        dropdownContent.classList.remove('show');
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
       }
     });
   }
