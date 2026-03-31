@@ -44,7 +44,7 @@
   letter-spacing: 0.01em;
 }
 
-/* --- Redesigned More Dropdown (show on hover, theme fit) --- */
+/* --- More Dropdown: Match Profile Dropdown (click to open) --- */
 .nav-dropdown {
   position: relative;
   display: inline-block;
@@ -55,30 +55,30 @@
   color: var(--text);
   font-weight: 700;
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   white-space: nowrap;
   border: none;
-  padding: 0.38rem 1.1rem;
+  padding: 0.28rem 0.6rem;
   font-family: inherit;
   cursor: pointer;
   border-radius: 10px;
-  transition: background 0.18s, color 0.18s;
+  transition: color 0.15s, background 0.15s;
   position: relative;
   z-index: 2;
 }
 
 .nav-dropdown-btn:hover,
-.nav-dropdown:hover .nav-dropdown-btn,
-.nav-dropdown-btn:focus {
-  background: rgba(122, 162, 255, 0.10);
+.nav-dropdown-btn:focus,
+.nav-dropdown-btn[aria-expanded="true"] {
   color: var(--accent);
+  background: rgba(122, 162, 255, 0.10);
   outline: none;
 }
 
 .nav-dropdown-content {
   display: none;
   position: absolute;
-  top: calc(100% + 0.35rem);
+  top: calc(100% + 0.45rem);
   right: 0;
   min-width: 190px;
   background: var(--surface);
@@ -93,90 +93,7 @@
   transform: translateY(8px);
 }
 
-.nav-dropdown:hover .nav-dropdown-content,
-.nav-dropdown:focus-within .nav-dropdown-content {
-  display: block;
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-.nav-dropdown-content a {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  padding: 0.45rem 0.8rem;
-  background: transparent;
-  color: var(--text);
-  text-decoration: none;
-  font-size: 0.92rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.nav-dropdown-content a:hover,
-.nav-dropdown-content a:focus {
-  border-color: var(--accent);
-  background: rgba(122, 162, 255, 0.10);
-  color: var(--accent);
-  outline: none;
-}
-
-/* ── Nav Dropdown ───────────────────────────── */
-.nav-dropdown {
-  position: relative;
-  display: inline-block;
-}
-
-.nav-dropdown-btn {
-  background: transparent;
-  color: var(--text);
-  font-weight: 700;
-  text-decoration: none;
-  font-size: 0.95rem;
-  white-space: nowrap;
-  border: none;
-  padding: 0.38rem 1.1rem;
-  font-family: inherit;
-  cursor: pointer;
-  border-radius: 10px;
-  transition: background 0.18s, color 0.18s;
-  position: relative;
-  z-index: 2;
-}
-
-.nav-dropdown-btn:hover,
-.nav-dropdown:hover .nav-dropdown-btn,
-.nav-dropdown-btn:focus {
-  background: rgba(122, 162, 255, 0.10);
-  color: var(--accent);
-  outline: none;
-}
-
-.nav-dropdown-content {
-  display: none;
-  position: absolute;
-  top: calc(100% + 0.35rem);
-  right: 0;
-  min-width: 190px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
-  padding: 0.4rem 0.2rem;
-  z-index: 10;
-  transition: opacity 0.18s, transform 0.18s;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(8px);
-}
-
-.nav-dropdown:hover .nav-dropdown-content,
-.nav-dropdown:focus-within .nav-dropdown-content {
+.nav-dropdown.open .nav-dropdown-content {
   display: block;
   opacity: 1;
   pointer-events: auto;
