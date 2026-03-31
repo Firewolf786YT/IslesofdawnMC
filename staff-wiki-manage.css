@@ -5,27 +5,40 @@
 
 
 body {
-  background: var(--bg, #0d1117);
+  background-color: var(--bg, #0d1117);
   color: var(--text, #e6edf3);
+  background-image:
+    radial-gradient(ellipse 120% 75% at 50% -18%, rgba(11, 26, 15, 0.44) 0%, transparent 72%),
+    radial-gradient(ellipse 95% 58% at 14% -8%, rgba(84, 150, 110, 0.22) 0%, transparent 64%),
+    radial-gradient(ellipse 72% 44% at 86% 0%, rgba(122, 162, 255, 0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 56% at 50% 110%, rgba(64, 122, 94, 0.2) 0%, transparent 74%),
+    radial-gradient(circle at 16% 30%, rgba(196, 255, 208, 0.12) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 30% 18%, rgba(152, 236, 179, 0.12) 0 1.1px, transparent 1.9px),
+    radial-gradient(circle at 66% 22%, rgba(196, 255, 208, 0.11) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 82% 34%, rgba(139, 92, 246, 0.11) 0 1.2px, transparent 2px),
+    linear-gradient(165deg, rgba(84, 150, 110, 0.12) 0%, transparent 34%, rgba(122, 162, 255, 0.045) 62%, transparent 86%),
+    repeating-linear-gradient(145deg, rgba(220, 255, 228, 0.012) 0 2px, transparent 2px 12px);
 }
 
 .section {
   background: none;
   padding: 0;
+  margin-bottom: 2.5rem;
 }
 
 .container {
-  max-width: 1100px;
+  width: min(1100px, 92%);
   margin: 0 auto;
   padding: 0 1.5rem;
 }
 
 .card {
   background: var(--surface, #1d2633);
-  border-radius: 1.1em;
-  box-shadow: 0 2px 12px 0 rgba(122,162,255,0.07);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(122,162,255,0.07);
   border: 1.5px solid var(--border, #2a3544);
   color: var(--text, #e6edf3);
+  margin-bottom: 2.1rem;
 }
 
 input, textarea, select, button {
@@ -84,12 +97,7 @@ input:focus, textarea:focus, select:focus {
   margin-top: 1.2rem;
 }
 
-.card {
-  background: var(--card-bg, #23272a);
-  border-radius: 1.1em;
-  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
-  border: 1px solid var(--border, #23272a);
-}
+
 
 input, textarea, select, button {
   background: var(--input-bg, #23272a);
