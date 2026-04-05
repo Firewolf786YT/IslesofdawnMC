@@ -83,7 +83,7 @@
   top: calc(100% + 0.45rem);
   right: 0;
   min-width: 190px;
-  display: grid;
+  display: none;
   gap: 0.2rem;
   padding: 0.4rem;
   border: 1px solid var(--border);
@@ -91,6 +91,10 @@
   background: var(--surface);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
   z-index: 30;
+}
+
+.nav-dropdown.open .nav-dropdown-content {
+  display: grid;
 }
 
 .nav-dropdown-content a {
@@ -114,6 +118,13 @@
 .nav-dropdown-content a:hover {
   border-color: rgba(122, 162, 255, 0.45);
   background: rgba(122, 162, 255, 0.08);
+}
+
+.nav-dropdown-content a.nav-active,
+.nav-dropdown-content a.nav-active:hover {
+  border-color: rgba(122, 162, 255, 0.62);
+  background: rgba(122, 162, 255, 0.14);
+  color: var(--accent);
 }
 
 /* ── Teasers & Gallery ───────────────────────────── */

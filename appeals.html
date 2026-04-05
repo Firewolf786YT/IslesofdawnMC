@@ -25,11 +25,18 @@
         <div class="nav-right">
           <nav class="nav-links">
             <a href="index.html">Home</a>
-            <a href="announcements.html">Announcements</a>
             <a href="applications.html">Applications</a>
-            <a href="appeals.html">Appeals</a>
             <a href="wiki.html">Wiki</a>
-            <a href="teasers.html">Teasers</a>
+            <div class="nav-dropdown">
+              <button class="nav-dropdown-btn nav-active" type="button" aria-haspopup="menu" aria-expanded="false">
+                More <span class="nav-auth-caret" aria-hidden="true">v</span>
+              </button>
+              <div class="nav-dropdown-content" role="menu">
+                <a href="announcements.html" role="menuitem">Announcements</a>
+                <a href="appeals.html" class="nav-active" role="menuitem">Appeals</a>
+                <a href="teasers.html" role="menuitem">Teasers</a>
+              </div>
+            </div>
             <a href="https://islesofdawnmc.tebex.io" target="_blank" rel="noopener noreferrer">Store</a>
           </nav>
           <div id="navAuth"></div>
