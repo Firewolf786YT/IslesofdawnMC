@@ -2243,10 +2243,15 @@ body {
   align-items: center;
   gap: 0.8rem;
   color: var(--muted);
+.nav-utility {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
   padding: 1rem 0;
 }
-
-.login-spinner {
+  border-color: transparent;
+  background: transparent;
   width: 20px;
   height: 20px;
   border: 2px solid var(--border);
