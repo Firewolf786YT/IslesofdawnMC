@@ -53,7 +53,7 @@
 .nav-dropdown-btn {
   background: transparent;
   color: var(--text);
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.42rem 0.72rem;
   font-weight: 600;
@@ -117,7 +117,7 @@
   display: none;
   gap: 0.2rem;
   padding: 0.4rem;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 12px;
   background: var(--surface);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
@@ -133,7 +133,7 @@
   align-items: center;
   justify-content: flex-start;
   width: 100%;
-  border: 1px solid transparent;
+  border: none;
   border-radius: 9px;
   padding: 0.45rem 0.6rem;
   background: transparent;
@@ -143,17 +143,15 @@
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .nav-dropdown-content a:hover {
-  border-color: rgba(122, 162, 255, 0.45);
   background: rgba(122, 162, 255, 0.08);
 }
 
 .nav-dropdown-content a.nav-active,
 .nav-dropdown-content a.nav-active:hover {
-  border-color: rgba(122, 162, 255, 0.62);
   background: rgba(122, 162, 255, 0.14);
   color: var(--accent);
 }
