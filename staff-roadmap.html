@@ -91,6 +91,13 @@
                         <button class="roadmap-column-add" type="button" data-create-card-status="todo" aria-label="Create card in Not Started">+</button>
                       </div>
                       <div class="roadmap-cards-container" data-status="todo"></div>
+                      <form class="roadmap-inline-create" data-inline-create-for="todo" hidden>
+                        <input type="text" data-inline-create-title="todo" placeholder="Card title" maxlength="120" />
+                        <div class="roadmap-inline-create-actions">
+                          <button class="btn btn-primary" type="submit" data-inline-create-save="todo">Add card</button>
+                          <button class="btn btn-secondary" type="button" data-inline-create-cancel="todo">Cancel</button>
+                        </div>
+                      </form>
                       <button class="btn btn-secondary roadmap-column-create" type="button" data-create-card-status="todo">Create card</button>
                     </div>
                     <div class="roadmap-column" data-status="in_progress">
@@ -99,6 +106,13 @@
                         <button class="roadmap-column-add" type="button" data-create-card-status="in_progress" aria-label="Create card in Started">+</button>
                       </div>
                       <div class="roadmap-cards-container" data-status="in_progress"></div>
+                      <form class="roadmap-inline-create" data-inline-create-for="in_progress" hidden>
+                        <input type="text" data-inline-create-title="in_progress" placeholder="Card title" maxlength="120" />
+                        <div class="roadmap-inline-create-actions">
+                          <button class="btn btn-primary" type="submit" data-inline-create-save="in_progress">Add card</button>
+                          <button class="btn btn-secondary" type="button" data-inline-create-cancel="in_progress">Cancel</button>
+                        </div>
+                      </form>
                       <button class="btn btn-secondary roadmap-column-create" type="button" data-create-card-status="in_progress">Create card</button>
                     </div>
                     <div class="roadmap-column" data-status="in_review">
@@ -107,6 +121,13 @@
                         <button class="roadmap-column-add" type="button" data-create-card-status="in_review" aria-label="Create card in In Review">+</button>
                       </div>
                       <div class="roadmap-cards-container" data-status="in_review"></div>
+                      <form class="roadmap-inline-create" data-inline-create-for="in_review" hidden>
+                        <input type="text" data-inline-create-title="in_review" placeholder="Card title" maxlength="120" />
+                        <div class="roadmap-inline-create-actions">
+                          <button class="btn btn-primary" type="submit" data-inline-create-save="in_review">Add card</button>
+                          <button class="btn btn-secondary" type="button" data-inline-create-cancel="in_review">Cancel</button>
+                        </div>
+                      </form>
                       <button class="btn btn-secondary roadmap-column-create" type="button" data-create-card-status="in_review">Create card</button>
                     </div>
                     <div class="roadmap-column" data-status="done">
@@ -115,6 +136,13 @@
                         <button class="roadmap-column-add" type="button" data-create-card-status="done" aria-label="Create card in Done">+</button>
                       </div>
                       <div class="roadmap-cards-container" data-status="done"></div>
+                      <form class="roadmap-inline-create" data-inline-create-for="done" hidden>
+                        <input type="text" data-inline-create-title="done" placeholder="Card title" maxlength="120" />
+                        <div class="roadmap-inline-create-actions">
+                          <button class="btn btn-primary" type="submit" data-inline-create-save="done">Add card</button>
+                          <button class="btn btn-secondary" type="button" data-inline-create-cancel="done">Cancel</button>
+                        </div>
+                      </form>
                       <button class="btn btn-secondary roadmap-column-create" type="button" data-create-card-status="done">Create card</button>
                     </div>
                   </div>
@@ -251,26 +279,61 @@
         const showRoadmapLibrary = () => {
           activeRoadmapId = null;
           closeRoadmapModal();
+          hideInlineRoadmapComposer();
           setRoadmapWorkspaceVisible(false);
           updateRoadmapControlsState();
           setRoadmapStatus('Select a roadmap to open its board.');
         };
 
-        const quickCreateRoadmapCard = async (status) => {
+        const hideInlineRoadmapComposer = (status = null) => {
+          if (!roadmapBoard) return;
+          const selector = status ? `[data-inline-create-for="${status}"]` : '[data-inline-create-for]';
+          roadmapBoard.querySelectorAll(selector).forEach((form) => {
+            const input = form.querySelector('[data-inline-create-title]');
+            if (input) input.value = '';
+            form.hidden = true;
+          });
+        };
+
+        const openInlineRoadmapComposer = (status) => {
           const selectedRoadmap = getSelectedRoadmap();
           if (!selectedRoadmap || !selectedRoadmapId || !activeRoadmapId) {
             setRoadmapStatus('Open a roadmap first before creating cards.', true);
-            return;
+            return false;
           }
           if (selectedRoadmap.status === 'closed') {
             setRoadmapStatus('This roadmap is closed. Reopen it before adding cards.', true);
+            return false;
+          }
+
+          if (!roadmapBoard) return false;
+          hideInlineRoadmapComposer();
+          const composer = roadmapBoard.querySelector(`[data-inline-create-for="${status}"]`);
+          const input = composer?.querySelector('[data-inline-create-title]');
+          if (!composer || !input) return false;
+
+          composer.hidden = false;
+          input.focus();
+          input.select();
+          return true;
+        };
+
+        const quickCreateRoadmapCard = async (status) => {
+          if (!roadmapBoard) return;
+          const composer = roadmapBoard.querySelector(`[data-inline-create-for="${status}"]`);
+          const titleInput = composer?.querySelector('[data-inline-create-title]');
+          const saveBtn = composer?.querySelector('[data-inline-create-save]');
+          if (!composer || !titleInput || !saveBtn) return;
+
+          const title = String(titleInput.value || '').trim();
+          if (!title) {
+            setRoadmapStatus('Enter a card title before creating it.', true);
+            titleInput.focus();
             return;
           }
 
-          const title = String(window.prompt(`Card title for ${getRoadmapStatusLabel(status)}`, '') || '').trim();
-          if (!title) return;
-
           setRoadmapStatus('Creating roadmap card…');
+          saveBtn.disabled = true;
           const currentAuthUid = window.getCurrentAuthUid?.() || '';
           const createResult = await window.createRoadmapCard?.({
             roadmapId: selectedRoadmapId,
@@ -282,14 +345,43 @@
           });
 
           if (!createResult?.ok || !createResult.card?.id) {
+            saveBtn.disabled = false;
             setRoadmapStatus(createResult?.message || 'Could not create roadmap card.', true);
             return;
           }
 
+          hideInlineRoadmapComposer(status);
           await loadRoadmapBoard();
           await loadStaffDirectory();
-          await openRoadmapModal(createResult.card.id);
           setRoadmapStatus(`Card "${title}" created in ${getRoadmapStatusLabel(status)}.`);
+        };
+
+        const attachInlineRoadmapComposer = () => {
+          if (!roadmapBoard) return;
+
+          roadmapBoard.querySelectorAll('[data-inline-create-for]').forEach((form) => {
+            if (form.dataset.inlineReady === '1') return;
+            form.dataset.inlineReady = '1';
+
+            const status = String(form.getAttribute('data-inline-create-for') || 'todo');
+            const input = form.querySelector('[data-inline-create-title]');
+            const cancelBtn = form.querySelector('[data-inline-create-cancel]');
+
+            form.addEventListener('submit', async (event) => {
+              event.preventDefault();
+              await quickCreateRoadmapCard(status);
+            });
+
+            input?.addEventListener('keydown', (event) => {
+              if (event.key === 'Escape') {
+                hideInlineRoadmapComposer(status);
+              }
+            });
+
+            cancelBtn?.addEventListener('click', () => {
+              hideInlineRoadmapComposer(status);
+            });
+          });
         };
 
         const attachColumnCreateButtons = () => {
@@ -299,9 +391,9 @@
             if (button.dataset.createReady === '1') return;
             button.dataset.createReady = '1';
 
-            button.addEventListener('click', async () => {
+            button.addEventListener('click', () => {
               const status = String(button.getAttribute('data-create-card-status') || 'todo');
-              await quickCreateRoadmapCard(status);
+              openInlineRoadmapComposer(status);
             });
           });
         };
@@ -384,6 +476,14 @@
           document.querySelectorAll('[data-create-card-status]').forEach((button) => {
             button.disabled = !selected || isClosed || !activeRoadmapId;
           });
+
+          document.querySelectorAll('[data-inline-create-title], [data-inline-create-save]').forEach((element) => {
+            element.disabled = !selected || isClosed || !activeRoadmapId;
+          });
+
+          if (!selected || isClosed || !activeRoadmapId) {
+            hideInlineRoadmapComposer();
+          }
 
           if (viewAllRoadmapsBtn) {
             viewAllRoadmapsBtn.disabled = !activeRoadmapId;
@@ -1139,6 +1239,7 @@
           });
 
           attachRoadmapDropZones();
+          attachInlineRoadmapComposer();
         };
 
         const loadRoadmapBoard = async () => {
