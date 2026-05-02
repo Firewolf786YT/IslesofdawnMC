@@ -41,7 +41,7 @@
       </div>
     </header>
 
-    <main id="staffRoadmapContent" class="profile-main" hidden>
+    <main id="staffRoadmapContent" class="profile-main staff-roadmap-page" hidden>
       <div class="profile-hero-banner">
         <div class="container">
           <p class="eyebrow">Staff Area</p>
@@ -87,7 +87,7 @@
                   <div id="roadmapBoard" class="roadmap-board">
                     <div class="roadmap-column" data-status="todo">
                       <div class="roadmap-column-header">
-                        <h4>Not Started</h4>
+                        <h4>Not Started <span class="roadmap-column-count" data-roadmap-count-for="todo">0</span></h4>
                         <button class="roadmap-column-add" type="button" data-create-card-status="todo" aria-label="Create card in Not Started">+</button>
                       </div>
                       <div class="roadmap-cards-container" data-status="todo"></div>
@@ -95,7 +95,7 @@
                     </div>
                     <div class="roadmap-column" data-status="in_progress">
                       <div class="roadmap-column-header">
-                        <h4>Started</h4>
+                        <h4>Started <span class="roadmap-column-count" data-roadmap-count-for="in_progress">0</span></h4>
                         <button class="roadmap-column-add" type="button" data-create-card-status="in_progress" aria-label="Create card in Started">+</button>
                       </div>
                       <div class="roadmap-cards-container" data-status="in_progress"></div>
@@ -103,7 +103,7 @@
                     </div>
                     <div class="roadmap-column" data-status="in_review">
                       <div class="roadmap-column-header">
-                        <h4>In Review</h4>
+                        <h4>In Review <span class="roadmap-column-count" data-roadmap-count-for="in_review">0</span></h4>
                         <button class="roadmap-column-add" type="button" data-create-card-status="in_review" aria-label="Create card in In Review">+</button>
                       </div>
                       <div class="roadmap-cards-container" data-status="in_review"></div>
@@ -111,7 +111,7 @@
                     </div>
                     <div class="roadmap-column" data-status="done">
                       <div class="roadmap-column-header">
-                        <h4>Done</h4>
+                        <h4>Done <span class="roadmap-column-count" data-roadmap-count-for="done">0</span></h4>
                         <button class="roadmap-column-add" type="button" data-create-card-status="done" aria-label="Create card in Done">+</button>
                       </div>
                       <div class="roadmap-cards-container" data-status="done"></div>
@@ -1062,6 +1062,17 @@
 
         const renderRoadmapBoard = () => {
           if (!roadmapBoard) return;
+
+          const countsByStatus = roadmapCards.reduce((acc, card) => {
+            const status = String(card.status || 'todo');
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+          }, {});
+
+          roadmapBoard.querySelectorAll('[data-roadmap-count-for]').forEach((counter) => {
+            const status = String(counter.getAttribute('data-roadmap-count-for') || 'todo');
+            counter.textContent = String(countsByStatus[status] || 0);
+          });
 
           clearRoadmapDropTargets();
           roadmapBoard.querySelectorAll('.roadmap-cards-container').forEach((container) => {
