@@ -1179,6 +1179,9 @@
             container.innerHTML = '';
           });
 
+          // Inline create forms must be wired even on empty boards to prevent native form submission reloads.
+          attachInlineRoadmapComposer();
+
           if (!roadmapCards.length) {
             const todoColumn = roadmapBoard.querySelector('.roadmap-cards-container[data-status="todo"]');
             if (todoColumn) {
@@ -1239,7 +1242,6 @@
           });
 
           attachRoadmapDropZones();
-          attachInlineRoadmapComposer();
         };
 
         const loadRoadmapBoard = async () => {
